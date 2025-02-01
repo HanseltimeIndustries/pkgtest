@@ -1,0 +1,2 @@
+# TODO: running tests on commit can be tedious since they often come after a commit
+# yarn test

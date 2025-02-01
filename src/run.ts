@@ -6,86 +6,96 @@ import { join } from "path";
 import { FailFastError, TestRunner } from "./TestRunner";
 
 export interface RunOptions {
-    /**
-     * If set to true, this provides additional levels of logging (i.e. the stdout of each test)
-     */
-    debug?: boolean
-    /**
-     * Immediately stop running tests after a failure
-     */
-    failFast?: boolean
-    /**
-     * The max amount of time for a test to run (keep in mind, this is just the call to running the pkgTest script 
-     * and not installation)
-     * 
-     * Defaults to 2000
-     */
-    timeout?: number
-    /**
-     * A filter of file names to run
-     */
-    testNames?: string[]
+	/**
+	 * If set to true, this provides additional levels of logging (i.e. the stdout of each test)
+	 */
+	debug?: boolean;
+	/**
+	 * Immediately stop running tests after a failure
+	 */
+	failFast?: boolean;
+	/**
+	 * The max amount of time for a test to run (keep in mind, this is just the call to running the pkgTest script
+	 * and not installation)
+	 *
+	 * Defaults to 2000
+	 */
+	timeout?: number;
+	/**
+	 * A filter of file names to run
+	 */
+	testNames?: string[];
 }
 
-async function run(options: RunOptions) {
-    const { debug, failFast, timeout = 2000, testNames = [] } = options
-    if (debug) {
-        console.log('Retrieving Config...')
-    }
-    const config = await getConfig()
+export async function run(options: RunOptions) {
+	const { debug, failFast, timeout = 2000, testNames = [] } = options;
+	if (debug) {
+		console.log("Retrieving Config...");
+	}
+	const config = await getConfig();
 
-    if (debug) {
-        console.log(JSON.stringify(config))
-    }
+	if (debug) {
+		console.log(JSON.stringify(config));
+	}
 
-    const tmpDir = process.env.PKG_TEST_TEMP_DIR ?? tmpdir()
-    if (debug) {
-        console.log(`Writinng test projects to temporary directory: ${tmpDir}`)
-    }
+	const tmpDir = process.env.PKG_TEST_TEMP_DIR ?? tmpdir();
+	if (debug) {
+		console.log(`Writinng test projects to temporary directory: ${tmpDir}`);
+	}
 
-    // Set up the runner contexts
-    if (debug) {
-        console.log(`Initializing test projects...`)
-    }
-    const testRunnersDeep = await Promise.all(config.entries.reduce((runners, testConfigEntry) => {
-        testConfigEntry.moduleTypes.forEach((modType) => {
-            runners.push(...testConfigEntry.packageManagers.map(async (pkgManager) => {
-                const testProjectDir = await mkdtemp(join(tmpDir, `${LIBRARY_NAME}-`));
-                return await createTestProject({
-                    projectDir: process.cwd(),
-                    testProjectDir,
-                    debug,
-                    failFast,
-                }, {
-                    runBy: testConfigEntry.runWith,
-                    modType,
-                    pkgManager,
-                    testMatch: testConfigEntry.testMatch,
-                    typescript: testConfigEntry.transforms.typescript,
-                })
-            })
-            )
-        })
-        return runners
-    }, [] as Promise<TestRunner[]>[]))
-    if (debug) {
-        console.log(`Finished initializing test projects.`)
-    }
+	// Set up the runner contexts
+	if (debug) {
+		console.log(`Initializing test projects...`);
+	}
+	const testRunnersDeep = await Promise.all(
+		config.entries.reduce(
+			(runners, testConfigEntry) => {
+				testConfigEntry.moduleTypes.forEach((modType) => {
+					runners.push(
+						...testConfigEntry.packageManagers.map(async (pkgManager) => {
+							const testProjectDir = await mkdtemp(
+								join(tmpDir, `${LIBRARY_NAME}-`),
+							);
+							return await createTestProject(
+								{
+									projectDir: process.cwd(),
+									testProjectDir,
+									debug,
+									failFast,
+								},
+								{
+									runBy: testConfigEntry.runWith,
+									modType,
+									pkgManager,
+									testMatch: testConfigEntry.testMatch,
+									typescript: testConfigEntry.transforms.typescript,
+								},
+							);
+						}),
+					);
+				});
+				return runners;
+			},
+			[] as Promise<TestRunner[]>[],
+		),
+	);
+	if (debug) {
+		console.log(`Finished initializing test projects.`);
+	}
 
-    try {
-        // TODO: multi-threading pool for better results, although there's not a large amount of tests necessary at the moment
-        for (const runner of testRunnersDeep.flat()) {
-            await runner.runTests({
-                timeout,
-                testNames,
-            })
-        }
-    } catch (e) {
-        if (e instanceof FailFastError) {
-            // Fail normally instead of letting an error make it to the top
-            console.log('Tests failed fast')
-            process.exit(44)
-        }
-    }
+	try {
+		// TODO: multi-threading pool for better results, although there's not a large amount of tests necessary at the moment
+		for (const runner of testRunnersDeep.flat()) {
+			await runner.runTests({
+				timeout,
+				testNames,
+			});
+		}
+	} catch (e) {
+		if (e instanceof FailFastError) {
+			// Fail normally instead of letting an error make it to the top
+			console.log("Tests failed fast");
+			process.exit(44);
+		}
+	}
 }
-

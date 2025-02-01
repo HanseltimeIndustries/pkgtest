@@ -4,7 +4,11 @@
 	"extends": "./tsconfig.json",
 	"compilerOptions": {
 		"allowJs": true,
-		// Remove the rootDir restriction so that we can transpile whatever lib dir they used
-		"rootDir": null
+		// Remove the rootDir restriction so that we can transpile whatever lib dir in node_modules might need it
+		"rootDir": null,
+		"inlineSourceMap": true,
+		"declaration": false,
+		"declarationMap": false,
+		"emitDeclarationOnly": false
 	}
 }
