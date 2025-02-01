@@ -1,0 +1,34 @@
+{
+	// This is the base tsconfig.json that is used to map to SWC configurations via tsconfig-to-swcconfig/tswc
+	// Please verify any exotic options that might not map to swc (try to stick to swc equivalents so that
+	//    you can support esm/commonjs builds)
+	"compilerOptions": {
+		"strict": true,
+		"outDir": "dist/types",
+		"target": "es2020",
+		"module": "commonjs",
+		"moduleResolution": "node",
+		"sourceMap": true,
+		"experimentalDecorators": true,
+		"pretty": true,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitReturns": true,
+		"forceConsistentCasingInFileNames": true,
+		"esModuleInterop": true,
+		"rootDir": "src",
+		"skipLibCheck": true,
+		"declaration": true,
+		"declarationMap": true,
+		// IMPORTANT - SWC controls everything else for module building - so we only emit declarations here
+		"emitDeclarationOnly": true,
+		"isolatedModules": true,
+		"types": ["node", "jest"]
+	},
+	"exclude": [
+		"jest.config.ts",
+		"rspack.config.js",
+		"dist",
+		"node_modules",
+		"bin"
+	]
+}

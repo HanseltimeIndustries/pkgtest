@@ -1,0 +1,10 @@
+{
+	// Given that we need to transpile esm node_modules, we need to override some preferred strict options from the base
+	// to cover the general node_modules case
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"allowJs": true,
+		// Remove the rootDir restriction so that we can transpile whatever lib dir they used
+		"rootDir": null
+	}
+}
