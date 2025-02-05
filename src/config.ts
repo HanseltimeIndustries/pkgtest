@@ -42,6 +42,13 @@ interface TestConfigEntry {
 	 * you can change the testMatch to pick the correct files.
 	 */
 	moduleTypes: ModuleTypes[];
+	/**
+	 * Additional dependencies that can't be inferred from the project's package.json
+	 * or other explicit fields like "typescript.tsx.version".
+	 */
+	additionalDependencies?: {
+		[pkg: string]: string;
+	};
 }
 
 // Note, we use an object so that future augmentation can be easier and not require migrations
@@ -49,24 +56,26 @@ interface TestConfig {
 	entries: TestConfigEntry[];
 }
 
+const allowdScriptExtensions = ["js", "cjs", "mjs", "ts"];
+
 /**
  * Retrieves the test Configuration object from either the default paths in the cwd or from the absolute path
  * provided by the configFile
  * @param configFile
  * @returns
  */
-export async function getConfig(configFile?: string) {
+export async function getConfig(configFile?: string, cwd = process.cwd()) {
 	let resolvedFile: string | undefined;
 	if (configFile) {
 		if (isAbsolute(configFile)) {
 			resolvedFile = configFile;
 		} else {
-			resolvedFile = resolve(process.cwd(), configFile);
+			resolvedFile = resolve(cwd, configFile);
 		}
 	} else {
 		// Default config file look up behavior
-		const potentialFilePaths = ["json", "js", "cjs", "mjs", "ts"].map((ext) =>
-			resolve(process.cwd(), `${DEFAULT_CONFIG_FILE_NAME_BASE}.${ext}`),
+		const potentialFilePaths = ["json", ...allowdScriptExtensions].map((ext) =>
+			resolve(cwd, `${DEFAULT_CONFIG_FILE_NAME_BASE}.${ext}`),
 		);
 		// Look for the various importable files
 		const multiMatch: string[] = [];
@@ -81,7 +90,7 @@ export async function getConfig(configFile?: string) {
 		}
 		if (multiMatch.length > 0) {
 			throw new Error(
-				`unable to determing ${LIBRARY_NAME} config file!  Found multiple matches:\n${[
+				`unable to determine ${LIBRARY_NAME} config file!  Found multiple matches:\n${[
 					resolvedFile,
 					...multiMatch,
 				].join("\n")}`,
@@ -107,8 +116,8 @@ export async function getConfig(configFile?: string) {
 		return JSON.parse(readFileSync(resolvedFile).toString()) as TestConfig;
 	}
 
-	if (ext.endsWith("js") || ext.endsWith("ts")) {
-		return (await import(resolvedFile)) as TestConfig;
+	if (allowdScriptExtensions.some((allowed) => ext.endsWith(`.${allowed}`))) {
+		return (await import(resolvedFile)).default as TestConfig;
 	}
 
 	throw new Error(

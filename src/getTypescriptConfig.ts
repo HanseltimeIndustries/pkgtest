@@ -1,5 +1,6 @@
 import { join } from "path";
 import { TypescriptOptions } from "./types";
+import type { TsConfigJson } from "get-tsconfig";
 
 export function getTypescriptConfig(
 	context: {
@@ -8,11 +9,11 @@ export function getTypescriptConfig(
 		modType: "commonjs" | "esm";
 	},
 	options: TypescriptOptions,
-) {
+): TsConfigJson & { compilerOptions: { outDir: string } } {
 	const { modType, tsSrcDir, tsBuildDir } = context;
 	const moduleTsConfigProps = {} as {
-		target: string;
-		module: string;
+		target: TsConfigJson.CompilerOptions.Target;
+		module: TsConfigJson.CompilerOptions.Module;
 		outDir: string;
 	};
 	switch (modType) {
@@ -33,22 +34,24 @@ export function getTypescriptConfig(
 	}
 
 	// Create a typescript config
-	const { compilerOptions, exclude, ...rest } = options.config;
+	const { compilerOptions = {}, exclude = [], ...rest } = options.config ?? {};
+	const { outDir, ...softProps } = moduleTsConfigProps;
 	const tsConfig = {
 		// This is the base tsconfig.json that is used to map to SWC configurations via tsconfig-to-swcconfig/tswc
 		// Please verify any exotic options that might not map to swc (try to stick to swc equivalents so that
 		//    you can support esm/commonjs builds)
 		compilerOptions: {
-			...moduleTsConfigProps,
+			...softProps,
 			strict: true,
-			moduleResolution: "node",
+			moduleResolution: "node" as TsConfigJson.CompilerOptions.ModuleResolution,
 			sourceMap: true,
 			rootDir: tsSrcDir,
 			isolatedModules: true,
 			types: ["node"],
 			...compilerOptions,
+			outDir,
 		},
-		exclude: [...exclude, tsBuildDir, "node_modules"],
+		exclude: Array.from(new Set([...exclude, tsBuildDir, "node_modules"])),
 		...rest,
 	};
 	return tsConfig;

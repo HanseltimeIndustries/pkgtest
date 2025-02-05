@@ -1,9 +1,7 @@
 import { exec } from "child_process";
 import { ModuleTypes, PkgManager, RunBy } from "./types";
-import chalk from "chalk";
 import micromatch from "micromatch";
-
-export class FailFastError extends Error {}
+import { Reporter } from "./reporters";
 
 export class TestRunner {
 	readonly binRunCommand: string;
@@ -12,8 +10,8 @@ export class TestRunner {
 	readonly projectDir: string;
 	readonly pkgManager: PkgManager;
 	readonly modType: ModuleTypes;
-	readonly debug?: boolean;
-	readonly failFast?: boolean;
+	readonly debug: boolean;
+	readonly failFast: boolean;
 
 	constructor(options: {
 		binRunCommand: string;
@@ -25,12 +23,14 @@ export class TestRunner {
 		debug?: boolean;
 		failFast?: boolean;
 	}) {
-        this.binRunCommand = options.binRunCommand
-        this.runBy = options.runBy
-        this.testFiles = options.testFiles
-        this.projectDir = options.projectDir
-        this.pkgManager = options.pkgManager
-        this.modType = options.modType
+		this.binRunCommand = options.binRunCommand;
+		this.runBy = options.runBy;
+		this.testFiles = options.testFiles;
+		this.projectDir = options.projectDir;
+		this.pkgManager = options.pkgManager;
+		this.modType = options.modType;
+		this.debug = !!options.debug;
+		this.failFast = !!options.failFast;
 	}
 
 	// For now, we run this in parallel since we're running shell processes and that can lead to increased parallelism
@@ -43,28 +43,24 @@ export class TestRunner {
 		 * If the array is non-empty, we only run tests that include the glob pattern provided
 		 */
 		testNames: string[];
+		/**
+		 * How we will be reporting out each test that runs
+		 */
+		reporter: Reporter;
 	}) {
-		const { timeout, testNames } = options;
-		console.log(
-			`Test Suite for Module ${this.modType}, Package Manager ${this.pkgManager}, Run with ${this.runBy}`,
-		);
-		console.log(`Test package location: ${this.projectDir}`);
+		const { timeout, testNames, reporter } = options;
+		const suiteStart = new Date().getTime();
+		reporter.start(this);
+		let passed = 0;
+		let failed = 0;
+		let skipped = 0;
+		const notReached: string[] = [];
 
-		const passed: {
-			cmd: string;
-			timeMs: number;
-		}[] = [];
-		const failed: {
-			cmd: string;
-			timeMs: number;
-			timedOut: boolean;
-		}[] = [];
-
-		for (const testFile of this.testFiles) {
+		for (let i = 0; i < this.testFiles.length; i++) {
+			const testFile = this.testFiles[i];
 			try {
 				const cmd = `${this.binRunCommand} ${this.runBy} ${testFile}`;
 				const start = new Date();
-				console.log(`${chalk.blue("Test: ")} ${cmd}:`);
 				if (testNames.length > 0) {
 					if (
 						!micromatch.isMatch(
@@ -72,8 +68,11 @@ export class TestRunner {
 							testNames,
 						)
 					) {
-						console.log(chalk.yellow("Skipped"));
-						// Continue so we skip it
+						skipped++;
+						reporter.skipped({
+							testCmd: cmd,
+							time: 0,
+						});
 						continue;
 					}
 				}
@@ -87,60 +86,52 @@ export class TestRunner {
 						},
 						(err, stdout, stderr) => {
 							const testTimeMs = new Date().getTime() - start.getTime();
-							if (!err) {
-								if (testTimeMs >= timeout) {
-									console.error(
-										`${chalk.red("Test exceeded timeout")}: ${timeout} ms`,
-									);
-								}
-								console.error(stderr);
-								failed.push({
-									cmd,
-									timeMs: testTimeMs,
-									timedOut: testTimeMs >= timeout,
+							if (err) {
+								failed++;
+								reporter.failed({
+									testCmd: cmd,
+									time: testTimeMs,
+									stdout,
+									stderr,
+									timedout: testTimeMs >= timeout,
 								});
 								if (this.failFast) {
 									rej();
 								}
 							} else {
-								if (this.debug) {
-									console.log(stdout);
-								}
-								passed.push({
-									cmd,
-									timeMs: testTimeMs,
+								passed++;
+								reporter.passed({
+									testCmd: cmd,
+									time: testTimeMs,
+									stdout,
+									stderr,
 								});
 							}
+
 							// Always return unless we have failFast set
 							res();
 						},
 					);
 				});
 			} catch (_e) {
+				// Process the unready for the summary
+				notReached.push(...this.testFiles.slice(i + 1));
 				// if we throw an error here, then we are failing fast
 				break;
 			}
 		}
 
-		// Apply summary
-		passed.forEach(({ cmd, timeMs }) => {
-			console.log(testResultLine(cmd, timeMs, true));
-		});
-		failed.forEach(({ cmd, timeMs }) => {
-			console.log(testResultLine(cmd, timeMs, false));
-		});
-		// Use this metric in the event that fail fast occurs
-		const skipped = this.testFiles.length - passed.length - failed.length;
-		console.log(
-			`Passed: ${chalk.green(passed.length)}\nFailed: ${chalk.red(failed.length)}\nSkipped: ${skipped === 0 ? skipped : chalk.yellow(skipped)}\nTotal: ${this.testFiles.length}`,
-		);
+		const summary = {
+			passed,
+			failed,
+			skipped,
+			notReached,
+			total: this.testFiles.length,
+			time: new Date().getTime() - suiteStart,
+			failedFast: failed > 0 && this.failFast,
+		};
+		reporter.summary(summary);
 
-		if (failed.length > 0 && this.failFast) {
-			throw new FailFastError(`A test failed!`);
-		}
+		return summary;
 	}
-}
-
-function testResultLine(cmd: string, testTimeMs: number, passed: boolean) {
-	`${passed ? chalk.green("PASSED") : chalk.red("FAILED")} ${cmd}   ${chalk.gray(`${testTimeMs} ms`)}`;
 }

@@ -1,6 +1,20 @@
 import { tryGetDependency } from "./tryGetDependency";
 import { TypescriptOptions, RunBy, PkgManager } from "./types";
 
+export interface CreateDependenciesOptions {
+	typescript?: TypescriptOptions;
+	runBy: RunBy[];
+	pkgManager: PkgManager;
+	/**
+	 * If you explicitly want to include other dependencies, you can add them here,
+	 *
+	 * IMPORTANT!  This overrides any derived types
+	 */
+	additionalDependencies?: {
+		[pkg: string]: string;
+	};
+}
+
 /**
  * Creates a set of dependencies for the target test project that given the package
  * json of the project we want to test, it's relative url to the target package.json we
@@ -12,6 +26,10 @@ import { TypescriptOptions, RunBy, PkgManager } from "./types";
  * @returns
  */
 export function createDependencies(
+	/**
+	 * The packageJson of the package we're tesing installs for (used for lookup of peerDependencies
+	 * and fallback versioning)
+	 */
 	packageJson: {
 		name: string;
 		dependencies?: {
@@ -24,37 +42,45 @@ export function createDependencies(
 			[pkg: string]: string;
 		};
 	},
+	/**
+	 * The relative path from the current directory that we're building dependencies for to the package
+	 * under test
+	 */
 	packageRelativePath: string,
-	options: {
-		typescript?: TypescriptOptions;
-		runBy: RunBy[];
-		pkgManager: PkgManager;
-	},
+	options: CreateDependenciesOptions,
 ) {
 	const { name, peerDependencies } = packageJson;
 
-	const { typescript, runBy, pkgManager } = options;
+	const { typescript, runBy, pkgManager, additionalDependencies } = options;
 
 	// Specific templates have their own dependencies
 	const specificDeps: {
-        [pkg: string]: string | undefined
-    } = {
-		typescript:
-			typescript?.version ?? tryGetDependency("typescript", packageJson),
-		"@types/nodes":
-			typescript?.nodeTypes?.version ?? tryGetDependency("@types/node", packageJson),
-	};
+		[pkg: string]: string | undefined;
+	} = typescript
+		? {
+				typescript:
+					typescript?.version ?? tryGetDependency("typescript", packageJson),
+				"@types/node":
+					typescript?.nodeTypes?.version ??
+					tryGetDependency("@types/node", packageJson),
+			}
+		: {};
 	// Make sure we have minimum dependency requirements
 	runBy.forEach((rBy) => {
 		if (rBy === RunBy.Tsx || rBy === RunBy.TsNode) {
-			if (!specificDeps.typescript) {
+			if (!typescript) {
 				throw new Error(
-					`Cannot run by ${rBy} without a typescript version supplied or discoverable in package.json!`,
+					`Supply a typescript object (even if empty) for running by ${rBy}`,
 				);
 			}
 			if (!specificDeps.typescript) {
 				throw new Error(
 					`Cannot run by ${rBy} without a typescript version supplied or discoverable in package.json!`,
+				);
+			}
+			if (!specificDeps["@types/node"]) {
+				throw new Error(
+					`Cannot run by ${rBy} without a @types/node version supplied or discoverable in package.json!`,
 				);
 			}
 		}
@@ -76,7 +102,7 @@ export function createDependencies(
 				break;
 			case RunBy.Tsx:
 				specificDeps["tsx"] =
-					typescript?.tsNode?.version ?? tryGetDependency("tsx", packageJson);
+					typescript?.tsx?.version ?? tryGetDependency("tsx", packageJson);
 				if (!specificDeps["tsx"]) {
 					throw new Error(
 						`Cannot run by tsx without a tsx version supplied or discoverable in package.json!`,
@@ -102,5 +128,6 @@ export function createDependencies(
 		[name]: `${protocol}${packageRelativePath}`,
 		...peerDependencies,
 		...specificDeps,
+		...additionalDependencies,
 	};
 }

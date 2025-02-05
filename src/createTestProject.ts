@@ -1,12 +1,18 @@
 import { cp, readFile, writeFile } from "fs/promises";
-import { basename, join, relative } from "path";
+import { isAbsolute, join, relative } from "path";
 import { getAllMatchingFiles } from "./getAllMatchingFiles";
 import { execSync } from "child_process";
 import { ModuleTypes, PkgManager, RunBy, TypescriptOptions } from "./types";
 import { getTypescriptConfig } from "./getTypescriptConfig";
-import { createDependencies } from "./createDependencies";
+import {
+	createDependencies,
+	CreateDependenciesOptions,
+} from "./createDependencies";
 import { getPkgBinaryRunnerCommand } from "./getPkgBinaryRunnerCommand";
 import { TestRunner } from "./TestRunner";
+
+export const SRC_DIRECTORY = "src";
+export const BUILD_DIRECTORY = "dist";
 
 /**
  * Creates a test project (the physical package.json folder) for a given configuration
@@ -19,7 +25,13 @@ import { TestRunner } from "./TestRunner";
  */
 export async function createTestProject(
 	context: {
+		/**
+		 * Absolute path to the project under test directory
+		 */
 		projectDir: string;
+		/**
+		 * Absolute path to the directory we created for temporary testing
+		 */
 		testProjectDir: string;
 		debug?: boolean;
 		failFast?: boolean;
@@ -36,10 +48,18 @@ export async function createTestProject(
 		modType: ModuleTypes;
 		pkgManager: PkgManager;
 		testMatch: string;
+		additionalDependencies?: CreateDependenciesOptions["additionalDependencies"];
 		typescript?: TypescriptOptions;
 	},
-) {
+): Promise<TestRunner[]> {
 	const { projectDir, testProjectDir, debug } = context;
+
+	if (!isAbsolute(projectDir)) {
+		throw new Error("projectDir must be absolute path!");
+	}
+	if (!isAbsolute(testProjectDir)) {
+		throw new Error("testProjectDir must be absolute path!");
+	}
 
 	const { runBy, modType, pkgManager, testMatch, typescript } = options;
 
@@ -53,8 +73,8 @@ export async function createTestProject(
 
 	// Add the module type of the test package
 	const typeProps: {
-        type?: 'module'
-    } = {};
+		type?: "module";
+	} = {};
 	switch (modType) {
 		case "esm":
 			typeProps["type"] = "module";
@@ -66,10 +86,15 @@ export async function createTestProject(
 	}
 
 	const pkgJson = {
-		name: `@dummy-test-package/test-${modType}-`,
+		name: `@dummy-test-package/test-${modType}`,
 		description: `Compiled tests for ${packageJson.name} as ${modType} project import`,
 		...typeProps,
-		dependencies: createDependencies(packageJson, relativePath, options),
+		dependencies: createDependencies(packageJson, relativePath, {
+			pkgManager: options.pkgManager,
+			runBy: options.runBy,
+			typescript: options.typescript,
+			additionalDependencies: options.additionalDependencies,
+		}),
 		private: true,
 	};
 	// Write the package.json to the directory
@@ -116,8 +141,7 @@ export async function createTestProject(
 	}
 
 	const testFiles = await getAllMatchingFiles(projectDir, testMatch);
-	const srcDir = "src";
-	const absSrcPath = join(projectDir, srcDir);
+	const absSrcPath = join(testProjectDir, SRC_DIRECTORY);
 
 	if (debug) {
 		console.log(`Copying ${testFiles.length} test files to ${absSrcPath}...`);
@@ -126,7 +150,7 @@ export async function createTestProject(
 	// Copy over the test files to the project directory
 	const copiedTestFiles = await Promise.all(
 		testFiles.map(async (tf) => {
-			const copiedTestFile = join(absSrcPath, basename(tf));
+			const copiedTestFile = tf.replace(projectDir, absSrcPath);
 			await cp(tf, copiedTestFile);
 			return copiedTestFile;
 		}),
@@ -147,8 +171,8 @@ export async function createTestProject(
 		const tsConfig = getTypescriptConfig(
 			{
 				modType,
-				tsBuildDir: "dist",
-				tsSrcDir: srcDir,
+				tsBuildDir: BUILD_DIRECTORY,
+				tsSrcDir: SRC_DIRECTORY,
 			},
 			typescript,
 		);
@@ -171,19 +195,22 @@ export async function createTestProject(
 			console.log(`Compiled ${configFilePath} at ${testProjectDir}.`);
 		}
 
-		const absBuildPath = join(projectDir, tsConfig.outDir);
+		const absBuildPath = join(testProjectDir, tsConfig.compilerOptions.outDir);
 
 		runBy.forEach((rBy) => {
 			let testFiles: string[];
 			switch (rBy) {
 				case RunBy.Node:
-					testFiles = copiedTestFiles;
+					testFiles = copiedTestFiles.map((srcFile) =>
+						// Since ts builds to .js we also need to replace the extensions
+						srcFile
+							.replace(absSrcPath, absBuildPath)
+							.replace(/\.tsx?$/, ".js"),
+					);
 					break;
 				case RunBy.TsNode:
 				case RunBy.Tsx:
-					testFiles = copiedTestFiles.map((srcFile) =>
-						srcFile.replace(absSrcPath, absBuildPath),
-					);
+					testFiles = copiedTestFiles;
 					break;
 				default:
 					throw new Error(

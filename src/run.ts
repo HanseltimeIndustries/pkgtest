@@ -3,7 +3,8 @@ import { getConfig, LIBRARY_NAME } from "./config";
 import { createTestProject } from "./createTestProject";
 import { mkdtemp } from "fs/promises";
 import { join } from "path";
-import { FailFastError, TestRunner } from "./TestRunner";
+import { TestRunner } from "./TestRunner";
+import { SimpleReporter } from "./reporters/SimpleReporter";
 
 export interface RunOptions {
 	/**
@@ -40,7 +41,7 @@ export async function run(options: RunOptions) {
 
 	const tmpDir = process.env.PKG_TEST_TEMP_DIR ?? tmpdir();
 	if (debug) {
-		console.log(`Writinng test projects to temporary directory: ${tmpDir}`);
+		console.log(`Writing test projects to temporary directory: ${tmpDir}`);
 	}
 
 	// Set up the runner contexts
@@ -83,16 +84,18 @@ export async function run(options: RunOptions) {
 		console.log(`Finished initializing test projects.`);
 	}
 
-	try {
-		// TODO: multi-threading pool for better results, although there's not a large amount of tests necessary at the moment
-		for (const runner of testRunnersDeep.flat()) {
-			await runner.runTests({
-				timeout,
-				testNames,
-			});
-		}
-	} catch (e) {
-		if (e instanceof FailFastError) {
+	const reporter = new SimpleReporter({
+		debug,
+	});
+
+	// TODO: multi-threading pool for better results, although there's not a large amount of tests necessary at the moment
+	for (const runner of testRunnersDeep.flat()) {
+		const { failedFast } = await runner.runTests({
+			timeout,
+			testNames,
+			reporter,
+		});
+		if (failedFast) {
 			// Fail normally instead of letting an error make it to the top
 			console.log("Tests failed fast");
 			process.exit(44);

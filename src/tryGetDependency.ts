@@ -7,7 +7,14 @@ export function tryGetDependency(
 		devDependencies?: {
 			[k: string]: string;
 		};
+		peerDependencies?: {
+			[k: string]: string;
+		};
 	},
 ) {
-	return packageJson.dependencies?.[dep] ?? packageJson.devDependencies?.[dep];
+	return (
+		packageJson.peerDependencies?.[dep] ??
+		packageJson.dependencies?.[dep] ??
+		packageJson.devDependencies?.[dep]
+	);
 }

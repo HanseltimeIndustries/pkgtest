@@ -1,7 +1,6 @@
 const path = require("path");
 const {
 	getJestNodeModulesTransformIgnore,
-	getEcmaVersionFromTsConfig,
 } = require("@hanseltime/esm-interop-tools");
 
 const testTSConfig = "tsconfig.test.json";

@@ -1,3 +1,5 @@
+import type { TsConfigJson } from "get-tsconfig";
+
 /**
  * The type of module that the testing package that is created will be listed as:
  *
@@ -55,7 +57,7 @@ export interface TypescriptOptions extends InstalledTool {
 	/**
 	 * Typescript configuration that is merged with the base typescript that is created
 	 */
-	config: any;
+	config?: Partial<TsConfigJson>;
 	/**
 	 * The version of the @types/node
 	 */
