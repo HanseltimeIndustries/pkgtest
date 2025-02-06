@@ -31,7 +31,7 @@ const testExplicitVersion: TypescriptOptions = {
 };
 
 function expectedPrefix(pkgManager: PkgManager) {
-	if (pkgManager === PkgManager.YarnV4) {
+	if (pkgManager === PkgManager.YarnBerry) {
 		return "portal:";
 	}
 	return "file:";

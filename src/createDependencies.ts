@@ -116,7 +116,7 @@ export function createDependencies(
 
 	let protocol: string;
 	switch (pkgManager) {
-		case PkgManager.YarnV4:
+		case PkgManager.YarnBerry:
 			// Yarn v4 does not play well with file:// since it tries zipping things it shouldn't
 			protocol = "portal:";
 			break;

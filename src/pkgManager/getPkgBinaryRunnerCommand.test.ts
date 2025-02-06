@@ -4,11 +4,11 @@ import { PkgManager } from "../types";
 describe("getPkgBinaryRunnerCommand", () => {
 	const testCases = Object.values(PkgManager).reduce(
 		(cases, pkgManager) => {
-			if (
-				pkgManager === PkgManager.YarnV1 ||
-				pkgManager === PkgManager.YarnV4
-			) {
+			if (pkgManager === PkgManager.YarnBerry) {
 				cases.push([pkgManager, undefined, "corepack yarn@latest"]);
+				cases.push([pkgManager, "3.4.2", "corepack yarn@3.4.2"]);
+			} else if (pkgManager === PkgManager.YarnV1) {
+				cases.push([pkgManager, undefined, "corepack yarn@1.x"]);
 				cases.push([pkgManager, "1.1.1", "corepack yarn@1.1.1"]);
 			} else if (pkgManager === PkgManager.Npm) {
 				cases.push([pkgManager, undefined, "corepack npx@latest"]);

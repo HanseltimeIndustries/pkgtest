@@ -19,7 +19,7 @@ export function getPkgManagerSetCommand(
 			return `corepack use npm@${version}`;
 		case PkgManager.Pnpm:
 			return `corepack use pnpm@${version}`;
-		case PkgManager.YarnV4:
+		case PkgManager.YarnBerry:
 			return `corepack use yarn@${version}`;
 		case PkgManager.YarnV1:
 			return `corepack use yarn@${coerceYarnV1(version)}`;

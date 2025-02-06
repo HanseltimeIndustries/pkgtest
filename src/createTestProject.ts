@@ -147,7 +147,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		pkgManagerOptions?.version,
 	);
 	// Pre-install setup
-	if (pkgManager === PkgManager.YarnV4) {
+	if (pkgManager === PkgManager.YarnBerry) {
 		const cast = pkgManagerOptions as YarnV4Options;
 		if (cast?.yarnrc) {
 			logger.logDebug(`Writing .yarnrc.yml at ${testProjectDir}`);

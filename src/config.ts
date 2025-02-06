@@ -63,7 +63,7 @@ const AdvancedPackageManagerOptionsValidated = z.discriminatedUnion(
 	"packageManager",
 	[
 		z.object({
-			packageManager: z.literal(PkgManager.YarnV4),
+			packageManager: z.literal(PkgManager.YarnBerry),
 			options: YarnV4OptionsValidated,
 		}),
 		z.object({

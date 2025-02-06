@@ -18,7 +18,7 @@ export function getPkgManagerCommand(
 			return `corepack npm@${version}`;
 		case PkgManager.Pnpm:
 			return `corepack pnpm@${version}`;
-		case PkgManager.YarnV4:
+		case PkgManager.YarnBerry:
 			return `corepack yarn@${version}`;
 		case PkgManager.YarnV1:
 			if (version !== "latest" && !version.startsWith("1")) {

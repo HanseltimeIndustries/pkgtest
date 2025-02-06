@@ -16,7 +16,7 @@ export function getPkgBinaryRunnerCommand(
 			return `corepack npx@${version}`;
 		case PkgManager.Pnpm:
 		case PkgManager.YarnV1:
-		case PkgManager.YarnV4:
+		case PkgManager.YarnBerry:
 			return getPkgManagerCommand(pkgManager, version);
 		default:
 			throw new Error(

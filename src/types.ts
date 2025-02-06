@@ -32,7 +32,7 @@ export enum PkgManager {
 	Npm = "npm",
 	Pnpm = "pnpm",
 	YarnV1 = "yarn-v1",
-	YarnV4 = "yarn-v4",
+	YarnBerry = "yarn-berry",
 }
 
 export enum YarnMode {
@@ -99,7 +99,7 @@ export interface YarnV4Options extends PkgManagerBaseOptions {
  * Type switch for different options configurations per package manager
  */
 export type PkgManagerOptions<T extends PkgManager> =
-	T extends PkgManager.YarnV4 ? YarnV4Options : PkgManagerBaseOptions;
+	T extends PkgManager.YarnBerry ? YarnV4Options : PkgManagerBaseOptions;
 
 /**
  * More complex package manager configuration where supported properties per package
