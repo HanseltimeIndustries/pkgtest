@@ -1,8 +1,15 @@
 import { cp, readFile, writeFile } from "fs/promises";
 import { isAbsolute, join, relative } from "path";
 import { getAllMatchingFiles } from "./getAllMatchingFiles";
-import { execSync } from "child_process";
-import { ModuleTypes, PkgManager, RunBy, TypescriptOptions } from "./types";
+import { exec, ExecOptions, execSync } from "child_process";
+import {
+	ModuleTypes,
+	PkgManager,
+	RunBy,
+	TypescriptOptions,
+	PkgManagerOptions,
+	YarnV4Options,
+} from "./types";
 import { getTypescriptConfig } from "./getTypescriptConfig";
 import {
 	createDependencies,
@@ -10,6 +17,8 @@ import {
 } from "./createDependencies";
 import { getPkgBinaryRunnerCommand } from "./getPkgBinaryRunnerCommand";
 import { TestRunner } from "./TestRunner";
+import { writeFileSync } from "fs";
+import * as yaml from "js-yaml";
 
 export const SRC_DIRECTORY = "src";
 export const BUILD_DIRECTORY = "dist";
@@ -23,7 +32,7 @@ export const BUILD_DIRECTORY = "dist";
  * @param options
  * @returns
  */
-export async function createTestProject(
+export async function createTestProject<PkgManagerT extends PkgManager>(
 	context: {
 		/**
 		 * Absolute path to the project under test directory
@@ -46,7 +55,12 @@ export async function createTestProject(
 		 */
 		runBy: RunBy[];
 		modType: ModuleTypes;
-		pkgManager: PkgManager;
+		pkgManager: PkgManagerT;
+		/**
+		 * If an advanced configuration was used, this is the package manager options for the specific manager
+		 * (set up before installing)
+		 */
+		pkgManagerOptions?: PkgManagerOptions<PkgManagerT>;
 		testMatch: string;
 		additionalDependencies?: CreateDependenciesOptions["additionalDependencies"];
 		typescript?: TypescriptOptions;
@@ -61,11 +75,31 @@ export async function createTestProject(
 		throw new Error("testProjectDir must be absolute path!");
 	}
 
-	const { runBy, modType, pkgManager, testMatch, typescript } = options;
+	const {
+		runBy,
+		modType,
+		pkgManager,
+		testMatch,
+		typescript,
+		pkgManagerOptions,
+	} = options;
+	const logPrefix = `[${pkgManager}, ${modType}]`;
 
-	if (debug) {
-		console.log(`Generating package.json at ${testProjectDir}...`);
+	const testFiles = await getAllMatchingFiles(projectDir, testMatch);
+	if (testFiles.length == 0) {
+		throw new Error(`Cannot find any tests to match: ${testMatch}`);
 	}
+
+	function log(msg: string | Buffer) {
+		console.log(`${logPrefix} ${msg}`);
+	}
+	function logDebug(msg: string | Buffer) {
+		if (debug) {
+			log(msg);
+		}
+	}
+	logDebug(`Generating package.json at ${testProjectDir}`);
+
 	const relativePath = relative(testProjectDir, projectDir);
 	const packageJson = JSON.parse(
 		(await readFile(join(projectDir, "package.json"))).toString(),
@@ -102,33 +136,63 @@ export async function createTestProject(
 		join(testProjectDir, "package.json"),
 		JSON.stringify(pkgJson, null, 4),
 	);
-	if (debug) {
-		console.log(`Finished writing package.json at ${testProjectDir}`);
-	}
+	logDebug(`Finished writing package.json at ${testProjectDir}`);
 
-	if (debug) {
-		console.log(`Running package installation at ${testProjectDir}...`);
-	}
+	logDebug(`Running package installation at ${testProjectDir}`);
 	// depending on the type of package manager - perform installs
+	const installCLiArgs = pkgManagerOptions?.installCliArgs ?? "";
 	switch (pkgManager) {
 		case PkgManager.Npm:
-			execSync("npm install", {
-				cwd: testProjectDir,
-			});
+			await controlledExec(
+				`npm install ${installCLiArgs}`,
+				{
+					cwd: testProjectDir,
+					env: process.env,
+				},
+				logDebug,
+			);
 			break;
 		case PkgManager.YarnV1:
-			execSync("yarn install", {
-				cwd: testProjectDir,
-			});
+			await controlledExec(
+				`yarn install ${installCLiArgs}`,
+				{
+					cwd: testProjectDir,
+					env: process.env,
+				},
+				logDebug,
+			);
 			break;
 		case PkgManager.YarnV4:
-			execSync("corepack enable && yarn install", {
-				cwd: testProjectDir,
-			});
+			{
+				const cast = pkgManagerOptions as YarnV4Options;
+				if (cast?.yarnrc) {
+					logDebug(`Writing .yarnrc.yml at ${testProjectDir}`);
+					writeFileSync(
+						join(testProjectDir, ".yarnrc.yml"),
+						yaml.dump(cast.yarnrc),
+					);
+				}
+				await controlledExec(
+					`corepack enable && yarn set version berry && yarn set version 4.x && yarn install ${installCLiArgs}`,
+					{
+						cwd: testProjectDir,
+						env: process.env,
+					},
+					logDebug,
+				);
+			}
 			break;
 		case PkgManager.Pnpm:
-			execSync("pnpm install", {
+			// Since pnpm and corepack fight each other due to mismatched keys we disable corepack
+			// And expect you to have installed the version of pnpm you wanted already
+			// https://stackoverflow.com/questions/79411275/after-heroku-restart-pnpm-error-cannot-find-matching-keyid
+			execSync("npm install -g pnpm@latest-10", {
 				cwd: testProjectDir,
+				env: process.env,
+			});
+			execSync(`pnpm install ${installCLiArgs}`, {
+				cwd: testProjectDir,
+				env: process.env,
 			});
 			break;
 		default:
@@ -136,16 +200,11 @@ export async function createTestProject(
 				`Unimplemented package manager install for: ${pkgManager}`,
 			);
 	}
-	if (debug) {
-		console.log(`Finished installation at ${testProjectDir}.`);
-	}
+	logDebug(`Finished installation (${pkgManager}) at ${testProjectDir}`);
 
-	const testFiles = await getAllMatchingFiles(projectDir, testMatch);
 	const absSrcPath = join(testProjectDir, SRC_DIRECTORY);
 
-	if (debug) {
-		console.log(`Copying ${testFiles.length} test files to ${absSrcPath}...`);
-	}
+	logDebug(`Copying ${testFiles.length} test files to ${absSrcPath}`);
 
 	// Copy over the test files to the project directory
 	const copiedTestFiles = await Promise.all(
@@ -156,18 +215,14 @@ export async function createTestProject(
 		}),
 	);
 
-	if (debug) {
-		console.log(`Finished copying test files to ${absSrcPath}.`);
-	}
+	logDebug(`Finished copying test files to ${absSrcPath}`);
 
 	const runners: TestRunner[] = [];
 	const binRunCmd = getPkgBinaryRunnerCommand(pkgManager);
 	// Add a tsconfig file if we are using typescript transpilation
 	if (typescript) {
 		const configFilePath = `tsconfig.${modType}.json`;
-		if (debug) {
-			console.log(`Creating ${configFilePath} at ${testProjectDir}...`);
-		}
+		logDebug(`Creating ${configFilePath} at ${testProjectDir}`);
 		const tsConfig = getTypescriptConfig(
 			{
 				modType,
@@ -180,20 +235,19 @@ export async function createTestProject(
 			join(testProjectDir, configFilePath),
 			JSON.stringify(tsConfig, null, 4),
 		);
-		if (debug) {
-			console.log(`Created ${configFilePath} at ${testProjectDir}.`);
-		}
+		logDebug(`Created ${configFilePath} at ${testProjectDir}`);
 
-		if (debug) {
-			console.log(`Compiling ${configFilePath} at ${testProjectDir}...`);
-		}
+		logDebug(`Compiling ${configFilePath} at ${testProjectDir}`);
+
 		// Transpile the typescript projects
-		execSync(`${binRunCmd} tsc -p ${configFilePath}`, {
-			cwd: testProjectDir,
-		});
-		if (debug) {
-			console.log(`Compiled ${configFilePath} at ${testProjectDir}.`);
-		}
+		controlledExec(
+			`${binRunCmd} tsc -p ${configFilePath}`,
+			{
+				cwd: testProjectDir,
+			},
+			logDebug,
+		);
+		logDebug(`Compiled ${configFilePath} at ${testProjectDir}`);
 
 		const absBuildPath = join(testProjectDir, tsConfig.compilerOptions.outDir);
 
@@ -254,4 +308,27 @@ export async function createTestProject(
 		});
 	}
 	return runners;
+}
+
+async function controlledExec(
+	cmd: string,
+	options: ExecOptions,
+	logDebug: (msg: string | Buffer) => void,
+) {
+	await new Promise<void>((res, rej) => {
+		exec(cmd, options, (error, stdout, stderr) => {
+			if (error) {
+				console.error(stderr);
+				rej(error);
+			} else {
+				if (stdout) {
+					logDebug(stdout);
+				}
+				if (stderr) {
+					logDebug(stderr);
+				}
+				res();
+			}
+		});
+	});
 }

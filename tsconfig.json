@@ -29,6 +29,7 @@
 		"rspack.config.js",
 		"dist",
 		"node_modules",
-		"bin"
+		"bin",
+		"pkgtest/"
 	]
 }

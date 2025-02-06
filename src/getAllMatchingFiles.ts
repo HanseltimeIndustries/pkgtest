@@ -1,20 +1,25 @@
 import { statSync } from "fs";
 import { readdir } from "fs/promises";
 import micromatch from "micromatch";
-import { join } from "path";
+import { join, sep } from "path";
 
 export async function getAllMatchingFiles(
 	dir: string,
 	glob: string,
+	_topDir?: string,
 ): Promise<string[]> {
+	const topDir = _topDir ?? (dir.endsWith(sep) ? dir : dir + sep);
 	const files = await readdir(dir);
 	const matchedFiles = await Promise.all<string[] | string | undefined>(
 		files.map(async (f) => {
 			const fullPath = join(dir, f);
 			if (statSync(fullPath).isDirectory()) {
-				return await getAllMatchingFiles(fullPath, glob);
+				return await getAllMatchingFiles(fullPath, glob, topDir);
 			} else {
-				return micromatch.isMatch(fullPath, glob) ? fullPath : undefined;
+				// Localize the path so that we can't get other matches based on upstream folders
+				return micromatch.isMatch(fullPath.replace(topDir, ""), glob)
+					? fullPath
+					: undefined;
 			}
 		}),
 	);

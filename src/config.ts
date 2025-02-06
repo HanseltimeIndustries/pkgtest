@@ -1,60 +1,128 @@
 import { existsSync, readFileSync } from "fs";
 import { isAbsolute, extname, resolve } from "path";
-import { ModuleTypes, PkgManager, RunBy, TypescriptOptions } from "./types";
+import {
+	InstalledTool,
+	ModuleTypes,
+	PktManagerOptionsConfig,
+	PkgManager,
+	PkgManagerBaseOptions,
+	RunBy,
+	TestConfig,
+	TestConfigEntry,
+	TypescriptOptions,
+	YarnV4Options,
+} from "./types";
+import { z, ZodError, ZodType } from "zod";
+import { fromError } from "zod-validation-error";
 
 export const LIBRARY_NAME = "pkgTest";
 export const DEFAULT_CONFIG_FILE_NAME_BASE = `pkgtest.config`;
 
-interface TestConfigEntry {
-	/**
-	 * A glob patterned string from the cwd (the package root) that will identify any pkgTest files to copy into
-	 * respective package tests and then run.
-	 */
-	testMatch: string;
-	/**
-	 * Which package managed we will use to install dependencies and run the various test scripts provided.
-	 *
-	 * Important - to preserve integrity during testing, each module type will get a brand new project per package
-	 * manager to avoid dependency install and access issues.
-	 */
-	packageManagers: PkgManager[];
-	/**
-	 * The various ways that you want to run the scripts in question to verify they work as expected.
-	 * Note, we will run each way per package manager + module project that is created.
-	 */
-	runWith: RunBy[];
-	/**
-	 * Transforms that need to be run on the raw tests that were found via testMatch and copied into the project.
-	 *
-	 * If none are provided, then you can only use runWith tools that can operate directly on js and we expect
-	 * the files to be in the correct raw js flavor
-	 */
-	transforms: {
-		typescript: TypescriptOptions;
-	};
-	/**
-	 * A list of module types that we will import the package under test with.  If you are using typescript,
-	 * you will probably want the same configuration for both moduleTypes and will only need one TetsConfigEntry
-	 * for both.
-	 *
-	 * If you are writing in raw JS though, you will more than likely need to keep ESM and CommonJS equivalent versions
-	 * of each package test and therefore will need to have an entry with ["commonjs"] and ["esm"] separately so that
-	 * you can change the testMatch to pick the correct files.
-	 */
-	moduleTypes: ModuleTypes[];
-	/**
-	 * Additional dependencies that can't be inferred from the project's package.json
-	 * or other explicit fields like "typescript.tsx.version".
-	 */
-	additionalDependencies?: {
-		[pkg: string]: string;
-	};
-}
+const InstalledToolValidated = z.object({
+	version: z
+		.string()
+		.optional()
+		.describe(
+			"Explicit version to test.  If not supplied, we will use the dependency/devDependency of the testing project or throw an error if we can't find anything",
+		),
+}) satisfies ZodType<InstalledTool>;
 
-// Note, we use an object so that future augmentation can be easier and not require migrations
-interface TestConfig {
-	entries: TestConfigEntry[];
-}
+const TypescriptOptionsValidated = z.object({
+	config: z
+		.any()
+		.describe(
+			"Typescript configuration that is merged with the base typescript that is created",
+		)
+		.optional(),
+	nodeTypes: InstalledToolValidated.describe(
+		"The version of the @types/node",
+	).optional(),
+	tsx: InstalledToolValidated.describe(
+		"Required if Tsx is included in the runBy section",
+	).optional(),
+	tsNode: InstalledToolValidated.describe(
+		"Required if Tsx is included in the runBy section",
+	).optional(),
+}) satisfies ZodType<TypescriptOptions>;
+
+const TransformValidated = z.object({
+	typescript: TypescriptOptionsValidated,
+});
+
+const PkgManagerBaseOptionsValidated = z.object({
+	installCliArgs: z.string().optional(),
+}) satisfies ZodType<PkgManagerBaseOptions>;
+
+const YarnV4OptionsValidated = z
+	.object({
+		yarnrc: z.any().describe("any .yarnrc.yml options").optional(),
+	})
+	.merge(PkgManagerBaseOptionsValidated) satisfies ZodType<YarnV4Options>;
+
+const AdvancedPackageManagerOptionsValidated = z.discriminatedUnion(
+	"packageManager",
+	[
+		z.object({
+			packageManager: z.literal(PkgManager.YarnV4),
+			options: YarnV4OptionsValidated,
+		}),
+		z.object({
+			packageManager: z.literal(PkgManager.YarnV1),
+			options: PkgManagerBaseOptionsValidated,
+		}),
+		z.object({
+			packageManager: z.literal(PkgManager.Npm),
+			options: PkgManagerBaseOptionsValidated,
+		}),
+		z.object({
+			packageManager: z.literal(PkgManager.Pnpm),
+			options: PkgManagerBaseOptionsValidated,
+		}),
+	],
+) satisfies ZodType<PktManagerOptionsConfig<PkgManager>>;
+
+const TestConfigEntryValidated = z.object({
+	testMatch: z
+		.string()
+		.describe(
+			"A glob patterned string from the cwd (the package root) that will identify any pkgTest files to copy into respective package tests and then run.",
+		),
+	packageManagers: z
+		.array(
+			z.union([
+				z.nativeEnum(PkgManager),
+				AdvancedPackageManagerOptionsValidated,
+			]),
+		)
+		.describe(`Which package managed we will use to install dependencies and run the various test scripts provided.
+Important - to preserve integrity during testing, each module type will get a brand new project per package manager to avoid dependency install and access issues.`),
+	runWith: z
+		.array(z.nativeEnum(RunBy))
+		.describe(`The various ways that you want to run the scripts in question to verify they work as expected.
+Note, we will run each way per package manager + module project that is created.`),
+	moduleTypes: z
+		.array(z.nativeEnum(ModuleTypes))
+		.describe(`A list of module types that we will import the package under test with.  If you are using typescript, you will probably want the same configuration for both moduleTypes and will only need one TetsConfigEntry for both.
+If you are writing in raw JS though, you will more than likely need to keep ESM and CommonJS equivalent versions of each package test and therefore will need to have an entry with ["commonjs"] and ["esm"] separately so that you can change the testMatch to pick the correct files.`),
+	additionalDependencies: z
+		.record(
+			z.string().describe("The package name"),
+			z.string().describe("The package version"),
+		)
+		.optional()
+		.describe(
+			"Additional dependencies that can't be inferred from the project's package.json or other explicit fields like \"typescript.tsx.version\".",
+		),
+	transforms: TransformValidated,
+}) satisfies ZodType<TestConfigEntry>;
+
+const TestConfigValidated = z.object({
+	entries: z
+		.array(TestConfigEntryValidated)
+		.describe(
+			"Test Package configurations to setup and run.  Having more than 1 is mainly if you need different files to test different runners or module types.",
+		),
+}) satisfies ZodType<TestConfig>;
 
 const allowdScriptExtensions = ["js", "cjs", "mjs", "ts"];
 
@@ -112,15 +180,25 @@ export async function getConfig(configFile?: string, cwd = process.cwd()) {
 	}
 
 	const ext = extname(resolvedFile);
-	if (ext === ".json") {
-		return JSON.parse(readFileSync(resolvedFile).toString()) as TestConfig;
-	}
+	try {
+		if (ext === ".json") {
+			return TestConfigValidated.parse(
+				JSON.parse(readFileSync(resolvedFile).toString()),
+			);
+		}
 
-	if (allowdScriptExtensions.some((allowed) => ext.endsWith(`.${allowed}`))) {
-		return (await import(resolvedFile)).default as TestConfig;
+		if (allowdScriptExtensions.some((allowed) => ext.endsWith(`.${allowed}`))) {
+			return TestConfigValidated.parse((await import(resolvedFile)).default);
+		}
+	} catch (err) {
+		if (err instanceof ZodError) {
+			// Just clean up the error a little
+			throw new Error(`Configuration Parsing Error!\n${fromError(err)}`);
+		}
+		throw err;
 	}
 
 	throw new Error(
-		`Unimplented handling of file extension for config file ${resolvedFile}`,
+		`Unimplemented handling of file extension for config file ${resolvedFile}`,
 	);
 }

@@ -6,13 +6,34 @@ import {
 } from "./config";
 import { tmpdir } from "os";
 import { join, resolve } from "path";
+import { ModuleTypes, PkgManager, RunBy, TestConfig } from "./types";
 
 const explicitConfigFileName = "someCustomConfig";
-const explicitConfig = {
-	someFields: "value",
+const explicitConfig: TestConfig = {
+	entries: [
+		{
+			testMatch: "something**.ts",
+			packageManagers: [PkgManager.YarnV1],
+			runWith: [RunBy.Node],
+			transforms: {
+				typescript: {},
+			},
+			moduleTypes: [ModuleTypes.Commonjs, ModuleTypes.ESM],
+		},
+	],
 };
-const defaultDetectedConfig = {
-	otherFields: "value2",
+const defaultDetectedConfig: TestConfig = {
+	entries: [
+		{
+			testMatch: "default**.ts",
+			packageManagers: [PkgManager.YarnV1],
+			runWith: [RunBy.Node],
+			transforms: {
+				typescript: {},
+			},
+			moduleTypes: [ModuleTypes.Commonjs, ModuleTypes.ESM],
+		},
+	],
 };
 const explictConfigJs = `
 module.exports = ${JSON.stringify(explicitConfig, null, 4)};
@@ -126,6 +147,6 @@ it(`throws an error if the extension is not expected`, async () => {
 	writeFileSync(file, explictConfigJs);
 	// Use a different directory to make sure we use the absolute
 	await expect(async () => getConfig(file)).rejects.toThrow(
-		`Unimplented handling of file extension for config file ${file}`,
+		`Unimplemented handling of file extension for config file ${file}`,
 	);
 });

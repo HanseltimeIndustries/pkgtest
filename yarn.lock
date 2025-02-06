@@ -903,9 +903,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hanseltime/esm-interop-tools@file:../esm-interop-tools::locator=test-yarn%40workspace%3A.":
+"@hanseltime/esm-interop-tools@file:/home/justin.hanselman/esm-interop-tools::locator=test-yarn%40workspace%3A.":
   version: 0.0.0
-  resolution: "@hanseltime/esm-interop-tools@file:../esm-interop-tools#../esm-interop-tools::hash=59c751&locator=test-yarn%40workspace%3A."
+  resolution: "@hanseltime/esm-interop-tools@file:/home/justin.hanselman/esm-interop-tools#/home/justin.hanselman/esm-interop-tools::hash=59c751&locator=test-yarn%40workspace%3A."
   dependencies:
     commander: "npm:^12.1.0"
     resolve-package-path: "npm:^4.0.3"
@@ -2739,6 +2739,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/js-yaml@npm:^4":
+  version: 4.0.9
+  resolution: "@types/js-yaml@npm:4.0.9"
+  checksum: 10/a0ce595db8a987904badd21fc50f9f444cb73069f4b95a76cc222e0a17b3ff180669059c763ec314bc4c3ce284379177a9da80e83c5f650c6c1310cafbfaa8e6
+  languageName: node
+  linkType: hard
+
 "@types/json-schema@npm:^7.0.9":
   version: 7.0.15
   resolution: "@types/json-schema@npm:7.0.15"
@@ -3929,6 +3936,13 @@ __metadata:
   version: 12.1.0
   resolution: "commander@npm:12.1.0"
   checksum: 10/cdaeb672d979816853a4eed7f1310a9319e8b976172485c2a6b437ed0db0a389a44cfb222bfbde772781efa9f215bdd1b936f80d6b249485b465c6cb906e1f93
+  languageName: node
+  linkType: hard
+
+"commander@npm:^13.1.0":
+  version: 13.1.0
+  resolution: "commander@npm:13.1.0"
+  checksum: 10/d3b4b79e6be8471ddadacbb8cd441fe82154d7da7393b50e76165a9e29ccdb74fa911a186437b9a211d0fc071db6051915c94fb8ef16d77511d898e9dbabc6af
   languageName: node
   linkType: hard
 
@@ -9917,7 +9931,7 @@ __metadata:
     "@babel/plugin-transform-modules-commonjs": "npm:^7.26.3"
     "@biomejs/biome": "npm:1.9.4"
     "@commitlint/config-angular": "npm:^18.4.3"
-    "@hanseltime/esm-interop-tools": ../esm-interop-tools
+    "@hanseltime/esm-interop-tools": /home/justin.hanselman/esm-interop-tools
     "@hanseltime/swc-plugin-node-globals-inject": "npm:^1.0.0"
     "@rspack/cli": "npm:^1.1.6"
     "@rspack/core": "npm:^1.1.6"
@@ -9928,15 +9942,18 @@ __metadata:
     "@swc/jest": "npm:^0.2.37"
     "@types/babel__core": "npm:^7"
     "@types/jest": "npm:^29.5.11"
+    "@types/js-yaml": "npm:^4"
     "@types/micromatch": "npm:^4.0.9"
     "@types/node": "npm:^18.11.18"
     babel-preset-jest: "npm:^29.6.3"
     chalk: "npm:^5.4.1"
+    commander: "npm:^13.1.0"
     commitlint: "npm:^18.4.3"
     get-tsconfig: "npm:^4.10.0"
     husky: "npm:^9.1.7"
     jest: "npm:^29.7.0"
     jest-chain-transform: "npm:^0.0.8"
+    js-yaml: "npm:^4.1.0"
     micromatch: "npm:^4.0.8"
     pinst: "npm:^3.0.0"
     semantic-release: "npm:^22.0.12"
@@ -9944,6 +9961,8 @@ __metadata:
     tswc: "npm:^1.4.0"
     tsx: "npm:^4.19.2"
     typescript: "npm:^5.7.3"
+    zod: "npm:^3.24.1"
+    zod-validation-error: "npm:^3.4.0"
   languageName: unknown
   linkType: soft
 
@@ -10785,5 +10804,21 @@ __metadata:
   version: 0.1.0
   resolution: "yocto-queue@npm:0.1.0"
   checksum: 10/f77b3d8d00310def622123df93d4ee654fc6a0096182af8bd60679ddcdfb3474c56c6c7190817c84a2785648cdee9d721c0154eb45698c62176c322fb46fc700
+  languageName: node
+  linkType: hard
+
+"zod-validation-error@npm:^3.4.0":
+  version: 3.4.0
+  resolution: "zod-validation-error@npm:3.4.0"
+  peerDependencies:
+    zod: ^3.18.0
+  checksum: 10/b98b1bbba14a3bb31649a1566c8c5a5213ec70dcaa2cbb1e89db00d56648a446225b35a8f6768471730d7013f4f141cd70c2b9740d69e6433ebfa148aecdac2f
+  languageName: node
+  linkType: hard
+
+"zod@npm:^3.24.1":
+  version: 3.24.1
+  resolution: "zod@npm:3.24.1"
+  checksum: 10/54e25956495dec22acb9399c168c6ba657ff279801a7fcd0530c414d867f1dcca279335e160af9b138dd70c332e17d548be4bc4d2f7eaf627dead50d914fec27
   languageName: node
   linkType: hard

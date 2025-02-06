@@ -17,7 +17,7 @@ export class SimpleReporter implements Reporter {
 		console.log(`Test package location: ${runner.projectDir}`);
 	}
 	passed(res: TestResult): void {
-		const logs = this.debug ? `\nres.stdout\n` : "";
+		const logs = this.debug ? `\n${res.stdout}\n` : "";
 		console.log(
 			`${chalk.blue("Test: ")} ${res.testCmd}:${logs} ${chalk.green("Passed")} ${chalk.gray(`${res.time} ms`)}`,
 		);
@@ -45,5 +45,6 @@ export class SimpleReporter implements Reporter {
 		console.log(
 			`Passed: ${chalk.green(result.passed)}\nFailed: ${chalk.red(result.failed)}\nSkipped: ${skippedCount}\nNot Run: ${notReachedCount}\nTotal: ${result.total}`,
 		);
+		console.log("\n");
 	}
 }

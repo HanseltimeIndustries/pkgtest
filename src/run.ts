@@ -6,6 +6,8 @@ import { join } from "path";
 import { TestRunner } from "./TestRunner";
 import { SimpleReporter } from "./reporters/SimpleReporter";
 
+export const DEFAULT_TIMEOUT = 2000;
+
 export interface RunOptions {
 	/**
 	 * If set to true, this provides additional levels of logging (i.e. the stdout of each test)
@@ -26,14 +28,24 @@ export interface RunOptions {
 	 * A filter of file names to run
 	 */
 	testNames?: string[];
+	/**
+	 * The path of the config file to use - if not supplied obeys default search rules
+	 */
+	configPath?: string;
 }
 
 export async function run(options: RunOptions) {
-	const { debug, failFast, timeout = 2000, testNames = [] } = options;
+	const {
+		configPath,
+		debug,
+		failFast,
+		timeout = 2000,
+		testNames = [],
+	} = options;
 	if (debug) {
 		console.log("Retrieving Config...");
 	}
-	const config = await getConfig();
+	const config = await getConfig(configPath);
 
 	if (debug) {
 		console.log(JSON.stringify(config));
@@ -53,10 +65,17 @@ export async function run(options: RunOptions) {
 			(runners, testConfigEntry) => {
 				testConfigEntry.moduleTypes.forEach((modType) => {
 					runners.push(
-						...testConfigEntry.packageManagers.map(async (pkgManager) => {
+						...testConfigEntry.packageManagers.map(async (_pkgManager) => {
 							const testProjectDir = await mkdtemp(
 								join(tmpDir, `${LIBRARY_NAME}-`),
 							);
+							const simpleOptions = typeof _pkgManager === "string";
+							const pkgManager = simpleOptions
+								? _pkgManager
+								: _pkgManager.packageManager;
+							const pkgManagerOptions = simpleOptions
+								? undefined
+								: _pkgManager.options;
 							return await createTestProject(
 								{
 									projectDir: process.cwd(),
@@ -68,6 +87,7 @@ export async function run(options: RunOptions) {
 									runBy: testConfigEntry.runWith,
 									modType,
 									pkgManager,
+									pkgManagerOptions,
 									testMatch: testConfigEntry.testMatch,
 									typescript: testConfigEntry.transforms.typescript,
 								},
