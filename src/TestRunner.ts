@@ -10,7 +10,6 @@ export class TestRunner {
 	readonly projectDir: string;
 	readonly pkgManager: PkgManager;
 	readonly modType: ModuleTypes;
-	readonly debug: boolean;
 	readonly failFast: boolean;
 
 	constructor(options: {
@@ -20,7 +19,6 @@ export class TestRunner {
 		projectDir: string;
 		pkgManager: PkgManager;
 		modType: ModuleTypes;
-		debug?: boolean;
 		failFast?: boolean;
 	}) {
 		this.binRunCommand = options.binRunCommand;
@@ -29,7 +27,6 @@ export class TestRunner {
 		this.projectDir = options.projectDir;
 		this.pkgManager = options.pkgManager;
 		this.modType = options.modType;
-		this.debug = !!options.debug;
 		this.failFast = !!options.failFast;
 	}
 

@@ -133,7 +133,6 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				projectDir: testProjectDir,
 				pkgManager: PkgManager.YarnV1,
 				modType,
-				debug: false,
 				failFast: false,
 			});
 
@@ -237,7 +236,6 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				projectDir: testProjectDir,
 				pkgManager: PkgManager.YarnV1,
 				modType: modType,
-				debug: false,
 				failFast: false,
 			});
 
@@ -359,7 +357,6 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						projectDir: testProjectDir,
 						pkgManager: PkgManager.YarnV1,
 						modType,
-						debug: false,
 						failFast: false,
 					},
 					{
@@ -369,7 +366,6 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						projectDir: testProjectDir,
 						pkgManager: PkgManager.YarnV1,
 						modType,
-						debug: false,
 						failFast: false,
 					},
 					{
@@ -379,7 +375,6 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						projectDir: testProjectDir,
 						pkgManager: PkgManager.YarnV1,
 						modType,
-						debug: false,
 						failFast: false,
 					},
 				]),

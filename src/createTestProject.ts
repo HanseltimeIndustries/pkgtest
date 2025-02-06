@@ -1,7 +1,7 @@
-import { cp, readFile, writeFile } from "fs/promises";
+import { cp, readFile, writeFile, rm } from "fs/promises";
 import { isAbsolute, join, relative } from "path";
 import { getAllMatchingFiles } from "./getAllMatchingFiles";
-import { exec, ExecOptions, execSync } from "child_process";
+import { exec, ExecOptions } from "child_process";
 import {
 	ModuleTypes,
 	PkgManager,
@@ -21,7 +21,6 @@ import {
 	getPkgManagerSetCommand,
 } from "./pkgManager";
 import { TestRunner } from "./TestRunner";
-import { writeFileSync } from "fs";
 import * as yaml from "js-yaml";
 import { Logger } from "./Logger";
 
@@ -71,7 +70,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		typescript?: TypescriptOptions;
 	},
 ): Promise<TestRunner[]> {
-	const { projectDir, testProjectDir, debug } = context;
+	const { projectDir, testProjectDir, debug, failFast } = context;
 
 	if (!isAbsolute(projectDir)) {
 		throw new Error("projectDir must be absolute path!");
@@ -151,7 +150,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		const cast = pkgManagerOptions as YarnV4Options;
 		if (cast?.yarnrc) {
 			logger.logDebug(`Writing .yarnrc.yml at ${testProjectDir}`);
-			writeFileSync(
+			await writeFile(
 				join(testProjectDir, ".yarnrc.yml"),
 				yaml.dump(cast.yarnrc),
 			);
@@ -253,10 +252,10 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 					runBy: rBy,
 					pkgManager,
 					modType,
+					failFast,
 				}),
 			);
 		});
-		return runners;
 	} else {
 		runBy.forEach((rBy) => {
 			let testFiles: string[];
@@ -277,6 +276,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 					runBy: rBy,
 					pkgManager,
 					modType,
+					failFast,
 				}),
 			);
 		});
