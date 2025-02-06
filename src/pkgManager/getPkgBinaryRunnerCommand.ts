@@ -1,4 +1,5 @@
-import { PkgManager } from "./types";
+import { getPkgManagerCommand } from "./getPkgManagerCommand";
+import { PkgManager } from "../types";
 
 /**
  * Returns the starting command to use if trying to run a binary like tsc, tsx, etc.
@@ -6,15 +7,17 @@ import { PkgManager } from "./types";
  * @param pkgManager
  * @returns
  */
-export function getPkgBinaryRunnerCommand(pkgManager: PkgManager) {
+export function getPkgBinaryRunnerCommand(
+	pkgManager: PkgManager,
+	version: string = "latest",
+) {
 	switch (pkgManager) {
 		case PkgManager.Npm:
-			return "npx";
+			return `corepack npx@${version}`;
 		case PkgManager.Pnpm:
-			return "pnpm";
 		case PkgManager.YarnV1:
 		case PkgManager.YarnV4:
-			return "yarn";
+			return getPkgManagerCommand(pkgManager, version);
 		default:
 			throw new Error(
 				`Unimplemented pkg binary runner command for ${pkgManager}`,

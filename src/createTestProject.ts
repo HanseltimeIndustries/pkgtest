@@ -15,10 +15,15 @@ import {
 	createDependencies,
 	CreateDependenciesOptions,
 } from "./createDependencies";
-import { getPkgBinaryRunnerCommand } from "./getPkgBinaryRunnerCommand";
+import {
+	getPkgBinaryRunnerCommand,
+	getPkgManagerCommand,
+	getPkgManagerSetCommand,
+} from "./pkgManager";
 import { TestRunner } from "./TestRunner";
 import { writeFileSync } from "fs";
 import * as yaml from "js-yaml";
+import { Logger } from "./Logger";
 
 export const SRC_DIRECTORY = "src";
 export const BUILD_DIRECTORY = "dist";
@@ -83,22 +88,18 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		typescript,
 		pkgManagerOptions,
 	} = options;
-	const logPrefix = `[${pkgManager}, ${modType}]`;
+	const logPrefix = `[${pkgManager}, ${modType}, @${testProjectDir}]`;
 
 	const testFiles = await getAllMatchingFiles(projectDir, testMatch);
 	if (testFiles.length == 0) {
 		throw new Error(`Cannot find any tests to match: ${testMatch}`);
 	}
+	const logger = new Logger({
+		context: logPrefix,
+		debug: !!debug,
+	});
 
-	function log(msg: string | Buffer) {
-		console.log(`${logPrefix} ${msg}`);
-	}
-	function logDebug(msg: string | Buffer) {
-		if (debug) {
-			log(msg);
-		}
-	}
-	logDebug(`Generating package.json at ${testProjectDir}`);
+	logger.logDebug(`Generating package.json at ${testProjectDir}`);
 
 	const relativePath = relative(testProjectDir, projectDir);
 	const packageJson = JSON.parse(
@@ -136,75 +137,47 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		join(testProjectDir, "package.json"),
 		JSON.stringify(pkgJson, null, 4),
 	);
-	logDebug(`Finished writing package.json at ${testProjectDir}`);
+	logger.logDebug(`Finished writing package.json at ${testProjectDir}`);
 
-	logDebug(`Running package installation at ${testProjectDir}`);
+	logger.logDebug(`Running package installation at ${testProjectDir}`);
 	// depending on the type of package manager - perform installs
 	const installCLiArgs = pkgManagerOptions?.installCliArgs ?? "";
-	switch (pkgManager) {
-		case PkgManager.Npm:
-			await controlledExec(
-				`npm install ${installCLiArgs}`,
-				{
-					cwd: testProjectDir,
-					env: process.env,
-				},
-				logDebug,
+	const pkgManagerCommand = getPkgManagerCommand(
+		pkgManager,
+		pkgManagerOptions?.version,
+	);
+	// Pre-install setup
+	if (pkgManager === PkgManager.YarnV4) {
+		const cast = pkgManagerOptions as YarnV4Options;
+		if (cast?.yarnrc) {
+			logger.logDebug(`Writing .yarnrc.yml at ${testProjectDir}`);
+			writeFileSync(
+				join(testProjectDir, ".yarnrc.yml"),
+				yaml.dump(cast.yarnrc),
 			);
-			break;
-		case PkgManager.YarnV1:
-			await controlledExec(
-				`yarn install ${installCLiArgs}`,
-				{
-					cwd: testProjectDir,
-					env: process.env,
-				},
-				logDebug,
-			);
-			break;
-		case PkgManager.YarnV4:
-			{
-				const cast = pkgManagerOptions as YarnV4Options;
-				if (cast?.yarnrc) {
-					logDebug(`Writing .yarnrc.yml at ${testProjectDir}`);
-					writeFileSync(
-						join(testProjectDir, ".yarnrc.yml"),
-						yaml.dump(cast.yarnrc),
-					);
-				}
-				await controlledExec(
-					`corepack enable && yarn set version berry && yarn set version 4.x && yarn install ${installCLiArgs}`,
-					{
-						cwd: testProjectDir,
-						env: process.env,
-					},
-					logDebug,
-				);
-			}
-			break;
-		case PkgManager.Pnpm:
-			// Since pnpm and corepack fight each other due to mismatched keys we disable corepack
-			// And expect you to have installed the version of pnpm you wanted already
-			// https://stackoverflow.com/questions/79411275/after-heroku-restart-pnpm-error-cannot-find-matching-keyid
-			execSync("npm install -g pnpm@latest-10", {
-				cwd: testProjectDir,
-				env: process.env,
-			});
-			execSync(`pnpm install ${installCLiArgs}`, {
-				cwd: testProjectDir,
-				env: process.env,
-			});
-			break;
-		default:
-			throw new Error(
-				`Unimplemented package manager install for: ${pkgManager}`,
-			);
+		}
 	}
-	logDebug(`Finished installation (${pkgManager}) at ${testProjectDir}`);
+	await controlledExec(
+		getPkgManagerSetCommand(pkgManager, pkgManagerOptions?.version),
+		{
+			cwd: testProjectDir,
+			env: process.env,
+		},
+		logger,
+	);
+	await controlledExec(
+		`${pkgManagerCommand} install ${installCLiArgs}`,
+		{
+			cwd: testProjectDir,
+			env: process.env,
+		},
+		logger,
+	);
+	logger.logDebug(`Finished installation (${pkgManager}) at ${testProjectDir}`);
 
 	const absSrcPath = join(testProjectDir, SRC_DIRECTORY);
 
-	logDebug(`Copying ${testFiles.length} test files to ${absSrcPath}`);
+	logger.logDebug(`Copying ${testFiles.length} test files to ${absSrcPath}`);
 
 	// Copy over the test files to the project directory
 	const copiedTestFiles = await Promise.all(
@@ -215,14 +188,14 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		}),
 	);
 
-	logDebug(`Finished copying test files to ${absSrcPath}`);
+	logger.logDebug(`Finished copying test files to ${absSrcPath}`);
 
 	const runners: TestRunner[] = [];
 	const binRunCmd = getPkgBinaryRunnerCommand(pkgManager);
 	// Add a tsconfig file if we are using typescript transpilation
 	if (typescript) {
 		const configFilePath = `tsconfig.${modType}.json`;
-		logDebug(`Creating ${configFilePath} at ${testProjectDir}`);
+		logger.logDebug(`Creating ${configFilePath} at ${testProjectDir}`);
 		const tsConfig = getTypescriptConfig(
 			{
 				modType,
@@ -235,19 +208,20 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 			join(testProjectDir, configFilePath),
 			JSON.stringify(tsConfig, null, 4),
 		);
-		logDebug(`Created ${configFilePath} at ${testProjectDir}`);
+		logger.logDebug(`Created ${configFilePath} at ${testProjectDir}`);
 
-		logDebug(`Compiling ${configFilePath} at ${testProjectDir}`);
+		logger.logDebug(`Compiling ${configFilePath} at ${testProjectDir}`);
 
 		// Transpile the typescript projects
-		controlledExec(
+		await controlledExec(
 			`${binRunCmd} tsc -p ${configFilePath}`,
 			{
 				cwd: testProjectDir,
+				env: process.env,
 			},
-			logDebug,
+			logger,
 		);
-		logDebug(`Compiled ${configFilePath} at ${testProjectDir}`);
+		logger.logDebug(`Compiled ${configFilePath} at ${testProjectDir}`);
 
 		const absBuildPath = join(testProjectDir, tsConfig.compilerOptions.outDir);
 
@@ -313,19 +287,20 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 async function controlledExec(
 	cmd: string,
 	options: ExecOptions,
-	logDebug: (msg: string | Buffer) => void,
+	logger: Logger,
 ) {
 	await new Promise<void>((res, rej) => {
 		exec(cmd, options, (error, stdout, stderr) => {
 			if (error) {
-				console.error(stderr);
+				logger.log(stdout);
+				logger.error(stderr);
 				rej(error);
 			} else {
 				if (stdout) {
-					logDebug(stdout);
+					logger.logDebug(stdout);
 				}
 				if (stderr) {
-					logDebug(stderr);
+					logger.logDebug(stderr);
 				}
 				res();
 			}

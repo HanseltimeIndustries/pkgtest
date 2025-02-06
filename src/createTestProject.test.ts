@@ -1,9 +1,9 @@
 import { createDependencies } from "./createDependencies";
 import { getAllMatchingFiles } from "./getAllMatchingFiles";
-import { getPkgBinaryRunnerCommand } from "./getPkgBinaryRunnerCommand";
+import { getPkgBinaryRunnerCommand, getPkgManagerCommand } from "./pkgManager";
 import { getTypescriptConfig } from "./getTypescriptConfig";
 import { cp, readFile, writeFile } from "fs/promises";
-import { execSync } from "child_process";
+import { exec } from "child_process";
 import {
 	BUILD_DIRECTORY,
 	createTestProject,
@@ -17,18 +17,20 @@ jest.mock("./createDependencies");
 jest.mock("fs/promises");
 jest.mock("child_process");
 jest.mock("./getAllMatchingFiles");
-jest.mock("./getPkgBinaryRunnerCommand");
+jest.mock("./pkgManager");
 jest.mock("./getTypescriptConfig");
 const mockCreateDependencies = jest.mocked(createDependencies);
 const mockWriteFile = jest.mocked(writeFile);
 const mockCp = jest.mocked(cp);
-const mockExecSync = jest.mocked(execSync);
+const mockExec = jest.mocked(exec);
 const mockGetAllMatchingFiles = jest.mocked(getAllMatchingFiles);
+const mockGetPkgManagerCommand = jest.mocked(getPkgManagerCommand);
 const mockGetPkgBinaryRunnerCommand = jest.mocked(getPkgBinaryRunnerCommand);
 const mockGetTypescriptConfig = jest.mocked(getTypescriptConfig);
 const mockReadFile = jest.mocked(readFile);
 
-const testBinCmd = "npx";
+const testBinCmd = "corepack npx@latest";
+const testPkgManagerCmd = "corepack npm@latest";
 const testDeps = {
 	dep1: "1.0.1",
 	dep2: "^2.0.1",
@@ -61,9 +63,17 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			mockCreateDependencies.mockReturnValue(testDeps);
 			mockGetAllMatchingFiles.mockResolvedValue(testMatchingTests);
 			mockGetPkgBinaryRunnerCommand.mockReturnValue(testBinCmd);
+			mockGetPkgManagerCommand.mockReturnValue(testPkgManagerCmd);
 			mockGetTypescriptConfig.mockReturnValue(testTsConfig as any);
 			mockCp.mockResolvedValue();
 			mockWriteFile.mockResolvedValue();
+			mockExec.mockImplementation((command, _options, cb) => {
+				if (!cb) {
+					throw new Error(`Not expecting no callback exec methods! ${command}`);
+				}
+				cb(null, "stdout", "stderr");
+				return undefined as any;
+			});
 		});
 
 		const expectedTypeField =
@@ -271,11 +281,13 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				join(testProjectDir, expectedConfigFile),
 				JSON.stringify(testTsConfig, null, 4),
 			);
-			expect(mockExecSync).toHaveBeenCalledWith(
+			expect(mockExec).toHaveBeenCalledWith(
 				`${testBinCmd} tsc -p ${expectedConfigFile}`,
 				{
 					cwd: testProjectDir,
+					env: process.env,
 				},
+				expect.anything(), // callback
 			);
 		});
 
@@ -414,11 +426,13 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				join(testProjectDir, expectedConfigFile),
 				JSON.stringify(testTsConfig, null, 4),
 			);
-			expect(mockExecSync).toHaveBeenCalledWith(
+			expect(mockExec).toHaveBeenCalledWith(
 				`${testBinCmd} tsc -p ${expectedConfigFile}`,
 				{
 					cwd: testProjectDir,
+					env: process.env,
 				},
+				expect.anything(), // callback
 			);
 		});
 	},

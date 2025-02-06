@@ -60,7 +60,6 @@
 		"build:bin": "rspack build",
 		"build:types": "tsc",
 		"build": "yarn build:types && yarn build:esm && yarn build:cjs && yarn build:bin",
-		"postinstall": "husky install",
 		"prepack": "pinst --disable",
 		"postpack": "pinst --enable",
 		"release": "yarn semantic-release",

@@ -76,6 +76,12 @@ export interface PkgManagerBaseOptions {
 	 * The cli arguments to add to the install command
 	 */
 	installCliArgs?: string;
+	/**
+	 * The version of the package manager to use (installed via corepack)
+	 *
+	 * Defaults to latest if not supplied
+	 */
+	version?: string;
 }
 
 export interface YarnV4Options extends PkgManagerBaseOptions {
