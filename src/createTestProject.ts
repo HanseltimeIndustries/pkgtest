@@ -1,5 +1,5 @@
 import { cp, readFile, writeFile, rm } from "fs/promises";
-import { isAbsolute, join, relative } from "path";
+import { isAbsolute, join, relative, sep } from "path";
 import { getAllMatchingFiles } from "./getAllMatchingFiles";
 import { exec, ExecOptions } from "child_process";
 import {
@@ -20,7 +20,7 @@ import {
 	getPkgManagerCommand,
 	getPkgManagerSetCommand,
 } from "./pkgManager";
-import { TestRunner } from "./TestRunner";
+import { TestFile, TestRunner } from "./TestRunner";
 import * as yaml from "js-yaml";
 import { Logger } from "./Logger";
 
@@ -179,11 +179,18 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 	logger.logDebug(`Copying ${testFiles.length} test files to ${absSrcPath}`);
 
 	// Copy over the test files to the project directory
-	const copiedTestFiles = await Promise.all(
+	const normalizeProjectDir = projectDir.endsWith(sep)
+		? projectDir
+		: projectDir + sep;
+	const copiedTestFiles: TestFile[] = await Promise.all(
 		testFiles.map(async (tf) => {
 			const copiedTestFile = tf.replace(projectDir, absSrcPath);
 			await cp(tf, copiedTestFile);
-			return copiedTestFile;
+			return {
+				// Normalize it to avoid globs matching upstream folders, etc.
+				orig: tf.replace(normalizeProjectDir, ""),
+				actual: copiedTestFile,
+			};
 		}),
 	);
 
@@ -224,39 +231,42 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 
 		const absBuildPath = join(testProjectDir, tsConfig.compilerOptions.outDir);
 
-		let runCommand: string
+		let runCommand: string;
 		runBy.forEach((rBy) => {
-			let testFiles: string[];
-			let additionalArgs: string = '';
+			let testFiles: TestFile[];
+			let additionalArgs: string = "";
 			let additionalEnv: {
-				[env: string]: string
-			} = {}
+				[env: string]: string;
+			} = {};
 			switch (rBy) {
 				case RunBy.Node:
-					testFiles = copiedTestFiles.map((srcFile) =>
+					testFiles = copiedTestFiles.map(({ orig, actual }) => {
 						// Since ts builds to .js we also need to replace the extensions
-						srcFile
-							.replace(absSrcPath, absBuildPath)
-							.replace(/\.tsx?$/, ".js"),
-					);
-					additionalArgs = ''
-					runCommand = rBy
+						return {
+							orig,
+							actual: actual
+								.replace(absSrcPath, absBuildPath)
+								.replace(/\.tsx?$/, ".js"),
+						};
+					});
+					additionalArgs = "";
+					runCommand = rBy;
 					break;
 				case RunBy.TsNode:
 					testFiles = copiedTestFiles;
 					// ts-node and esm do not play well.  This is the most stable config I know of
 					if (modType === ModuleTypes.ESM) {
-						runCommand = 'node --loader ts-node/esm'
-						additionalEnv.TS_NODE_PROJECT = configFilePath
+						runCommand = "node --loader ts-node/esm";
+						additionalEnv.TS_NODE_PROJECT = configFilePath;
 					} else {
-						runCommand = rBy
-						additionalArgs = `--project ${configFilePath}`
+						runCommand = rBy;
+						additionalArgs = `--project ${configFilePath}`;
 					}
 					break;
 				case RunBy.Tsx:
 					testFiles = copiedTestFiles;
-					additionalArgs = `--tsconfig ${configFilePath}`
-					runCommand = rBy
+					additionalArgs = `--tsconfig ${configFilePath}`;
+					runCommand = rBy;
 					break;
 				default:
 					throw new Error(
@@ -266,19 +276,19 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 			runners.push(
 				new TestRunner({
 					projectDir: testProjectDir,
-					runCommand: `${binRunCmd} ${runCommand}${additionalArgs ? ' ' + additionalArgs : ''}`,
+					runCommand: `${binRunCmd} ${runCommand}${additionalArgs ? " " + additionalArgs : ""}`,
 					testFiles,
 					runBy: rBy,
 					pkgManager,
 					modType,
 					failFast,
-					extraEnv: additionalEnv
+					extraEnv: additionalEnv,
 				}),
 			);
 		});
 	} else {
 		runBy.forEach((rBy) => {
-			let testFiles: string[];
+			let testFiles: TestFile[];
 			switch (rBy) {
 				case RunBy.Node:
 					testFiles = copiedTestFiles;

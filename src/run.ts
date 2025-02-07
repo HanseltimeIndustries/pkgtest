@@ -7,6 +7,7 @@ import { TestRunner } from "./TestRunner";
 import { SimpleReporter } from "./reporters/SimpleReporter";
 import { Logger } from "./Logger";
 import chalk from "chalk";
+import { ModuleTypes, PkgManager, RunBy } from "./types";
 
 export const DEFAULT_TIMEOUT = 2000;
 
@@ -35,16 +36,25 @@ export interface RunOptions {
 	 */
 	timeout?: number;
 	/**
-	 * A filter of file names to run
-	 */
-	testNames?: string[];
-	/**
 	 * The path of the config file to use - if not supplied obeys default search rules
 	 */
 	configPath?: string;
+	/**
+	 * For every supplied filter, the tests that would be created via the configs will be paired down to only thouse
+	 * that match all filters provided
+	 */
+	filters?: {
+		moduleTypes?: ModuleTypes[];
+		packageManagers?: PkgManager[];
+		runWith?: RunBy[];
+		/**
+		 * A glob filter of file names to run (relative to the cwd root)
+		 */
+		testNames?: string[];
+	};
 }
 
-export class FailFastError extends Error{}
+export class FailFastError extends Error {}
 
 export async function run(options: RunOptions) {
 	const {
@@ -52,13 +62,14 @@ export async function run(options: RunOptions) {
 		debug,
 		failFast,
 		timeout = 2000,
-		testNames = [],
 		preserveResources,
+		filters = {},
 	} = options;
+	const { testNames = [], moduleTypes, packageManagers, runWith } = filters;
 	const logger = new Logger({
-		context: '[runner]',
+		context: "[runner]",
 		debug: !!debug,
-	})
+	});
 	logger.logDebug("Retrieving Config...");
 	const config = await getConfig(configPath);
 
@@ -81,13 +92,15 @@ export async function run(options: RunOptions) {
 							async function cleanup() {
 								// Clean up the folder
 								if (!preserveResources) {
-									logger.logDebug(`Cleaning up ${testProjectDir}`)
+									logger.logDebug(`Cleaning up ${testProjectDir}`);
 									await rm(testProjectDir, {
 										force: true,
 										recursive: true,
 									});
 								} else {
-									logger.log(chalk.yellow(`Skipping deletion of ${testProjectDir}`));
+									logger.log(
+										chalk.yellow(`Skipping deletion of ${testProjectDir}`),
+									);
 								}
 							}
 							try {
@@ -151,7 +164,7 @@ export async function run(options: RunOptions) {
 				if (failedFast) {
 					// Fail normally instead of letting an error make it to the top
 					logger.log("Tests failed fast");
-					throw new FailFastError('Tests failed fast')
+					throw new FailFastError("Tests failed fast");
 				}
 			}
 		}

@@ -7,7 +7,7 @@ interface Options {
 	debug?: boolean;
 	failFast?: boolean;
 	timeout?: number;
-	preserve?: boolean
+	preserve?: boolean;
 }
 
 program
@@ -19,7 +19,10 @@ program
 	.option(
 		`-t, --timeout <ms>', 'The max time in milliseconds to wait for a test to run (does not include test package folder set up).  Defaults to: ${DEFAULT_TIMEOUT}`,
 	)
-	.option('--preserve', "Preserves all test project directories that were created (use for debugging, but keep in mind this leaves large resources on your hard disk that you have to clean up)")
+	.option(
+		"--preserve",
+		"Preserves all test project directories that were created (use for debugging, but keep in mind this leaves large resources on your hard disk that you have to clean up)",
+	)
 	.addArgument(
 		new Argument(
 			"<testMatch...>",
@@ -30,21 +33,23 @@ program
 	)
 	.action(async (testMatch: string[], options: Options, _command: Command) => {
 		try {
-		await run({
-			testNames: testMatch ?? [],
-			debug: options.debug,
-			failFast: options.failFast,
-			timeout: options.timeout,
-			configPath: options.config,
-			preserveResources: options.preserve,
-		});
-	} catch (err) {
-		if (err instanceof FailFastError) {
-			process.exit(44)
-		} else {
-			throw err
+			await run({
+				debug: options.debug,
+				failFast: options.failFast,
+				timeout: options.timeout,
+				configPath: options.config,
+				preserveResources: options.preserve,
+				filters: {
+					testNames: testMatch ?? [],
+				},
+			});
+		} catch (err) {
+			if (err instanceof FailFastError) {
+				process.exit(44);
+			} else {
+				throw err;
+			}
 		}
-	}
 	});
 
 program.parse();

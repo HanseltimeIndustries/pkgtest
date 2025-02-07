@@ -1,10 +1,11 @@
-import { TestRunner } from "../TestRunner";
+import { TestFile, TestRunner } from "../TestRunner";
 
 export interface TestResult {
 	/**
 	 * The actual command run - this is in effect the true test
 	 */
 	testCmd: string;
+	testFile: TestFile;
 	/**
 	 * The time in seconds that is took took to execute
 	 */
@@ -33,7 +34,7 @@ export interface TestsSummary {
 	/**
 	 * Not reached is a list of test names that were not run due to a fail fast event
 	 */
-	notReached: string[];
+	notReached: TestFile[];
 	/**
 	 * passed + failed + skipped + notReached.length
 	 */

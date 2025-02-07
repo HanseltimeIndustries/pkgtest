@@ -17,9 +17,9 @@ export class SimpleReporter implements Reporter {
 		console.log(`Test package location: ${runner.projectDir}`);
 	}
 	passed(res: TestResult): void {
-		const logs = this.debug ? `\n${res.stdout}\n` : "";
+		const logs = this.debug ? `:\n${res.stdout}\n` : "";
 		console.log(
-			`${chalk.blue("Test: ")} ${res.testCmd}:${logs} ${chalk.green("Passed")} ${chalk.gray(`${res.time} ms`)}`,
+			`${chalk.blue("Test: ")} ${chalk.gray(res.testFile.orig)} ${chalk.green("Passed")} ${chalk.gray(`${res.time} ms`)}\n\t${res.testCmd}:${logs}`,
 		);
 	}
 	failed(res: TestResult): void {
@@ -27,12 +27,12 @@ export class SimpleReporter implements Reporter {
 			? `\n${chalk.red("Test exceeded timeout")}: ${res.time} ms`
 			: "";
 		console.error(
-			`${chalk.blue("Test: ")} ${res.testCmd}:${exceededTimeout}\n${res.stderr}\n ${chalk.red("Failed")} ${chalk.gray(`${res.time} ms`)}`,
+			`${chalk.blue("Test: ")} ${chalk.gray(res.testFile.orig)} ${chalk.red("Failed")} ${chalk.gray(`${res.time} ms`)}\n\t${res.testCmd}:${exceededTimeout}\n${res.stderr}`,
 		);
 	}
 	skipped(res: TestResult): void {
 		console.log(
-			`${chalk.blue("Test: ")} ${res.testCmd}:\n${res.stderr}\n ${chalk.yellow("Failed")} ${chalk.gray(`${res.time} ms`)}`,
+			`${chalk.blue("Test: ")} ${chalk.gray(res.testFile.orig)} ${chalk.yellow("Skipped")} ${chalk.gray(`${res.time} ms`)}\n\t${res.testCmd} `,
 		);
 	}
 	summary(result: TestsSummary): void {

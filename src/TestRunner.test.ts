@@ -63,7 +63,20 @@ it("runs all test files and reports the results", async () => {
 		// Return null for now since we don't use the return process value
 		return null as any;
 	});
-	const testFiles = ["test1", "test2", "test3"];
+	const testFiles = [
+		{
+			orig: "test1",
+			actual: "test1a",
+		},
+		{
+			orig: "test2",
+			actual: "test2a",
+		},
+		{
+			orig: "test3",
+			actual: "test3a",
+		},
+	];
 	const runner = new TestRunner({
 		runCommand: "npx",
 		runBy: RunBy.Node,
@@ -91,7 +104,7 @@ it("runs all test files and reports the results", async () => {
 	// Ensure the exec options match our expectation
 	for (const testFile of testFiles) {
 		expect(mockExec).toHaveBeenCalledWith(
-			`npx ${testFile}`,
+			`npx ${testFile.actual}`,
 			{
 				cwd: testProjectDir,
 				timeout: 5000,
@@ -103,20 +116,32 @@ it("runs all test files and reports the results", async () => {
 
 	expect(mockReporter.start).toHaveBeenCalledWith(runner);
 	expect(mockReporter.passed).toHaveBeenCalledWith({
-		testCmd: `npx test1`,
+		testCmd: `npx test1a`,
+		testFile: {
+			orig: "test1",
+			actual: "test1a",
+		},
 		time: expect.any(Number),
 		stdout: "normal std processes",
 		stderr: "",
 	});
 	expect(mockReporter.failed).toHaveBeenCalledWith({
-		testCmd: `npx test2`,
+		testCmd: `npx test2a`,
+		testFile: {
+			orig: "test2",
+			actual: "test2a",
+		},
 		time: expect.any(Number),
 		stdout: "normal std processes",
 		stderr: "whoa dang!",
 		timedout: false,
 	});
 	expect(mockReporter.passed).toHaveBeenCalledWith({
-		testCmd: `npx test3`,
+		testCmd: `npx test3a`,
+		testFile: {
+			orig: "test3",
+			actual: "test3a",
+		},
 		time: expect.any(Number),
 		stdout: "normal std processes",
 		stderr: "",
@@ -149,7 +174,20 @@ it("runs test files until first failure and reports the results with failFast", 
 		// Return null for now since we don't use the return process value
 		return null as any;
 	});
-	const testFiles = ["test1", "test2", "test3"];
+	const testFiles = [
+		{
+			orig: "test1",
+			actual: "test1a",
+		},
+		{
+			orig: "test2",
+			actual: "test2a",
+		},
+		{
+			orig: "test3",
+			actual: "test3a",
+		},
+	];
 	const runner = new TestRunner({
 		runCommand: "npx",
 		runBy: RunBy.Node,
@@ -169,7 +207,12 @@ it("runs test files until first failure and reports the results with failFast", 
 		passed: 1,
 		failed: 1,
 		skipped: 0,
-		notReached: ["test3"],
+		notReached: [
+			{
+				orig: "test3",
+				actual: "test3a",
+			},
+		],
 		total: 3,
 		failedFast: true,
 	});
@@ -178,7 +221,7 @@ it("runs test files until first failure and reports the results with failFast", 
 	// Ensure the exec options match our expectation
 	for (const testFile of testFiles.slice(0, 2)) {
 		expect(mockExec).toHaveBeenCalledWith(
-			`npx ${testFile}`,
+			`npx ${testFile.actual}`,
 			{
 				cwd: testProjectDir,
 				timeout: 5000,
@@ -191,14 +234,22 @@ it("runs test files until first failure and reports the results with failFast", 
 	expect(mockReporter.start).toHaveBeenCalledWith(runner);
 	expect(mockReporter.passed).toHaveBeenCalledTimes(1);
 	expect(mockReporter.passed).toHaveBeenCalledWith({
-		testCmd: `npx test1`,
+		testCmd: `npx test1a`,
+		testFile: {
+			orig: "test1",
+			actual: "test1a",
+		},
 		time: expect.any(Number),
 		stdout: "normal std processes",
 		stderr: "",
 	});
 	expect(mockReporter.failed).toHaveBeenCalledTimes(1);
 	expect(mockReporter.failed).toHaveBeenCalledWith({
-		testCmd: `npx test2`,
+		testCmd: `npx test2a`,
+		testFile: {
+			orig: "test2",
+			actual: "test2a",
+		},
 		time: expect.any(Number),
 		stdout: "normal std processes",
 		stderr: "whoa dang!",
@@ -234,7 +285,20 @@ it("runs test files and handles timeouts", async () => {
 		// Return null for now since we don't use the return process value
 		return null as any;
 	});
-	const testFiles = ["test1", "test2", "test3"];
+	const testFiles = [
+		{
+			orig: "test1",
+			actual: "test1a",
+		},
+		{
+			orig: "test2",
+			actual: "test2a",
+		},
+		{
+			orig: "test3",
+			actual: "test3a",
+		},
+	];
 	const runner = new TestRunner({
 		runCommand: "npx",
 		runBy: RunBy.Node,
@@ -263,7 +327,7 @@ it("runs test files and handles timeouts", async () => {
 	// Ensure the exec options match our expectation
 	for (const testFile of testFiles) {
 		expect(mockExec).toHaveBeenCalledWith(
-			`npx ${testFile}`,
+			`npx ${testFile.actual}`,
 			{
 				cwd: testProjectDir,
 				timeout: 50,
@@ -276,20 +340,32 @@ it("runs test files and handles timeouts", async () => {
 	expect(mockReporter.start).toHaveBeenCalledWith(runner);
 	expect(mockReporter.passed).toHaveBeenCalledTimes(2);
 	expect(mockReporter.passed).toHaveBeenCalledWith({
-		testCmd: `npx test1`,
+		testCmd: `npx test1a`,
+		testFile: {
+			orig: "test1",
+			actual: "test1a",
+		},
 		time: expect.any(Number),
 		stdout: "normal std processes",
 		stderr: "",
 	});
 	expect(mockReporter.passed).toHaveBeenCalledWith({
-		testCmd: `npx test3`,
+		testCmd: `npx test3a`,
+		testFile: {
+			orig: "test3",
+			actual: "test3a",
+		},
 		time: expect.any(Number),
 		stdout: "normal std processes",
 		stderr: "",
 	});
 	expect(mockReporter.failed).toHaveBeenCalledTimes(1);
 	expect(mockReporter.failed).toHaveBeenCalledWith({
-		testCmd: `npx test2`,
+		testCmd: `npx test2a`,
+		testFile: {
+			orig: "test2",
+			actual: "test2a",
+		},
 		time: expect.any(Number),
 		stdout: "normal std processes",
 		stderr: "whoa dang!",
@@ -322,7 +398,20 @@ it("runs only designated test files", async () => {
 		// Return null for now since we don't use the return process value
 		return null as any;
 	});
-	const testFiles = ["something/test1.ts", "else/test2.js", "test3.ts"];
+	const testFiles = [
+		{
+			orig: "something/test1.ts",
+			actual: "something/test1a.ts",
+		},
+		{
+			orig: "else/test2.js",
+			actual: "else/test2a.ts",
+		},
+		{
+			orig: "test3.ts",
+			actual: "test3a.ts",
+		},
+	];
 	const runner = new TestRunner({
 		runCommand: "npx",
 		runBy: RunBy.Node,
@@ -349,9 +438,9 @@ it("runs only designated test files", async () => {
 	expect(time).toBeGreaterThan(1);
 
 	// Ensure the exec options match our expectation
-	for (const testFile of testFiles.filter((tf) => tf.endsWith(".ts"))) {
+	for (const testFile of testFiles.filter((tf) => tf.orig.endsWith(".ts"))) {
 		expect(mockExec).toHaveBeenCalledWith(
-			`npx ${testFile}`,
+			`npx ${testFile.actual}`,
 			{
 				cwd: testProjectDir,
 				timeout: 1000,
@@ -364,13 +453,21 @@ it("runs only designated test files", async () => {
 	expect(mockReporter.start).toHaveBeenCalledWith(runner);
 	expect(mockReporter.passed).toHaveBeenCalledTimes(2);
 	expect(mockReporter.passed).toHaveBeenCalledWith({
-		testCmd: `npx something/test1.ts`,
+		testCmd: `npx something/test1a.ts`,
+		testFile: {
+			orig: "something/test1.ts",
+			actual: "something/test1a.ts",
+		},
 		time: expect.any(Number),
 		stdout: "normal std processes",
 		stderr: "",
 	});
 	expect(mockReporter.passed).toHaveBeenCalledWith({
-		testCmd: `npx test3.ts`,
+		testCmd: `npx test3a.ts`,
+		testFile: {
+			orig: "test3.ts",
+			actual: "test3a.ts",
+		},
 		time: expect.any(Number),
 		stdout: "normal std processes",
 		stderr: "",
@@ -378,7 +475,11 @@ it("runs only designated test files", async () => {
 	expect(mockReporter.failed).not.toHaveBeenCalled();
 	expect(mockReporter.skipped).toHaveBeenCalledTimes(1);
 	expect(mockReporter.skipped).toHaveBeenCalledWith({
-		testCmd: `npx else/test2.js`,
+		testCmd: `npx else/test2a.ts`,
+		testFile: {
+			orig: "else/test2.js",
+			actual: "else/test2a.ts",
+		},
 		time: 0,
 	});
 	expect(mockReporter.summary).toHaveBeenCalledWith({

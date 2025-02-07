@@ -3,28 +3,35 @@ import { ModuleTypes, PkgManager, RunBy } from "./types";
 import micromatch from "micromatch";
 import { Reporter } from "./reporters";
 
+export interface TestFile {
+	/** The original file name - i.e. the file that was copied, relative to the cwd of the framework */
+	orig: string;
+	/** The actual testFile that we want to run (i.e. copied or compiled) */
+	actual: string;
+}
+
 export class TestRunner {
 	readonly runCommand: string;
 	readonly runBy: RunBy;
-	readonly testFiles: string[];
+	readonly testFiles: TestFile[];
 	readonly projectDir: string;
 	readonly pkgManager: PkgManager;
 	readonly modType: ModuleTypes;
 	readonly failFast: boolean;
 	readonly extraEnv: {
-		[env: string]: string
-	}
+		[env: string]: string;
+	};
 
 	constructor(options: {
 		runCommand: string;
 		runBy: RunBy;
-		testFiles: string[];
+		testFiles: TestFile[];
 		projectDir: string;
 		pkgManager: PkgManager;
 		modType: ModuleTypes;
 		extraEnv?: {
-			[env: string]: string
-		}
+			[env: string]: string;
+		};
 		failFast?: boolean;
 	}) {
 		this.runCommand = options.runCommand;
@@ -58,24 +65,20 @@ export class TestRunner {
 		let passed = 0;
 		let failed = 0;
 		let skipped = 0;
-		const notReached: string[] = [];
+		const notReached: TestFile[] = [];
 
 		for (let i = 0; i < this.testFiles.length; i++) {
 			const testFile = this.testFiles[i];
 			try {
-				const cmd = `${this.runCommand} ${testFile}`;
+				const cmd = `${this.runCommand} ${testFile.actual}`;
 				const start = new Date();
 				if (testNames.length > 0) {
-					if (
-						!micromatch.isMatch(
-							testFile.replace(this.projectDir, ""),
-							testNames,
-						)
-					) {
+					if (!micromatch.isMatch(testFile.orig, testNames)) {
 						skipped++;
 						reporter.skipped({
 							testCmd: cmd,
 							time: 0,
+							testFile,
 						});
 						continue;
 					}
@@ -101,6 +104,7 @@ export class TestRunner {
 									stdout,
 									stderr,
 									timedout: testTimeMs >= timeout,
+									testFile,
 								});
 								if (this.failFast) {
 									rej();
@@ -112,6 +116,7 @@ export class TestRunner {
 									time: testTimeMs,
 									stdout,
 									stderr,
+									testFile,
 								});
 							}
 

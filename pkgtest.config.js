@@ -9,7 +9,7 @@ module.exports = {
 				typescript: {
 					tsNode: {
 						version: "^10.9.2",
-					}
+					},
 				}, // Use the defaults, but we do want typescript transformation
 			},
 		},
