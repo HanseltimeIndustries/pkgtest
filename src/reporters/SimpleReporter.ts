@@ -12,7 +12,7 @@ export class SimpleReporter implements Reporter {
 
 	start(runner: TestRunner): void {
 		console.log(
-			`Test Suite for Module ${runner.modType}, Package Manager ${runner.pkgManager}, Run with ${runner.runBy}`,
+			`Test Suite for Module ${runner.modType}, Package Manager ${runner.pkgManager} (${chalk.magenta(runner.pkgManagerAlias)}), Run with ${runner.runBy}`,
 		);
 		console.log(`Test package location: ${runner.projectDir}`);
 	}

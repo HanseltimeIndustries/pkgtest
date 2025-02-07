@@ -112,6 +112,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					runBy: [RunBy.Node],
 					modType,
 					pkgManager: PkgManager.YarnV1,
+					pkgManagerAlias: 'myalias',
 					testMatch: "some**glob",
 				},
 			);
@@ -139,6 +140,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				}),
 				projectDir: testProjectDir,
 				pkgManager: PkgManager.YarnV1,
+				pkgManagerAlias: 'myalias',
 				modType,
 				failFast: false,
 				extraEnv: {},
@@ -215,6 +217,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					runBy: [RunBy.Node],
 					modType: modType,
 					pkgManager: PkgManager.YarnV1,
+					pkgManagerAlias: 'myalias',
 					testMatch: "some**glob",
 					// Just providing typescript object will do
 					typescript: typescriptOptions,
@@ -250,6 +253,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				}),
 				projectDir: testProjectDir,
 				pkgManager: PkgManager.YarnV1,
+				pkgManagerAlias: 'myalias',
 				modType: modType,
 				failFast: false,
 				extraEnv: {},
@@ -341,6 +345,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					runBy: allRunBy,
 					modType,
 					pkgManager: PkgManager.YarnV1,
+					pkgManagerAlias: 'myalias',
 					testMatch: "some**glob",
 					// Just providing typescript object will do
 					typescript: typescriptOptions,
@@ -378,6 +383,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				}),
 				projectDir: testProjectDir,
 				pkgManager: PkgManager.YarnV1,
+				pkgManagerAlias: 'myalias',
 				modType,
 				failFast: false,
 				extraEnv: {},
@@ -397,6 +403,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				}),
 				projectDir: testProjectDir,
 				pkgManager: PkgManager.YarnV1,
+				pkgManagerAlias: 'myalias',
 				modType,
 				failFast: false,
 				extraEnv:
@@ -417,6 +424,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				}),
 				projectDir: testProjectDir,
 				pkgManager: PkgManager.YarnV1,
+				pkgManagerAlias: 'myalias',
 				modType,
 				failFast: false,
 				extraEnv: {},
@@ -485,6 +493,7 @@ it("throws an error if the projectdir is not absolute", async () => {
 				runBy: [RunBy.Node],
 				modType: ModuleTypes.Commonjs,
 				pkgManager: PkgManager.YarnV1,
+				pkgManagerAlias: 'myalias',
 				testMatch: "some**glob",
 			},
 		);
@@ -502,6 +511,7 @@ it("throws an error if the testProjectDir is not absolute", async () => {
 				runBy: [RunBy.Node],
 				modType: ModuleTypes.Commonjs,
 				pkgManager: PkgManager.YarnV1,
+				pkgManagerAlias: 'myalias',
 				testMatch: "some**glob",
 			},
 		);

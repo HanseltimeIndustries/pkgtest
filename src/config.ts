@@ -50,6 +50,7 @@ const TransformValidated = z.object({
 });
 
 const PkgManagerBaseOptionsValidated = z.object({
+	version: z.string().optional(),
 	installCliArgs: z.string().optional(),
 }) satisfies ZodType<PkgManagerBaseOptions>;
 
@@ -64,18 +65,22 @@ const AdvancedPackageManagerOptionsValidated = z.discriminatedUnion(
 	[
 		z.object({
 			packageManager: z.literal(PkgManager.YarnBerry),
+			alias: z.string(),
 			options: YarnV4OptionsValidated,
 		}),
 		z.object({
 			packageManager: z.literal(PkgManager.YarnV1),
+			alias: z.string(),
 			options: PkgManagerBaseOptionsValidated,
 		}),
 		z.object({
 			packageManager: z.literal(PkgManager.Npm),
+			alias: z.string(),
 			options: PkgManagerBaseOptionsValidated,
 		}),
 		z.object({
 			packageManager: z.literal(PkgManager.Pnpm),
+			alias: z.string(),
 			options: PkgManagerBaseOptionsValidated,
 		}),
 	],

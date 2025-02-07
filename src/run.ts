@@ -56,6 +56,8 @@ export interface RunOptions {
 
 export class FailFastError extends Error {}
 
+const DEFAULT_PKG_MANAGER_ALIAS = "pkgtest default";
+
 export async function run(options: RunOptions) {
 	const {
 		configPath,
@@ -84,6 +86,14 @@ export async function run(options: RunOptions) {
 		config.entries.reduce(
 			(runners, testConfigEntry) => {
 				testConfigEntry.moduleTypes.forEach((modType) => {
+					// Ensure we don't have duplicate aliases
+					const usedPkgManagerAliasMap = Object.values(PkgManager).reduce(
+						(used, pkgm) => {
+							used.set(pkgm, new Set<string>());
+							return used;
+						},
+						new Map<string, Set<string>>(),
+					);
 					runners.push(
 						...testConfigEntry.packageManagers.map(async (_pkgManager) => {
 							const testProjectDir = await mkdtemp(
@@ -111,6 +121,17 @@ export async function run(options: RunOptions) {
 								const pkgManagerOptions = simpleOptions
 									? undefined
 									: _pkgManager.options;
+								const pkgManagerAlias = simpleOptions
+									? DEFAULT_PKG_MANAGER_ALIAS
+									: _pkgManager.alias;
+								// Ensure the alias is unique to the entry
+								const usedAliases = usedPkgManagerAliasMap.get(pkgManager);
+								if (usedAliases?.has(pkgManagerAlias!)) {
+									throw new Error(
+										`Cannot provide the same pkgManager alias for ${pkgManager} configuration! ${pkgManagerAlias}`,
+									);
+								}
+								usedAliases?.add(pkgManagerAlias);
 								const runners = await createTestProject(
 									{
 										projectDir: process.cwd(),
@@ -123,6 +144,7 @@ export async function run(options: RunOptions) {
 										modType,
 										pkgManager,
 										pkgManagerOptions,
+										pkgManagerAlias,
 										testMatch: testConfigEntry.testMatch,
 										typescript: testConfigEntry.transforms.typescript,
 									},

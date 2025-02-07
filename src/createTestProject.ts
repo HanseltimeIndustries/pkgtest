@@ -61,6 +61,10 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		modType: ModuleTypes;
 		pkgManager: PkgManagerT;
 		/**
+		 * The alias for the pkgmanager + options configuration - used for test differentiation
+		 */
+		pkgManagerAlias: string;
+		/**
 		 * If an advanced configuration was used, this is the package manager options for the specific manager
 		 * (set up before installing)
 		 */
@@ -86,6 +90,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		testMatch,
 		typescript,
 		pkgManagerOptions,
+		pkgManagerAlias,
 	} = options;
 	const logPrefix = `[${pkgManager}, ${modType}, @${testProjectDir}]`;
 
@@ -280,6 +285,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 					testFiles,
 					runBy: rBy,
 					pkgManager,
+					pkgManagerAlias,
 					modType,
 					failFast,
 					extraEnv: additionalEnv,
@@ -304,6 +310,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 					runCommand: `${binRunCmd} ${rBy}`,
 					testFiles,
 					runBy: rBy,
+					pkgManagerAlias,
 					pkgManager,
 					modType,
 					failFast,

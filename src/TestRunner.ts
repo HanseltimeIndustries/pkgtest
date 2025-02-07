@@ -16,6 +16,12 @@ export class TestRunner {
 	readonly testFiles: TestFile[];
 	readonly projectDir: string;
 	readonly pkgManager: PkgManager;
+	/**
+	 * An alias for the pkg manager configuration for this test suite.
+	 *
+	 * This is valuable for multiple of 'PkgManager' types (like yarn pnp and node-modules linking)
+	 */
+	readonly pkgManagerAlias: string;
 	readonly modType: ModuleTypes;
 	readonly failFast: boolean;
 	readonly extraEnv: {
@@ -28,6 +34,7 @@ export class TestRunner {
 		testFiles: TestFile[];
 		projectDir: string;
 		pkgManager: PkgManager;
+		pkgManagerAlias: string;
 		modType: ModuleTypes;
 		extraEnv?: {
 			[env: string]: string;
@@ -39,6 +46,7 @@ export class TestRunner {
 		this.testFiles = options.testFiles;
 		this.projectDir = options.projectDir;
 		this.pkgManager = options.pkgManager;
+		this.pkgManagerAlias = options.pkgManagerAlias;
 		this.modType = options.modType;
 		this.failFast = !!options.failFast;
 		this.extraEnv = options.extraEnv ?? {};

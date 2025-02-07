@@ -108,6 +108,11 @@ export type PkgManagerOptions<T extends PkgManager> =
  */
 export interface PktManagerOptionsConfig<T extends PkgManager> {
 	packageManager: T;
+	/**
+	 * For test suite identification, this will provide an alias for the configuration in the event that
+	 * multiple of the same package manager are used
+	 */
+	alias: string;
 	options: PkgManagerOptions<T>;
 }
 
