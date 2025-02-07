@@ -224,8 +224,13 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 
 		const absBuildPath = join(testProjectDir, tsConfig.compilerOptions.outDir);
 
+		let runCommand: string
 		runBy.forEach((rBy) => {
 			let testFiles: string[];
+			let additionalArgs: string = '';
+			let additionalEnv: {
+				[env: string]: string
+			} = {}
 			switch (rBy) {
 				case RunBy.Node:
 					testFiles = copiedTestFiles.map((srcFile) =>
@@ -234,10 +239,24 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 							.replace(absSrcPath, absBuildPath)
 							.replace(/\.tsx?$/, ".js"),
 					);
+					additionalArgs = ''
+					runCommand = rBy
 					break;
 				case RunBy.TsNode:
+					testFiles = copiedTestFiles;
+					// ts-node and esm do not play well.  This is the most stable config I know of
+					if (modType === ModuleTypes.ESM) {
+						runCommand = 'node --loader ts-node/esm'
+						additionalEnv.TS_NODE_PROJECT = configFilePath
+					} else {
+						runCommand = rBy
+						additionalArgs = `--project ${configFilePath}`
+					}
+					break;
 				case RunBy.Tsx:
 					testFiles = copiedTestFiles;
+					additionalArgs = `--tsconfig ${configFilePath}`
+					runCommand = rBy
 					break;
 				default:
 					throw new Error(
@@ -247,12 +266,13 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 			runners.push(
 				new TestRunner({
 					projectDir: testProjectDir,
-					binRunCommand: binRunCmd,
+					runCommand: `${binRunCmd} ${runCommand}${additionalArgs ? ' ' + additionalArgs : ''}`,
 					testFiles,
 					runBy: rBy,
 					pkgManager,
 					modType,
 					failFast,
+					extraEnv: additionalEnv
 				}),
 			);
 		});
@@ -271,12 +291,13 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 			runners.push(
 				new TestRunner({
 					projectDir: testProjectDir,
-					binRunCommand: binRunCmd,
+					runCommand: `${binRunCmd} ${rBy}`,
 					testFiles,
 					runBy: rBy,
 					pkgManager,
 					modType,
 					failFast,
+					extraEnv: {},
 				}),
 			);
 		});

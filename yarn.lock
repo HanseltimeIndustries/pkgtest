@@ -903,9 +903,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hanseltime/esm-interop-tools@file:/home/justin.hanselman/esm-interop-tools::locator=test-yarn%40workspace%3A.":
+"@hanseltime/esm-interop-tools@file:/home/justin.hanselman/esm-interop-tools::locator=%40hanseltime%2Fpkgtest%40workspace%3A.":
   version: 0.0.0
-  resolution: "@hanseltime/esm-interop-tools@file:/home/justin.hanselman/esm-interop-tools#/home/justin.hanselman/esm-interop-tools::hash=59c751&locator=test-yarn%40workspace%3A."
+  resolution: "@hanseltime/esm-interop-tools@file:/home/justin.hanselman/esm-interop-tools#/home/justin.hanselman/esm-interop-tools::hash=59c751&locator=%40hanseltime%2Fpkgtest%40workspace%3A."
   dependencies:
     commander: "npm:^12.1.0"
     resolve-package-path: "npm:^4.0.3"
@@ -914,6 +914,50 @@ __metadata:
   checksum: 10/946cb2fcc37c57793ca2e63bdbae3b628cf3fc946297de64a3b17dcb012ad9b8688527c9c5ea724c03ff2bf0ef73219c549417800d3133381b0343af8a91ca4b
   languageName: node
   linkType: hard
+
+"@hanseltime/pkgtest@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "@hanseltime/pkgtest@workspace:."
+  dependencies:
+    "@babel/cli": "npm:^7.26.4"
+    "@babel/core": "npm:^7.26.7"
+    "@babel/plugin-transform-modules-commonjs": "npm:^7.26.3"
+    "@biomejs/biome": "npm:1.9.4"
+    "@commitlint/config-angular": "npm:^18.4.3"
+    "@hanseltime/esm-interop-tools": /home/justin.hanselman/esm-interop-tools
+    "@hanseltime/swc-plugin-node-globals-inject": "npm:^1.0.0"
+    "@rspack/cli": "npm:^1.1.6"
+    "@rspack/core": "npm:^1.1.6"
+    "@semantic-release/changelog": "npm:^6.0.3"
+    "@semantic-release/git": "npm:^10.0.1"
+    "@swc/cli": "npm:^0.5.2"
+    "@swc/core": "npm:^1.10.12"
+    "@swc/jest": "npm:^0.2.37"
+    "@types/babel__core": "npm:^7"
+    "@types/jest": "npm:^29.5.11"
+    "@types/js-yaml": "npm:^4"
+    "@types/micromatch": "npm:^4.0.9"
+    "@types/node": "npm:^18.11.18"
+    babel-preset-jest: "npm:^29.6.3"
+    chalk: "npm:^5.4.1"
+    commander: "npm:^13.1.0"
+    commitlint: "npm:^18.4.3"
+    get-tsconfig: "npm:^4.10.0"
+    husky: "npm:^9.1.7"
+    jest: "npm:^29.7.0"
+    jest-chain-transform: "npm:^0.0.8"
+    js-yaml: "npm:^4.1.0"
+    micromatch: "npm:^4.0.8"
+    pinst: "npm:^3.0.0"
+    semantic-release: "npm:^22.0.12"
+    ts-jest: "npm:^29.1.1"
+    tswc: "npm:^1.4.0"
+    tsx: "npm:^4.19.2"
+    typescript: "npm:^5.7.3"
+    zod: "npm:^3.24.1"
+    zod-validation-error: "npm:^3.4.0"
+  languageName: unknown
+  linkType: soft
 
 "@hanseltime/swc-plugin-node-globals-inject@npm:^1.0.0":
   version: 1.0.0
@@ -9921,50 +9965,6 @@ __metadata:
   checksum: 10/8fccb2cb6c8fcb6bb4115394feb833f8b6cf4b9503ec2485c2c90febf435cac62abe882a0c5c51a37b9bbe70640cdd05acf5f45e486ac4583389f4b0855f69e5
   languageName: node
   linkType: hard
-
-"test-yarn@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "test-yarn@workspace:."
-  dependencies:
-    "@babel/cli": "npm:^7.26.4"
-    "@babel/core": "npm:^7.26.7"
-    "@babel/plugin-transform-modules-commonjs": "npm:^7.26.3"
-    "@biomejs/biome": "npm:1.9.4"
-    "@commitlint/config-angular": "npm:^18.4.3"
-    "@hanseltime/esm-interop-tools": /home/justin.hanselman/esm-interop-tools
-    "@hanseltime/swc-plugin-node-globals-inject": "npm:^1.0.0"
-    "@rspack/cli": "npm:^1.1.6"
-    "@rspack/core": "npm:^1.1.6"
-    "@semantic-release/changelog": "npm:^6.0.3"
-    "@semantic-release/git": "npm:^10.0.1"
-    "@swc/cli": "npm:^0.5.2"
-    "@swc/core": "npm:^1.10.12"
-    "@swc/jest": "npm:^0.2.37"
-    "@types/babel__core": "npm:^7"
-    "@types/jest": "npm:^29.5.11"
-    "@types/js-yaml": "npm:^4"
-    "@types/micromatch": "npm:^4.0.9"
-    "@types/node": "npm:^18.11.18"
-    babel-preset-jest: "npm:^29.6.3"
-    chalk: "npm:^5.4.1"
-    commander: "npm:^13.1.0"
-    commitlint: "npm:^18.4.3"
-    get-tsconfig: "npm:^4.10.0"
-    husky: "npm:^9.1.7"
-    jest: "npm:^29.7.0"
-    jest-chain-transform: "npm:^0.0.8"
-    js-yaml: "npm:^4.1.0"
-    micromatch: "npm:^4.0.8"
-    pinst: "npm:^3.0.0"
-    semantic-release: "npm:^22.0.12"
-    ts-jest: "npm:^29.1.1"
-    tswc: "npm:^1.4.0"
-    tsx: "npm:^4.19.2"
-    typescript: "npm:^5.7.3"
-    zod: "npm:^3.24.1"
-    zod-validation-error: "npm:^3.4.0"
-  languageName: unknown
-  linkType: soft
 
 "text-decoder@npm:^1.1.0":
   version: 1.2.3

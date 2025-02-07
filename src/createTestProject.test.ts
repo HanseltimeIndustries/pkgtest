@@ -127,13 +127,14 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			});
 			expect(testRunners).toHaveLength(1);
 			expect(testRunners[0]).toEqual({
-				binRunCommand: testBinCmd,
+				runCommand: `${testBinCmd} ${RunBy.Node}`,
 				runBy: RunBy.Node,
 				testFiles: expectedCopyOver.map((e) => e.copiedTo),
 				projectDir: testProjectDir,
 				pkgManager: PkgManager.YarnV1,
 				modType,
 				failFast: false,
+				extraEnv: {},
 			});
 
 			// Confirm correct function calls to mocks
@@ -230,13 +231,14 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			});
 			expect(testRunners).toHaveLength(1);
 			expect(testRunners[0]).toEqual({
-				binRunCommand: testBinCmd,
+				runCommand: `${testBinCmd} ${RunBy.Node}`,
 				runBy: RunBy.Node,
 				testFiles: expectedCopyOver.map((e) => e.builtTo),
 				projectDir: testProjectDir,
 				pkgManager: PkgManager.YarnV1,
 				modType: modType,
 				failFast: false,
+				extraEnv: {},
 			});
 
 			// Confirm correct function calls to mocks
@@ -347,38 +349,78 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					from: t,
 				};
 			});
+			const expectedConfigFile = `tsconfig.${modType}.json`;
 			expect(testRunners).toHaveLength(Object.values(RunBy).length);
-			expect(testRunners).toEqual(
-				expect.arrayContaining([
-					{
-						binRunCommand: testBinCmd,
-						runBy: RunBy.Node,
-						testFiles: expectedCopyOver.map((e) => e.builtTo),
-						projectDir: testProjectDir,
-						pkgManager: PkgManager.YarnV1,
-						modType,
-						failFast: false,
-					},
-					{
-						binRunCommand: testBinCmd,
-						runBy: RunBy.TsNode,
-						testFiles: expectedCopyOver.map((e) => e.copiedTo),
-						projectDir: testProjectDir,
-						pkgManager: PkgManager.YarnV1,
-						modType,
-						failFast: false,
-					},
-					{
-						binRunCommand: testBinCmd,
-						runBy: RunBy.Tsx,
-						testFiles: expectedCopyOver.map((e) => e.copiedTo),
-						projectDir: testProjectDir,
-						pkgManager: PkgManager.YarnV1,
-						modType,
-						failFast: false,
-					},
-				]),
-			);
+			expect(testRunners).toContainEqual({
+				runCommand: `${testBinCmd} ${RunBy.Node}`,
+				runBy: RunBy.Node,
+				testFiles: expectedCopyOver.map((e) => e.builtTo),
+				projectDir: testProjectDir,
+				pkgManager: PkgManager.YarnV1,
+				modType,
+				failFast: false,
+				extraEnv: {},
+			})
+			expect(testRunners).toContainEqual(					{
+				// Since Ts-node doesn't really work the same with esm, the command changes
+				runCommand: modType === ModuleTypes.Commonjs ? `${testBinCmd} ts-node --project ${expectedConfigFile}` : `${testBinCmd} node --loader ts-node/esm`,
+				runBy: RunBy.TsNode,
+				testFiles: expectedCopyOver.map((e) => e.copiedTo),
+				projectDir: testProjectDir,
+				pkgManager: PkgManager.YarnV1,
+				modType,
+				failFast: false,
+				extraEnv: modType === ModuleTypes.Commonjs ? {} : {
+					TS_NODE_PROJECT: expectedConfigFile,
+				}
+			},)
+			expect(testRunners).toContainEqual({
+				runCommand: `${testBinCmd} tsx --tsconfig ${expectedConfigFile}`,
+				runBy: RunBy.Tsx,
+				testFiles: expectedCopyOver.map((e) => e.copiedTo),
+				projectDir: testProjectDir,
+				pkgManager: PkgManager.YarnV1,
+				modType,
+				failFast: false,
+				extraEnv: {},
+			},)
+			// expect(testRunners).toEqual(
+			// 	expect.arrayContaining([
+			// 		{
+			// 			runCommand: `${testBinCmd} ${RunBy.Node}`,
+			// 			runBy: RunBy.Node,
+			// 			testFiles: expectedCopyOver.map((e) => e.builtTo),
+			// 			projectDir: testProjectDir,
+			// 			pkgManager: PkgManager.YarnV1,
+			// 			modType,
+			// 			failFast: false,
+			// 			extraEnv: {},
+			// 		},
+			// 		{
+			// 			// Since Ts-node doesn't really work the same with esm, the command changes
+			// 			runCommand: modType === ModuleTypes.Commonjs ? `${testBinCmd} ts-node --project ${expectedConfigFile}` : `node --loader ts-node/esm`,
+			// 			runBy: RunBy.TsNode,
+			// 			testFiles: expectedCopyOver.map((e) => e.copiedTo),
+			// 			projectDir: testProjectDir,
+			// 			pkgManager: PkgManager.YarnV1,
+			// 			modType,
+			// 			failFast: false,
+			// 			extraEnv: modType === ModuleTypes.Commonjs ? {} : {
+			// 				TS_NODE_PROJECT: expectedConfigFile,
+			// 			}
+			// 		},
+			// 		{
+			// 			runCommand: `${testBinCmd} tsx --tsconfig ${expectedConfigFile}`,
+			// 			runBy: RunBy.Tsx,
+			// 			testFiles: expectedCopyOver.map((e) => e.copiedTo),
+			// 			projectDir: testProjectDir,
+			// 			pkgManager: PkgManager.YarnV1,
+			// 			modType,
+			// 			failFast: false,
+			// 			extraEnv: {},
+			// 		},
+			// 	]),
+			// );
 
 			// Confirm correct function calls to mocks
 			expect(mockCreateDependencies).toHaveBeenCalledWith(
@@ -416,7 +458,6 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				expect(mockCp).toHaveBeenCalledWith(from, copiedTo);
 			}
 			// Make sure we wrote out tsconfig and commpiled
-			const expectedConfigFile = `tsconfig.${modType}.json`;
 			expect(writeFile).toHaveBeenCalledWith(
 				join(testProjectDir, expectedConfigFile),
 				JSON.stringify(testTsConfig, null, 4),

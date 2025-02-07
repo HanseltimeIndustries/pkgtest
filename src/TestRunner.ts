@@ -4,30 +4,37 @@ import micromatch from "micromatch";
 import { Reporter } from "./reporters";
 
 export class TestRunner {
-	readonly binRunCommand: string;
+	readonly runCommand: string;
 	readonly runBy: RunBy;
 	readonly testFiles: string[];
 	readonly projectDir: string;
 	readonly pkgManager: PkgManager;
 	readonly modType: ModuleTypes;
 	readonly failFast: boolean;
+	readonly extraEnv: {
+		[env: string]: string
+	}
 
 	constructor(options: {
-		binRunCommand: string;
+		runCommand: string;
 		runBy: RunBy;
 		testFiles: string[];
 		projectDir: string;
 		pkgManager: PkgManager;
 		modType: ModuleTypes;
+		extraEnv?: {
+			[env: string]: string
+		}
 		failFast?: boolean;
 	}) {
-		this.binRunCommand = options.binRunCommand;
+		this.runCommand = options.runCommand;
 		this.runBy = options.runBy;
 		this.testFiles = options.testFiles;
 		this.projectDir = options.projectDir;
 		this.pkgManager = options.pkgManager;
 		this.modType = options.modType;
 		this.failFast = !!options.failFast;
+		this.extraEnv = options.extraEnv ?? {};
 	}
 
 	// For now, we run this in parallel since we're running shell processes and that can lead to increased parallelism
@@ -56,7 +63,7 @@ export class TestRunner {
 		for (let i = 0; i < this.testFiles.length; i++) {
 			const testFile = this.testFiles[i];
 			try {
-				const cmd = `${this.binRunCommand} ${this.runBy} ${testFile}`;
+				const cmd = `${this.runCommand} ${testFile}`;
 				const start = new Date();
 				if (testNames.length > 0) {
 					if (
@@ -77,7 +84,10 @@ export class TestRunner {
 					exec(
 						cmd,
 						{
-							env: process.env,
+							env: {
+								...process.env,
+								...this.extraEnv,
+							},
 							cwd: this.projectDir,
 							timeout,
 						},
