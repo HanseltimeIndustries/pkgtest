@@ -1,4 +1,5 @@
 import { TestRunner } from "../TestRunner";
+import { testSuiteDescribe } from "./testSuiteDescribe";
 import { Reporter, TestResult, TestsSummary } from "./types";
 import chalk from "chalk";
 
@@ -11,9 +12,7 @@ export class SimpleReporter implements Reporter {
 	}
 
 	start(runner: TestRunner): void {
-		console.log(
-			`Test Suite for Module ${runner.modType}, Package Manager ${runner.pkgManager} (${chalk.magenta(runner.pkgManagerAlias)}), Run with ${runner.runBy}`,
-		);
+		console.log(testSuiteDescribe(runner));
 		console.log(`Test package location: ${runner.projectDir}`);
 	}
 	passed(res: TestResult): void {

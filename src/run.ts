@@ -8,6 +8,7 @@ import { SimpleReporter } from "./reporters/SimpleReporter";
 import { Logger } from "./Logger";
 import chalk from "chalk";
 import { ModuleTypes, PkgManager, RunBy } from "./types";
+import { testSuiteDescribe } from "./reporters";
 
 export const DEFAULT_TIMEOUT = 2000;
 
@@ -47,6 +48,7 @@ export interface RunOptions {
 		moduleTypes?: ModuleTypes[];
 		packageManagers?: PkgManager[];
 		runWith?: RunBy[];
+		pkgManagerAlias?: string[];
 		/**
 		 * A glob filter of file names to run (relative to the cwd root)
 		 */
@@ -67,7 +69,7 @@ export async function run(options: RunOptions) {
 		preserveResources,
 		filters = {},
 	} = options;
-	const { testNames = [], moduleTypes, packageManagers, runWith } = filters;
+	const { testNames = [] } = filters;
 	const logger = new Logger({
 		context: "[runner]",
 		debug: !!debug,
@@ -96,6 +98,80 @@ export async function run(options: RunOptions) {
 					);
 					runners.push(
 						...testConfigEntry.packageManagers.map(async (_pkgManager) => {
+							const simpleOptions = typeof _pkgManager === "string";
+							const pkgManager = simpleOptions
+								? _pkgManager
+								: _pkgManager.packageManager;
+							const pkgManagerOptions = simpleOptions
+								? undefined
+								: _pkgManager.options;
+							const pkgManagerAlias = simpleOptions
+								? DEFAULT_PKG_MANAGER_ALIAS
+								: _pkgManager.alias;
+
+							// Ensure the alias is unique to the entry
+							const usedAliases = usedPkgManagerAliasMap.get(pkgManager);
+							if (usedAliases?.has(pkgManagerAlias!)) {
+								throw new Error(
+									`Cannot provide the same pkgManager alias for ${pkgManager} configuration! ${pkgManagerAlias}`,
+								);
+							}
+							usedAliases?.add(pkgManagerAlias);
+
+							// Apply filters
+							if (
+								filters.moduleTypes &&
+								!filters.moduleTypes.includes(modType)
+							) {
+								skipSuitesNotice(logger, {
+									runWith: testConfigEntry.runWith,
+									modType,
+									pkgManager,
+									pkgManagerAlias,
+								});
+								return;
+							}
+							if (
+								filters.packageManagers &&
+								!filters.packageManagers.includes(pkgManager)
+							) {
+								skipSuitesNotice(logger, {
+									runWith: testConfigEntry.runWith,
+									modType,
+									pkgManager,
+									pkgManagerAlias,
+								});
+								return;
+							}
+							if (
+								filters.pkgManagerAlias &&
+								!filters.pkgManagerAlias.includes(pkgManagerAlias)
+							) {
+								skipSuitesNotice(logger, {
+									runWith: testConfigEntry.runWith,
+									modType,
+									pkgManager,
+									pkgManagerAlias,
+								});
+								return;
+							}
+							let runWith = testConfigEntry.runWith;
+							if (filters.runWith) {
+								runWith = testConfigEntry.runWith.reduce((rWith, runBy) => {
+									if (!filters.runWith!.includes(runBy)) {
+										skipSuitesNotice(logger, {
+											runWith: [runBy],
+											modType,
+											pkgManager,
+											pkgManagerAlias,
+										});
+									} else {
+										rWith.push(runBy);
+									}
+									return rWith;
+								}, [] as RunBy[]);
+							}
+							// End filters
 							const testProjectDir = await mkdtemp(
 								join(tmpDir, `${LIBRARY_NAME}-`),
 							);
@@ -114,24 +190,6 @@ export async function run(options: RunOptions) {
 								}
 							}
 							try {
-								const simpleOptions = typeof _pkgManager === "string";
-								const pkgManager = simpleOptions
-									? _pkgManager
-									: _pkgManager.packageManager;
-								const pkgManagerOptions = simpleOptions
-									? undefined
-									: _pkgManager.options;
-								const pkgManagerAlias = simpleOptions
-									? DEFAULT_PKG_MANAGER_ALIAS
-									: _pkgManager.alias;
-								// Ensure the alias is unique to the entry
-								const usedAliases = usedPkgManagerAliasMap.get(pkgManager);
-								if (usedAliases?.has(pkgManagerAlias!)) {
-									throw new Error(
-										`Cannot provide the same pkgManager alias for ${pkgManager} configuration! ${pkgManagerAlias}`,
-									);
-								}
-								usedAliases?.add(pkgManagerAlias);
 								const runners = await createTestProject(
 									{
 										projectDir: process.cwd(),
@@ -140,7 +198,7 @@ export async function run(options: RunOptions) {
 										failFast,
 									},
 									{
-										runBy: testConfigEntry.runWith,
+										runBy: runWith,
 										modType,
 										pkgManager,
 										pkgManagerOptions,
@@ -162,12 +220,16 @@ export async function run(options: RunOptions) {
 				});
 				return runners;
 			},
-			[] as Promise<{
-				runners: TestRunner[];
-				cleanup: () => Promise<void>;
-			}>[],
+			[] as Promise<
+				| {
+						runners: TestRunner[];
+						cleanup: () => Promise<void>;
+				  }
+				| undefined
+			>[],
 		),
 	);
+	const testRunnerPkgsFiltered = testRunnerPkgs.filter((run) => !!run);
 	logger.logDebug(`Finished initializing test projects.`);
 
 	const reporter = new SimpleReporter({
@@ -176,7 +238,7 @@ export async function run(options: RunOptions) {
 
 	// TODO: multi-threading pool for better results, although there's not a large amount of tests necessary at the moment
 	try {
-		for (const testRunnerPkg of testRunnerPkgs) {
+		for (const testRunnerPkg of testRunnerPkgsFiltered) {
 			for (const runner of testRunnerPkg.runners) {
 				const { failedFast } = await runner.runTests({
 					timeout,
@@ -193,9 +255,29 @@ export async function run(options: RunOptions) {
 	} finally {
 		// Cleanup async
 		await Promise.allSettled(
-			testRunnerPkgs.map(async ({ cleanup }) => {
+			testRunnerPkgsFiltered.map(async ({ cleanup }) => {
 				await cleanup();
 			}),
 		);
 	}
+}
+
+function skipSuitesNotice(
+	logger: Logger,
+	opts: {
+		runWith: RunBy[];
+		modType: ModuleTypes;
+		pkgManager: PkgManager;
+		pkgManagerAlias: string;
+	},
+) {
+	const { runWith, ...rest } = opts;
+	runWith.forEach((runBy) => {
+		logger.log(
+			`${chalk.yellow("Skipping Suite:")} ${testSuiteDescribe({
+				...rest,
+				runBy,
+			})}`,
+		);
+	});
 }

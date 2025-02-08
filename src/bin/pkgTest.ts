@@ -1,6 +1,7 @@
-import { program, Command, Argument } from "commander";
+import { program, Command, Argument, Option } from "commander";
 import { DEFAULT_CONFIG_FILE_NAME_BASE, LIBRARY_NAME } from "../config";
 import { DEFAULT_TIMEOUT, FailFastError, run } from "../run";
+import { ModuleTypes, PkgManager, RunBy } from "../types";
 
 interface Options {
 	config?: string;
@@ -8,6 +9,11 @@ interface Options {
 	failFast?: boolean;
 	timeout?: number;
 	preserve?: boolean;
+	// Filter options
+	modType?: ModuleTypes[];
+	pkgManager?: PkgManager[];
+	runWith?: RunBy[];
+	pkgManagerAlias?: string[];
 }
 
 program
@@ -22,6 +28,31 @@ program
 	.option(
 		"--preserve",
 		"Preserves all test project directories that were created (use for debugging, but keep in mind this leaves large resources on your hard disk that you have to clean up)",
+	)
+	// filters
+	.addOption(
+		new Option(
+			"--modType <modTypes...>",
+			"Limits the tests that run to the specified module types",
+		).choices(Object.values(ModuleTypes)),
+	)
+	.addOption(
+		new Option(
+			"--pkgManager <pkgManagers...>",
+			"Limits the tests that run to the specified base package manager",
+		).choices(Object.values(PkgManager)),
+	)
+	.addOption(
+		new Option(
+			"--runWith <runWiths...>",
+			"Limits the tests that run to the specified runWith",
+		).choices(Object.values(RunBy)),
+	)
+	.addOption(
+		new Option(
+			"--pkgManagerAlias <pkgManagerAliases...>",
+			"Limits the tests that run to the pkgManager config alias (pkgtest default) runs the string PkgManager configs",
+		),
 	)
 	.addArgument(
 		new Argument(
@@ -41,6 +72,10 @@ program
 				preserveResources: options.preserve,
 				filters: {
 					testNames: testMatch ?? [],
+					moduleTypes: options.modType,
+					packageManagers: options.pkgManager,
+					runWith: options.runWith,
+					pkgManagerAlias: options.pkgManagerAlias,
 				},
 			});
 		} catch (err) {

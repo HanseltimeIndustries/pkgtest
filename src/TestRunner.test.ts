@@ -83,7 +83,7 @@ it("runs all test files and reports the results", async () => {
 		testFiles,
 		projectDir: testProjectDir,
 		pkgManager: PkgManager.Npm,
-		pkgManagerAlias: 'myalias',
+		pkgManagerAlias: "myalias",
 		modType: ModuleTypes.Commonjs,
 	});
 
@@ -195,7 +195,7 @@ it("runs test files until first failure and reports the results with failFast", 
 		testFiles,
 		projectDir: testProjectDir,
 		pkgManager: PkgManager.Npm,
-		pkgManagerAlias: 'myalias',
+		pkgManagerAlias: "myalias",
 		modType: ModuleTypes.Commonjs,
 		failFast: true,
 	});
@@ -307,7 +307,7 @@ it("runs test files and handles timeouts", async () => {
 		testFiles,
 		projectDir: testProjectDir,
 		pkgManager: PkgManager.Npm,
-		pkgManagerAlias: 'myalias',
+		pkgManagerAlias: "myalias",
 		modType: ModuleTypes.Commonjs,
 		failFast: false,
 	});
@@ -421,7 +421,7 @@ it("runs only designated test files", async () => {
 		testFiles,
 		projectDir: testProjectDir,
 		pkgManager: PkgManager.Npm,
-		pkgManagerAlias: 'myalias',
+		pkgManagerAlias: "myalias",
 		modType: ModuleTypes.Commonjs,
 		failFast: false,
 	});
