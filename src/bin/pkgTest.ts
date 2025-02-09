@@ -79,7 +79,7 @@ program
 				},
 			});
 			if (!passed) {
-				process.exit(44)
+				process.exit(44);
 			}
 		} catch (err) {
 			if (err instanceof FailFastError) {

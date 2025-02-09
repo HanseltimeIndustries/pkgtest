@@ -172,10 +172,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 	logger.logDebug(`Running package installation at ${testProjectDir}`);
 	// depending on the type of package manager - perform installs
 	const installCLiArgs = pkgManagerOptions?.installCliArgs ?? "";
-	const pkgManagerCommand = getPkgManagerCommand(
-		pkgManager,
-		pkgManagerVersion,
-	);
+	const pkgManagerCommand = getPkgManagerCommand(pkgManager, pkgManagerVersion);
 	// Pre-install setup
 	if (pkgManager === PkgManager.YarnBerry) {
 		const cast = pkgManagerOptions as YarnV4Options;

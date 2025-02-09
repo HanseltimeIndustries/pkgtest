@@ -181,4 +181,12 @@ export interface TestConfig {
 	 * Logical unit separating out what test files should be run and under what conditions.
 	 */
 	entries: TestConfigEntry[];
+
+	/**
+	 * Additional dependencies that can't be inferred from the project's package.json
+	 * or other explicit fields like "typescript.tsx.version".
+	 */
+	additionalDependencies?: {
+		[pkg: string]: string;
+	};
 }

@@ -1,9 +1,5 @@
 // For now, we skip things we know that are not gonna have anything in them
-const KNOWN_IGNORES = [
-    "**/node_modules/**",
-    "**/.yarn/**",
-    "**/.git/**",
-]
+const KNOWN_IGNORES = ["**/node_modules/**", "**/.yarn/**", "**/.git/**"];
 
 /**
  * Returns the aggregate set of ignores so avoid looking for tests in.
