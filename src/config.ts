@@ -3,7 +3,7 @@ import { isAbsolute, extname, resolve } from "path";
 import {
 	InstalledTool,
 	ModuleTypes,
-	PktManagerOptionsConfig,
+	PkgManagerOptionsConfig,
 	PkgManager,
 	PkgManagerBaseOptions,
 	RunBy,
@@ -50,7 +50,6 @@ const TransformValidated = z.object({
 });
 
 const PkgManagerBaseOptionsValidated = z.object({
-	version: z.string().optional(),
 	installCliArgs: z.string().optional(),
 }) satisfies ZodType<PkgManagerBaseOptions>;
 
@@ -66,25 +65,29 @@ const AdvancedPackageManagerOptionsValidated = z.discriminatedUnion(
 		z.object({
 			packageManager: z.literal(PkgManager.YarnBerry),
 			alias: z.string(),
+			version: z.string().optional(),
 			options: YarnV4OptionsValidated,
 		}),
 		z.object({
 			packageManager: z.literal(PkgManager.YarnV1),
 			alias: z.string(),
+			version: z.string().optional(),
 			options: PkgManagerBaseOptionsValidated,
 		}),
 		z.object({
 			packageManager: z.literal(PkgManager.Npm),
 			alias: z.string(),
+			version: z.string().optional(),
 			options: PkgManagerBaseOptionsValidated,
 		}),
 		z.object({
 			packageManager: z.literal(PkgManager.Pnpm),
 			alias: z.string(),
+			version: z.string().optional(),
 			options: PkgManagerBaseOptionsValidated,
 		}),
 	],
-) satisfies ZodType<PktManagerOptionsConfig<PkgManager>>;
+) satisfies ZodType<PkgManagerOptionsConfig<PkgManager>>;
 
 const TestConfigEntryValidated = z.object({
 	testMatch: z

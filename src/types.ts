@@ -76,12 +76,6 @@ export interface PkgManagerBaseOptions {
 	 * The cli arguments to add to the install command
 	 */
 	installCliArgs?: string;
-	/**
-	 * The version of the package manager to use (installed via corepack)
-	 *
-	 * Defaults to latest if not supplied
-	 */
-	version?: string;
 }
 
 export interface YarnV4Options extends PkgManagerBaseOptions {
@@ -106,13 +100,19 @@ export type PkgManagerOptions<T extends PkgManager> =
  * manager are available to create variants of a singular package manager based project
  * (like yarn has plug'n'play, node_modules, and pnpm linker functions)
  */
-export interface PktManagerOptionsConfig<T extends PkgManager> {
+export interface PkgManagerOptionsConfig<T extends PkgManager> {
 	packageManager: T;
 	/**
 	 * For test suite identification, this will provide an alias for the configuration in the event that
 	 * multiple of the same package manager are used
 	 */
 	alias: string;
+	/**
+	 * The version of the package manager to use (installed via corepack)
+	 *
+	 * Defaults to latest if not supplied
+	 */
+	version?: string;
 	options: PkgManagerOptions<T>;
 }
 
@@ -128,7 +128,7 @@ export interface TestConfigEntry {
 	 * Important - to preserve integrity during testing, each module type will get a brand new project per package
 	 * manager to avoid dependency install and access issues.
 	 */
-	packageManagers: (PkgManager | PktManagerOptionsConfig<PkgManager>)[];
+	packageManagers: (PkgManager | PkgManagerOptionsConfig<PkgManager>)[];
 
 	/**
 	 * The various ways that you want to run the scripts in question to verify they work as expected.

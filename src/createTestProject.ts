@@ -73,6 +73,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		runBy: RunBy[];
 		modType: ModuleTypes;
 		pkgManager: PkgManagerT;
+		pkgManagerVersion?: string;
 		/**
 		 * The alias for the pkgmanager + options configuration - used for test differentiation
 		 */
@@ -111,6 +112,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		typescript,
 		pkgManagerOptions,
 		pkgManagerAlias,
+		pkgManagerVersion,
 	} = options;
 	const logPrefix = `[${pkgManager}, ${modType}, @${testProjectDir}]`;
 
@@ -172,7 +174,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 	const installCLiArgs = pkgManagerOptions?.installCliArgs ?? "";
 	const pkgManagerCommand = getPkgManagerCommand(
 		pkgManager,
-		pkgManagerOptions?.version,
+		pkgManagerVersion,
 	);
 	// Pre-install setup
 	if (pkgManager === PkgManager.YarnBerry) {
@@ -186,7 +188,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		}
 	}
 	await controlledExec(
-		getPkgManagerSetCommand(pkgManager, pkgManagerOptions?.version),
+		getPkgManagerSetCommand(pkgManager, pkgManagerVersion),
 		{
 			cwd: testProjectDir,
 			env: process.env,
