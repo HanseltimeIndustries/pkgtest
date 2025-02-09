@@ -1,4 +1,5 @@
 import { TsConfigJson } from "get-tsconfig";
+import { CreateDependenciesOptions } from "./createDependencies";
 
 /**
  * The type of module that the testing package that is created will be listed as:
@@ -158,9 +159,7 @@ export interface TestConfigEntry {
 	 * Additional dependencies that can't be inferred from the project's package.json
 	 * or other explicit fields like "typescript.tsx.version".
 	 */
-	additionalDependencies?: {
-		[pkg: string]: string;
-	};
+	additionalDependencies?: CreateDependenciesOptions["additionalDependencies"];
 }
 
 export interface TestConfig {
@@ -186,7 +185,5 @@ export interface TestConfig {
 	 * Additional dependencies that can't be inferred from the project's package.json
 	 * or other explicit fields like "typescript.tsx.version".
 	 */
-	additionalDependencies?: {
-		[pkg: string]: string;
-	};
+	additionalDependencies?: CreateDependenciesOptions["additionalDependencies"];
 }

@@ -1,6 +1,10 @@
 import { createDependencies } from "./createDependencies";
 import { getAllMatchingFiles } from "./getAllMatchingFiles";
-import { getPkgBinaryRunnerCommand, getPkgManagerCommand } from "./pkgManager";
+import {
+	getPkgBinaryRunnerCommand,
+	getPkgManagerCommand,
+	getPkgManagerSetCommand,
+} from "./pkgManager";
 import { getTypescriptConfig } from "./getTypescriptConfig";
 import { cp, readFile, writeFile } from "fs/promises";
 import { exec } from "child_process";
@@ -9,7 +13,7 @@ import {
 	createTestProject,
 	SRC_DIRECTORY,
 } from "./createTestProject";
-import { ModuleTypes, PkgManager, RunBy } from "./types";
+import { ModuleTypes, PkgManager, PkgManagerBaseOptions, RunBy } from "./types";
 import { join, resolve } from "path";
 import { TsConfigJson } from "get-tsconfig";
 
@@ -26,11 +30,13 @@ const mockExec = jest.mocked(exec);
 const mockGetAllMatchingFiles = jest.mocked(getAllMatchingFiles);
 const mockGetPkgManagerCommand = jest.mocked(getPkgManagerCommand);
 const mockGetPkgBinaryRunnerCommand = jest.mocked(getPkgBinaryRunnerCommand);
+const mockGetPkgManagerSetCommand = jest.mocked(getPkgManagerSetCommand);
 const mockGetTypescriptConfig = jest.mocked(getTypescriptConfig);
 const mockReadFile = jest.mocked(readFile);
 
 const testBinCmd = "corepack npx@latest";
 const testPkgManagerCmd = "corepack npm@latest";
+const testPkgManagerSetCmd = "corepack use npm@latest";
 const testDeps = {
 	dep1: "1.0.1",
 	dep2: "^2.0.1",
@@ -56,6 +62,11 @@ const testAdditionalDeps = {
 const testMatchRootDir = "./pkgtests";
 const testMatchIgnore = ["someglob"];
 
+const testPkgManagerOptions: PkgManagerBaseOptions = {
+	installCliArgs: "some args",
+};
+const testPkgManagerVersion = "3.8.2";
+
 describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 	"For module type %s",
 	(modType) => {
@@ -66,6 +77,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			mockGetAllMatchingFiles.mockResolvedValue(testMatchingTests);
 			mockGetPkgBinaryRunnerCommand.mockReturnValue(testBinCmd);
 			mockGetPkgManagerCommand.mockReturnValue(testPkgManagerCmd);
+			mockGetPkgManagerSetCommand.mockReturnValue(testPkgManagerSetCmd);
 			mockGetTypescriptConfig.mockReturnValue(testTsConfig as any);
 			mockCp.mockResolvedValue();
 			mockWriteFile.mockResolvedValue();
@@ -117,6 +129,8 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					modType,
 					pkgManager: PkgManager.YarnV1,
 					pkgManagerAlias: "myalias",
+					pkgManagerOptions: testPkgManagerOptions,
+					pkgManagerVersion: testPkgManagerVersion,
 					testMatch: "some**glob",
 				},
 			);
@@ -149,6 +163,40 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				failFast: false,
 				extraEnv: {},
 			});
+
+			// confirm corepack use called
+			expect(mockExec).toHaveBeenCalledWith(
+				testPkgManagerSetCmd,
+				{
+					cwd: testProjectDir,
+					env: process.env,
+				},
+				expect.anything(),
+			);
+
+			// confirm pkg install command called
+			expect(mockExec).toHaveBeenCalledWith(
+				`${testPkgManagerCmd} install ${testPkgManagerOptions.installCliArgs}`,
+				{
+					cwd: testProjectDir,
+					env: process.env,
+				},
+				expect.anything(),
+			);
+
+			// Confirm command retrieval functions called with versions
+			expect(mockGetPkgBinaryRunnerCommand).toHaveBeenCalledWith(
+				PkgManager.YarnV1,
+				testPkgManagerVersion,
+			);
+			expect(mockGetPkgManagerCommand).toHaveBeenCalledWith(
+				PkgManager.YarnV1,
+				testPkgManagerVersion,
+			);
+			expect(mockGetPkgManagerSetCommand).toHaveBeenCalledWith(
+				PkgManager.YarnV1,
+				testPkgManagerVersion,
+			);
 
 			// Confirm correct function calls to mocks
 			expect(mockCreateDependencies).toHaveBeenCalledWith(
@@ -225,10 +273,46 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					modType: modType,
 					pkgManager: PkgManager.YarnV1,
 					pkgManagerAlias: "myalias",
+					pkgManagerOptions: testPkgManagerOptions,
+					pkgManagerVersion: testPkgManagerVersion,
 					testMatch: "some**glob",
 					// Just providing typescript object will do
 					typescript: typescriptOptions,
 				},
+			);
+
+			// confirm corepack use called
+			expect(mockExec).toHaveBeenCalledWith(
+				testPkgManagerSetCmd,
+				{
+					cwd: testProjectDir,
+					env: process.env,
+				},
+				expect.anything(),
+			);
+
+			// confirm pkg install command called
+			expect(mockExec).toHaveBeenCalledWith(
+				`${testPkgManagerCmd} install ${testPkgManagerOptions.installCliArgs}`,
+				{
+					cwd: testProjectDir,
+					env: process.env,
+				},
+				expect.anything(),
+			);
+
+			// Confirm command retrieval functions called with versions
+			expect(mockGetPkgBinaryRunnerCommand).toHaveBeenCalledWith(
+				PkgManager.YarnV1,
+				testPkgManagerVersion,
+			);
+			expect(mockGetPkgManagerCommand).toHaveBeenCalledWith(
+				PkgManager.YarnV1,
+				testPkgManagerVersion,
+			);
+			expect(mockGetPkgManagerSetCommand).toHaveBeenCalledWith(
+				PkgManager.YarnV1,
+				testPkgManagerVersion,
 			);
 
 			const expectedCopyOver = testMatchingTests.map((t) => {
@@ -356,11 +440,47 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					modType,
 					pkgManager: PkgManager.YarnV1,
 					pkgManagerAlias: "myalias",
+					pkgManagerOptions: testPkgManagerOptions,
+					pkgManagerVersion: testPkgManagerVersion,
 					testMatch: "some**glob",
 					// Just providing typescript object will do
 					typescript: typescriptOptions,
 					additionalDependencies: testAdditionalDeps,
 				},
+			);
+
+			// confirm corepack use called
+			expect(mockExec).toHaveBeenCalledWith(
+				testPkgManagerSetCmd,
+				{
+					cwd: testProjectDir,
+					env: process.env,
+				},
+				expect.anything(),
+			);
+
+			// confirm pkg install command called
+			expect(mockExec).toHaveBeenCalledWith(
+				`${testPkgManagerCmd} install ${testPkgManagerOptions.installCliArgs}`,
+				{
+					cwd: testProjectDir,
+					env: process.env,
+				},
+				expect.anything(),
+			);
+
+			// Confirm command retrieval functions called with versions
+			expect(mockGetPkgBinaryRunnerCommand).toHaveBeenCalledWith(
+				PkgManager.YarnV1,
+				testPkgManagerVersion,
+			);
+			expect(mockGetPkgManagerCommand).toHaveBeenCalledWith(
+				PkgManager.YarnV1,
+				testPkgManagerVersion,
+			);
+			expect(mockGetPkgManagerSetCommand).toHaveBeenCalledWith(
+				PkgManager.YarnV1,
+				testPkgManagerVersion,
 			);
 
 			const expectedCopyOver = testMatchingTests.map((t) => {

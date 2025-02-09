@@ -89,6 +89,16 @@ const AdvancedPackageManagerOptionsValidated = z.discriminatedUnion(
 	],
 ) satisfies ZodType<PkgManagerOptionsConfig<PkgManager>>;
 
+const additionalDependencies = z
+	.record(
+		z.string().describe("The package name"),
+		z.string().describe("The package version"),
+	)
+	.optional()
+	.describe(
+		"Additional dependencies that can't be inferred from the project's package.json or other explicit fields like \"typescript.tsx.version\".",
+	);
+
 const TestConfigEntryValidated = z.object({
 	testMatch: z
 		.string()
@@ -112,21 +122,14 @@ Note, we will run each way per package manager + module project that is created.
 		.array(z.nativeEnum(ModuleTypes))
 		.describe(`A list of module types that we will import the package under test with.  If you are using typescript, you will probably want the same configuration for both moduleTypes and will only need one TetsConfigEntry for both.
 If you are writing in raw JS though, you will more than likely need to keep ESM and CommonJS equivalent versions of each package test and therefore will need to have an entry with ["commonjs"] and ["esm"] separately so that you can change the testMatch to pick the correct files.`),
-	additionalDependencies: z
-		.record(
-			z.string().describe("The package name"),
-			z.string().describe("The package version"),
-		)
-		.optional()
-		.describe(
-			"Additional dependencies that can't be inferred from the project's package.json or other explicit fields like \"typescript.tsx.version\".",
-		),
+	additionalDependencies,
 	transforms: TransformValidated,
 }) satisfies ZodType<TestConfigEntry>;
 
 const TestConfigValidated = z.object({
 	matchRootDir: z.string().optional(),
 	matchIgnore: z.array(z.string()).optional(),
+	additionalDependencies,
 	entries: z
 		.array(TestConfigEntryValidated)
 		.describe(

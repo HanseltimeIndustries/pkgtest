@@ -214,6 +214,10 @@ export async function run(options: RunOptions) {
 										pkgManagerAlias,
 										testMatch: testConfigEntry.testMatch,
 										typescript: testConfigEntry.transforms.typescript,
+										additionalDependencies: {
+											...config.additionalDependencies,
+											...testConfigEntry.additionalDependencies,
+										},
 									},
 								);
 								return {
@@ -256,7 +260,7 @@ export async function run(options: RunOptions) {
 					reporter,
 				});
 				if (failed > 0) {
-					pass = false
+					pass = false;
 				}
 				if (failedFast) {
 					// Fail normally instead of letting an error make it to the top
@@ -265,7 +269,7 @@ export async function run(options: RunOptions) {
 				}
 			}
 		}
-		return pass
+		return pass;
 	} finally {
 		// Cleanup async
 		await Promise.allSettled(

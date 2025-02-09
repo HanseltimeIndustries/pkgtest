@@ -225,7 +225,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 	logger.logDebug(`Finished copying test files to ${absSrcPath}`);
 
 	const runners: TestRunner[] = [];
-	const binRunCmd = getPkgBinaryRunnerCommand(pkgManager);
+	const binRunCmd = getPkgBinaryRunnerCommand(pkgManager, pkgManagerVersion);
 	// Add a tsconfig file if we are using typescript transpilation
 	if (typescript) {
 		const configFilePath = `tsconfig.${modType}.json`;
