@@ -53,6 +53,8 @@ const testTsConfig: TsConfigJson = {
 const testAdditionalDeps = {
 	addDep: "3.0.0",
 };
+const testMatchRootDir = "./pkgtests";
+const testMatchIgnore = ["someglob"];
 
 describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 	"For module type %s",
@@ -107,6 +109,8 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				{
 					projectDir: testProjectUnderTestDir,
 					testProjectDir,
+					matchRootDir: testMatchRootDir,
+					matchIgnore: testMatchIgnore,
 				},
 				{
 					runBy: [RunBy.Node],
@@ -174,8 +178,9 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				),
 			);
 			expect(mockGetAllMatchingFiles).toHaveBeenCalledWith(
-				testProjectUnderTestDir,
+				resolve(testProjectUnderTestDir, testMatchRootDir),
 				"some**glob",
+				testMatchIgnore,
 			);
 			for (const { copiedTo, from } of expectedCopyOver) {
 				expect(mockCp).toHaveBeenCalledWith(from, copiedTo);
@@ -212,6 +217,8 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				{
 					projectDir: testProjectUnderTestDir,
 					testProjectDir,
+					matchRootDir: testMatchRootDir,
+					matchIgnore: testMatchIgnore,
 				},
 				{
 					runBy: [RunBy.Node],
@@ -287,8 +294,9 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				),
 			);
 			expect(mockGetAllMatchingFiles).toHaveBeenCalledWith(
-				testProjectUnderTestDir,
+				resolve(testProjectUnderTestDir, testMatchRootDir),
 				"some**glob",
+				testMatchIgnore,
 			);
 			for (const { copiedTo, from } of expectedCopyOver) {
 				expect(mockCp).toHaveBeenCalledWith(from, copiedTo);
@@ -340,6 +348,8 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				{
 					projectDir: testProjectUnderTestDir,
 					testProjectDir,
+					matchRootDir: testMatchRootDir,
+					matchIgnore: testMatchIgnore,
 				},
 				{
 					runBy: allRunBy,
@@ -459,8 +469,9 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				),
 			);
 			expect(mockGetAllMatchingFiles).toHaveBeenCalledWith(
-				testProjectUnderTestDir,
+				resolve(testProjectUnderTestDir, testMatchRootDir),
 				"some**glob",
+				testMatchIgnore,
 			);
 			for (const { copiedTo, from } of expectedCopyOver) {
 				expect(mockCp).toHaveBeenCalledWith(from, copiedTo);
@@ -488,6 +499,8 @@ it("throws an error if the projectdir is not absolute", async () => {
 			{
 				projectDir: "someUnderTest",
 				testProjectDir: join(process.cwd(), "testProjectDir"),
+				matchRootDir: testMatchRootDir,
+				matchIgnore: testMatchIgnore,
 			},
 			{
 				runBy: [RunBy.Node],
@@ -506,6 +519,8 @@ it("throws an error if the testProjectDir is not absolute", async () => {
 			{
 				projectDir: join(process.cwd(), "someUnderTest"),
 				testProjectDir: "testProjectDir",
+				matchRootDir: testMatchRootDir,
+				matchIgnore: testMatchIgnore,
 			},
 			{
 				runBy: [RunBy.Node],

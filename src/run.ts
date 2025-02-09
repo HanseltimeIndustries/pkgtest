@@ -9,6 +9,7 @@ import { Logger } from "./Logger";
 import chalk from "chalk";
 import { ModuleTypes, PkgManager, RunBy } from "./types";
 import { testSuiteDescribe } from "./reporters";
+import { getMatchIgnore } from "./getMatchIgnore";
 
 export const DEFAULT_TIMEOUT = 2000;
 
@@ -78,6 +79,12 @@ export async function run(options: RunOptions) {
 	const config = await getConfig(configPath);
 
 	logger.logDebug(JSON.stringify(config));
+
+	const matchIgnore = getMatchIgnore(process.cwd(), config.matchIgnore);
+	logger.logDebug(`matchIgnore: ${JSON.stringify(matchIgnore)}`);
+	const matchRootDir = config.matchRootDir ?? ".";
+	logger.logDebug(`matchRootDir: ${matchRootDir}`);
+	const projectDir = process.cwd();
 
 	const tmpDir = process.env.PKG_TEST_TEMP_DIR ?? tmpdir();
 	logger.logDebug(`Writing test projects to temporary directory: ${tmpDir}`);
@@ -192,10 +199,12 @@ export async function run(options: RunOptions) {
 							try {
 								const runners = await createTestProject(
 									{
-										projectDir: process.cwd(),
+										projectDir,
 										testProjectDir,
 										debug,
 										failFast,
+										matchIgnore,
+										matchRootDir,
 									},
 									{
 										runBy: runWith,

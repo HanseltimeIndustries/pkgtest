@@ -1,5 +1,5 @@
 import { cp, readFile, writeFile, rm } from "fs/promises";
-import { isAbsolute, join, relative, sep } from "path";
+import { isAbsolute, join, relative, resolve, sep } from "path";
 import { getAllMatchingFiles } from "./getAllMatchingFiles";
 import { exec, ExecOptions } from "child_process";
 import {
@@ -43,6 +43,19 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		 */
 		projectDir: string;
 		/**
+		 * The relative path from the projectDir to look for tests.  This affects testMatch
+		 *
+		 * This defaults to ./
+		 */
+		matchRootDir: string;
+		/**
+		 * For each glob pattern, this will not even bother looking for tests inside of it.
+		 *
+		 * This is ideal for folders that just eat up performance by having pkgtest look through it
+		 * even though there's no tests (node_modules anyone?)
+		 */
+		matchIgnore: string[];
+		/**
 		 * Absolute path to the directory we created for temporary testing
 		 */
 		testProjectDir: string;
@@ -74,7 +87,14 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		typescript?: TypescriptOptions;
 	},
 ): Promise<TestRunner[]> {
-	const { projectDir, testProjectDir, debug, failFast } = context;
+	const {
+		projectDir,
+		testProjectDir,
+		debug,
+		failFast,
+		matchRootDir,
+		matchIgnore,
+	} = context;
 
 	if (!isAbsolute(projectDir)) {
 		throw new Error("projectDir must be absolute path!");
@@ -94,7 +114,11 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 	} = options;
 	const logPrefix = `[${pkgManager}, ${modType}, @${testProjectDir}]`;
 
-	const testFiles = await getAllMatchingFiles(projectDir, testMatch);
+	const testFiles = await getAllMatchingFiles(
+		resolve(projectDir, matchRootDir),
+		testMatch,
+		matchIgnore,
+	);
 	if (testFiles.length == 0) {
 		throw new Error(`Cannot find any tests to match: ${testMatch}`);
 	}

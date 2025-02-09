@@ -6,6 +6,7 @@ import { join, sep } from "path";
 export async function getAllMatchingFiles(
 	dir: string,
 	glob: string,
+	ignoreGlobs?: string[],
 	_topDir?: string,
 ): Promise<string[]> {
 	const topDir = _topDir ?? (dir.endsWith(sep) ? dir : dir + sep);
@@ -13,11 +14,29 @@ export async function getAllMatchingFiles(
 	const matchedFiles = await Promise.all<string[] | string | undefined>(
 		files.map(async (f) => {
 			const fullPath = join(dir, f);
+			let normalizedMatchPath = fullPath.replace(topDir, "");
+			if (sep !== "/") {
+				// Normalize windows paths to work with unix glob paths
+				normalizedMatchPath = normalizedMatchPath.replaceAll(sep, "/");
+			}
 			if (statSync(fullPath).isDirectory()) {
-				return await getAllMatchingFiles(fullPath, glob, topDir);
+				if (
+					ignoreGlobs?.some((iglob) =>
+						micromatch.isMatch(
+							// Normalize to end with '/' for better formed globs
+							normalizedMatchPath.endsWith("/")
+								? normalizedMatchPath
+								: normalizedMatchPath + "/",
+							iglob,
+						),
+					)
+				) {
+					return undefined;
+				}
+				return await getAllMatchingFiles(fullPath, glob, ignoreGlobs, topDir);
 			} else {
 				// Localize the path so that we can't get other matches based on upstream folders
-				return micromatch.isMatch(fullPath.replace(topDir, ""), glob)
+				return micromatch.isMatch(normalizedMatchPath, glob)
 					? fullPath
 					: undefined;
 			}

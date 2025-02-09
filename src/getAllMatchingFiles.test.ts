@@ -42,3 +42,17 @@ it("matches and returns absolute paths", async () => {
 	expect(matches).toHaveLength(expectedMatches.length);
 	expect(matches).toEqual(expect.arrayContaining(expectedMatches));
 });
+
+it("honors ignore matches on directories", async () => {
+	const matches = await getAllMatchingFiles(tempDir, "**/*.pkgtest.ts", [
+		"**/noMatch/",
+		"**/nested2/**",
+	]);
+	const expectedMatches = [
+		join(tempDir, "test1.pkgtest.ts"),
+		join(tempDir, "another1.pkgtest.ts"),
+		join(tempDir, "nested", "zoo.pkgtest.ts"),
+	];
+	expect(matches).toHaveLength(expectedMatches.length);
+	expect(matches).toEqual(expect.arrayContaining(expectedMatches));
+});
