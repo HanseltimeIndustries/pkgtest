@@ -64,7 +64,7 @@ program
 	)
 	.action(async (testMatch: string[], options: Options, _command: Command) => {
 		try {
-			await run({
+			const passed = await run({
 				debug: options.debug,
 				failFast: options.failFast,
 				timeout: options.timeout,
@@ -78,6 +78,9 @@ program
 					pkgManagerAlias: options.pkgManagerAlias,
 				},
 			});
+			if (!passed) {
+				process.exit(44)
+			}
 		} catch (err) {
 			if (err instanceof FailFastError) {
 				process.exit(44);

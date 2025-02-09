@@ -247,13 +247,17 @@ export async function run(options: RunOptions) {
 
 	// TODO: multi-threading pool for better results, although there's not a large amount of tests necessary at the moment
 	try {
+		let pass = true;
 		for (const testRunnerPkg of testRunnerPkgsFiltered) {
 			for (const runner of testRunnerPkg.runners) {
-				const { failedFast } = await runner.runTests({
+				const { failed, failedFast } = await runner.runTests({
 					timeout,
 					testNames,
 					reporter,
 				});
+				if (failed > 0) {
+					pass = false
+				}
 				if (failedFast) {
 					// Fail normally instead of letting an error make it to the top
 					logger.log("Tests failed fast");
@@ -261,6 +265,7 @@ export async function run(options: RunOptions) {
 				}
 			}
 		}
+		return pass
 	} finally {
 		// Cleanup async
 		await Promise.allSettled(
