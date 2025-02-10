@@ -39,7 +39,7 @@ Example Files:
             {
                 testMatch: "pkgtests/**/*.ts",
                 runWith: ["node", "ts-node", "tsx"],
-                pkgManager: ["yarn-v1", "yarn-berry", "npm", "pnpm"],
+                packageManagers: ["yarn-v1", "yarn-berry", "npm", "pnpm"],
                 moduleTypes: ["commonjs", "esm"],
                 transforms: {
                     typescript: {}, // Use the defaults, but we do want typescript transformation
@@ -121,6 +121,11 @@ Not Run: 0
 Total: 2
 
 ...Additional Tests
+
+[runner] Test Suites:  <span style="color:green">0 passed</span>, 24 total
+[runner] Tests:        <span style="color:green">48 passed</span>, 48 total
+[runner] Setup Time:    11.094 s
+[runner] Test Time:     40.655 s
 </code>
 </pre>
 

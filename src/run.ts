@@ -59,6 +59,14 @@ export interface RunOptions {
 
 export class FailFastError extends Error {}
 
+interface Overview {
+	passed: number;
+	failed: number;
+	notReached: number;
+	skipped: number;
+	total: number;
+}
+
 const DEFAULT_PKG_MANAGER_ALIAS = "pkgtest default";
 
 export async function run(options: RunOptions) {
@@ -91,6 +99,34 @@ export async function run(options: RunOptions) {
 
 	// Set up the runner contexts
 	logger.logDebug(`Initializing test projects...`);
+	const overview: {
+		suite: Overview;
+		tests: Overview;
+		setupTime: number;
+		testTime: number;
+	} = {
+		suite: {
+			passed: 0,
+			failed: 0,
+			notReached: 0,
+			skipped: 0,
+			total: 0,
+		},
+		tests: {
+			passed: 0,
+			failed: 0,
+			notReached: 0,
+			skipped: 0,
+			total: 0,
+		},
+		setupTime: 0,
+		testTime: 0,
+	};
+	function addSkippedSuite(n: number) {
+		overview.suite.passed += n;
+		overview.suite.total += n;
+	}
+	const startSetup = new Date();
 	const testRunnerPkgs = await Promise.all(
 		config.entries.reduce(
 			(runners, testConfigEntry) => {
@@ -130,48 +166,56 @@ export async function run(options: RunOptions) {
 								filters.moduleTypes &&
 								!filters.moduleTypes.includes(modType)
 							) {
-								skipSuitesNotice(logger, {
-									runWith: testConfigEntry.runWith,
-									modType,
-									pkgManager,
-									pkgManagerAlias,
-								});
+								addSkippedSuite(
+									skipSuitesNotice(logger, {
+										runWith: testConfigEntry.runWith,
+										modType,
+										pkgManager,
+										pkgManagerAlias,
+									}),
+								);
 								return;
 							}
 							if (
 								filters.packageManagers &&
 								!filters.packageManagers.includes(pkgManager)
 							) {
-								skipSuitesNotice(logger, {
-									runWith: testConfigEntry.runWith,
-									modType,
-									pkgManager,
-									pkgManagerAlias,
-								});
+								addSkippedSuite(
+									skipSuitesNotice(logger, {
+										runWith: testConfigEntry.runWith,
+										modType,
+										pkgManager,
+										pkgManagerAlias,
+									}),
+								);
 								return;
 							}
 							if (
 								filters.pkgManagerAlias &&
 								!filters.pkgManagerAlias.includes(pkgManagerAlias)
 							) {
-								skipSuitesNotice(logger, {
-									runWith: testConfigEntry.runWith,
-									modType,
-									pkgManager,
-									pkgManagerAlias,
-								});
+								addSkippedSuite(
+									skipSuitesNotice(logger, {
+										runWith: testConfigEntry.runWith,
+										modType,
+										pkgManager,
+										pkgManagerAlias,
+									}),
+								);
 								return;
 							}
 							let runWith = testConfigEntry.runWith;
 							if (filters.runWith) {
 								runWith = testConfigEntry.runWith.reduce((rWith, runBy) => {
 									if (!filters.runWith!.includes(runBy)) {
-										skipSuitesNotice(logger, {
-											runWith: [runBy],
-											modType,
-											pkgManager,
-											pkgManagerAlias,
-										});
+										addSkippedSuite(
+											skipSuitesNotice(logger, {
+												runWith: [runBy],
+												modType,
+												pkgManager,
+												pkgManagerAlias,
+											}),
+										);
 									} else {
 										rWith.push(runBy);
 									}
@@ -220,6 +264,7 @@ export async function run(options: RunOptions) {
 										},
 									},
 								);
+								overview.suite.total += runners.length;
 								return {
 									runners,
 									cleanup,
@@ -244,25 +289,37 @@ export async function run(options: RunOptions) {
 	);
 	const testRunnerPkgsFiltered = testRunnerPkgs.filter((run) => !!run);
 	logger.logDebug(`Finished initializing test projects.`);
+	overview.setupTime = new Date().getTime() - startSetup.getTime();
 
 	const reporter = new SimpleReporter({
 		debug,
 	});
 
 	// TODO: multi-threading pool for better results, although there's not a large amount of tests necessary at the moment
+	const startTests = new Date();
 	try {
 		let pass = true;
 		for (const testRunnerPkg of testRunnerPkgsFiltered) {
 			for (const runner of testRunnerPkg.runners) {
-				const { failed, failedFast } = await runner.runTests({
+				const summary = await runner.runTests({
 					timeout,
 					testNames,
 					reporter,
 				});
-				if (failed > 0) {
+				// Do all tests updating
+				if (summary.failed > 0) {
+					overview.suite.failed++;
 					pass = false;
+				} else {
+					overview.suite.passed++;
 				}
-				if (failedFast) {
+				overview.tests.failed += summary.failed;
+				overview.tests.notReached += summary.notReached.length;
+				overview.tests.passed += summary.passed;
+				overview.tests.skipped += summary.skipped;
+				overview.tests.total += summary.total;
+
+				if (summary.failedFast) {
 					// Fail normally instead of letting an error make it to the top
 					logger.log("Tests failed fast");
 					throw new FailFastError("Tests failed fast");
@@ -271,6 +328,26 @@ export async function run(options: RunOptions) {
 		}
 		return pass;
 	} finally {
+		// Do a final report
+		overview.testTime = new Date().getTime() - startTests.getTime();
+		overview.suite.notReached =
+			overview.suite.total -
+			(overview.suite.failed + overview.suite.passed + overview.suite.skipped);
+
+		const labelLength = 14;
+		overviewNotice(
+			logger,
+			"Test Suites:".padEnd(labelLength, " "),
+			overview.suite,
+		);
+		overviewNotice(logger, "Tests:".padEnd(labelLength, " "), overview.tests);
+		logger.log(
+			`${"Setup Time:".padEnd(labelLength)} ${overview.setupTime / 1000} s`,
+		);
+		logger.log(
+			`${"Test Time:".padEnd(labelLength)} ${overview.testTime / 1000} s`,
+		);
+
 		// Cleanup async
 		await Promise.allSettled(
 			testRunnerPkgsFiltered.map(async ({ cleanup }) => {
@@ -288,7 +365,7 @@ function skipSuitesNotice(
 		pkgManager: PkgManager;
 		pkgManagerAlias: string;
 	},
-) {
+): number {
 	const { runWith, ...rest } = opts;
 	runWith.forEach((runBy) => {
 		logger.log(
@@ -298,4 +375,19 @@ function skipSuitesNotice(
 			})}`,
 		);
 	});
+	return runWith.length;
+}
+
+function overviewNotice(logger: Logger, prefix: string, overview: Overview) {
+	logger.log(
+		`${prefix}${
+			overview.failed ? chalk.red(overview.failed + " failed") + ", " : ""
+		}${
+			overview.skipped ? chalk.yellow(overview.skipped + " skipped" + ", ") : ""
+		}${
+			overview.notReached
+				? chalk.gray(overview.notReached + " not reached" + ", ")
+				: ""
+		}${chalk.green(overview.passed + " passed,")} ${overview.total} total`,
+	);
 }

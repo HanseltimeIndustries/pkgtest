@@ -55,7 +55,7 @@ Let's go ahead and create a `pkgtest.config.js`:
             {
                 testMatch: "pkgtests/**/*.ts",
                 runWith: ["node", "ts-node", "tsx"],
-                pkgManager: ["yarn-v1", "yarn-berry", "npm", "pnpm"],
+                packageManagers: ["yarn-v1", "yarn-berry", "npm", "pnpm"],
                 moduleTypes: ["commonjs", "esm"],
                 transforms: {
                     typescript: {
@@ -83,7 +83,7 @@ Let's go ahead and create a `pkgtest.config.js`:
             {
                 testMatch: "pkgtests/**/*.ts",
                 runWith: ["node", "ts-node", "tsx"],
-                pkgManager: ["yarn-v1", "yarn-berry", "npm", "pnpm"],
+                packageManagers: ["yarn-v1", "yarn-berry", "npm", "pnpm"],
                 moduleTypes: ["commonjs", "esm"],
                 transforms: {
                     typescript: {
@@ -110,7 +110,7 @@ Let's go ahead and create a `pkgtest.config.js`:
 #### 1. The number of testing projects created
 
 ```js
-    pkgManager: ["yarn-v1", "yarn-berry", "npm", "pnpm"],
+    packageManagers: ["yarn-v1", "yarn-berry", "npm", "pnpm"],
     moduleTypes: ["commonjs", "esm"],
 ```
 
@@ -563,7 +563,7 @@ yarn plug'n'play (or whatever yarn berry defaults to in the future).  So let's a
             {
                 testMatch: "pkgtests/**/*.ts",
                 runWith: ["node", "ts-node", "tsx"],
-                pkgManager: [
+                packageManagers: [
                     "yarn-v1",
                     "yarn-berry",
                     "npm", 
@@ -605,7 +605,7 @@ yarn plug'n'play (or whatever yarn berry defaults to in the future).  So let's a
             {
                 testMatch: "pkgtests/**/*.ts",
                 runWith: ["node", "ts-node", "tsx"],
-                pkgManager: [
+                packageManagers: [
                     "yarn-v1",
                     "yarn-berry",
                     "npm", 
