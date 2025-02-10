@@ -6,7 +6,7 @@ import {
 } from "./config";
 import { tmpdir } from "os";
 import { join, resolve } from "path";
-import { ModuleTypes, PkgManager, RunBy, TestConfig } from "./types";
+import { ModuleTypes, PkgManager, RunWith, TestConfig } from "./types";
 
 const explicitConfigFileName = "someCustomConfig";
 const explicitConfig: TestConfig = {
@@ -14,7 +14,7 @@ const explicitConfig: TestConfig = {
 		{
 			testMatch: "something**.ts",
 			packageManagers: [PkgManager.YarnV1],
-			runWith: [RunBy.Node],
+			runWith: [RunWith.Node],
 			transforms: {
 				typescript: {},
 			},
@@ -27,7 +27,7 @@ const defaultDetectedConfig: TestConfig = {
 		{
 			testMatch: "default**.ts",
 			packageManagers: [PkgManager.YarnV1],
-			runWith: [RunBy.Node],
+			runWith: [RunWith.Node],
 			transforms: {
 				typescript: {},
 			},

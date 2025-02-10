@@ -1,7 +1,7 @@
 import { program, Command, Argument, Option } from "commander";
 import { DEFAULT_CONFIG_FILE_NAME_BASE, LIBRARY_NAME } from "../config";
 import { DEFAULT_TIMEOUT, FailFastError, run } from "../run";
-import { ModuleTypes, PkgManager, RunBy } from "../types";
+import { ModuleTypes, PkgManager, RunWith } from "../types";
 
 interface Options {
 	config?: string;
@@ -12,7 +12,7 @@ interface Options {
 	// Filter options
 	modType?: ModuleTypes[];
 	pkgManager?: PkgManager[];
-	runWith?: RunBy[];
+	runWith?: RunWith[];
 	pkgManagerAlias?: string[];
 }
 
@@ -46,7 +46,7 @@ program
 		new Option(
 			"--runWith <runWiths...>",
 			"Limits the tests that run to the specified runWith",
-		).choices(Object.values(RunBy)),
+		).choices(Object.values(RunWith)),
 	)
 	.addOption(
 		new Option(

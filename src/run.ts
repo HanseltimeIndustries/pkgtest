@@ -7,7 +7,7 @@ import { TestRunner } from "./TestRunner";
 import { SimpleReporter } from "./reporters/SimpleReporter";
 import { Logger } from "./Logger";
 import chalk from "chalk";
-import { ModuleTypes, PkgManager, RunBy } from "./types";
+import { ModuleTypes, PkgManager, RunWith } from "./types";
 import { testSuiteDescribe } from "./reporters";
 import { getMatchIgnore } from "./getMatchIgnore";
 
@@ -48,7 +48,7 @@ export interface RunOptions {
 	filters?: {
 		moduleTypes?: ModuleTypes[];
 		packageManagers?: PkgManager[];
-		runWith?: RunBy[];
+		runWith?: RunWith[];
 		pkgManagerAlias?: string[];
 		/**
 		 * A glob filter of file names to run (relative to the cwd root)
@@ -220,7 +220,7 @@ export async function run(options: RunOptions) {
 										rWith.push(runBy);
 									}
 									return rWith;
-								}, [] as RunBy[]);
+								}, [] as RunWith[]);
 							}
 							// End filters
 							const testProjectDir = await mkdtemp(
@@ -360,7 +360,7 @@ export async function run(options: RunOptions) {
 function skipSuitesNotice(
 	logger: Logger,
 	opts: {
-		runWith: RunBy[];
+		runWith: RunWith[];
 		modType: ModuleTypes;
 		pkgManager: PkgManager;
 		pkgManagerAlias: string;

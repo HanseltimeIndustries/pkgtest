@@ -1,9 +1,9 @@
 import { tryGetDependency } from "./tryGetDependency";
-import { TypescriptOptions, RunBy, PkgManager } from "./types";
+import { TypescriptOptions, RunWith, PkgManager } from "./types";
 
 export interface CreateDependenciesOptions {
 	typescript?: TypescriptOptions;
-	runBy: RunBy[];
+	runBy: RunWith[];
 	pkgManager: PkgManager;
 	/**
 	 * If you explicitly want to include other dependencies, you can add them here,
@@ -67,7 +67,7 @@ export function createDependencies(
 		: {};
 	// Make sure we have minimum dependency requirements
 	runBy.forEach((rBy) => {
-		if (rBy === RunBy.Tsx || rBy === RunBy.TsNode) {
+		if (rBy === RunWith.Tsx || rBy === RunWith.TsNode) {
 			if (!typescript) {
 				throw new Error(
 					`Supply a typescript object (even if empty) for running by ${rBy}`,
@@ -88,9 +88,9 @@ export function createDependencies(
 
 	runBy.forEach((rBy) => {
 		switch (rBy) {
-			case RunBy.Node:
+			case RunWith.Node:
 				break;
-			case RunBy.TsNode:
+			case RunWith.TsNode:
 				specificDeps["ts-node"] =
 					typescript?.tsNode?.version ??
 					tryGetDependency("ts-node", packageJson);
@@ -100,7 +100,7 @@ export function createDependencies(
 					);
 				}
 				break;
-			case RunBy.Tsx:
+			case RunWith.Tsx:
 				specificDeps["tsx"] =
 					typescript?.tsx?.version ?? tryGetDependency("tsx", packageJson);
 				if (!specificDeps["tsx"]) {

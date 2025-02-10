@@ -1,6 +1,6 @@
 import { Reporter } from "./reporters";
 import { TestRunner } from "./TestRunner";
-import { ModuleTypes, PkgManager, RunBy } from "./types";
+import { ModuleTypes, PkgManager, RunWith } from "./types";
 import { exec, ExecException } from "child_process";
 
 jest.mock("child_process");
@@ -79,7 +79,7 @@ it("runs all test files and reports the results", async () => {
 	];
 	const runner = new TestRunner({
 		runCommand: "npx",
-		runBy: RunBy.Node,
+		runBy: RunWith.Node,
 		testFiles,
 		projectDir: testProjectDir,
 		pkgManager: PkgManager.Npm,
@@ -191,7 +191,7 @@ it("runs test files until first failure and reports the results with failFast", 
 	];
 	const runner = new TestRunner({
 		runCommand: "npx",
-		runBy: RunBy.Node,
+		runBy: RunWith.Node,
 		testFiles,
 		projectDir: testProjectDir,
 		pkgManager: PkgManager.Npm,
@@ -303,7 +303,7 @@ it("runs test files and handles timeouts", async () => {
 	];
 	const runner = new TestRunner({
 		runCommand: "npx",
-		runBy: RunBy.Node,
+		runBy: RunWith.Node,
 		testFiles,
 		projectDir: testProjectDir,
 		pkgManager: PkgManager.Npm,
@@ -417,7 +417,7 @@ it("runs only designated test files", async () => {
 	];
 	const runner = new TestRunner({
 		runCommand: "npx",
-		runBy: RunBy.Node,
+		runBy: RunWith.Node,
 		testFiles,
 		projectDir: testProjectDir,
 		pkgManager: PkgManager.Npm,

@@ -1,5 +1,5 @@
 import { exec } from "child_process";
-import { ModuleTypes, PkgManager, RunBy } from "./types";
+import { ModuleTypes, PkgManager, RunWith } from "./types";
 import micromatch from "micromatch";
 import { Reporter } from "./reporters";
 
@@ -12,7 +12,7 @@ export interface TestFile {
 
 export class TestRunner {
 	readonly runCommand: string;
-	readonly runBy: RunBy;
+	readonly runBy: RunWith;
 	readonly testFiles: TestFile[];
 	readonly projectDir: string;
 	readonly pkgManager: PkgManager;
@@ -30,7 +30,7 @@ export class TestRunner {
 
 	constructor(options: {
 		runCommand: string;
-		runBy: RunBy;
+		runBy: RunWith;
 		testFiles: TestFile[];
 		projectDir: string;
 		pkgManager: PkgManager;

@@ -2,9 +2,9 @@ import { TsConfigJson } from "get-tsconfig";
 import { CreateDependenciesOptions } from "./createDependencies";
 
 /**
- * The type of module that the testing package that is created will be listed as:
+ * The type of module that the testing package will be created as:
  *
- * i.e. "type": "module" for esm
+ * i.e. { "type": "module" } in package.json for "esm"
  */
 export enum ModuleTypes {
 	Commonjs = "commonjs",
@@ -14,17 +14,17 @@ export enum ModuleTypes {
 /**
  * The different ways that we run the test files
  */
-export enum RunBy {
+export enum RunWith {
 	/**
 	 * This only works with .js files or files that are transformed to a js file first
 	 */
 	Node = "node",
 	/**
-	 * This will run ts-node <script>.ts
+	 * This will run ts-node [script.ts]
 	 */
 	TsNode = "ts-node",
 	/**
-	 * This will run via tsx <script>.ts
+	 * This will run via tsx [script.ts]
 	 */
 	Tsx = "tsx",
 }
@@ -33,13 +33,10 @@ export enum PkgManager {
 	Npm = "npm",
 	Pnpm = "pnpm",
 	YarnV1 = "yarn-v1",
+	/**
+	 * Yarn >1.x - this is referred to by the yarn project as yarn berry
+	 */
 	YarnBerry = "yarn-berry",
-}
-
-export enum YarnMode {
-	Pnpm = "pnpm",
-	NodeModules = "node_modules",
-	pnp = "pnp",
 }
 
 export interface InstalledTool {
@@ -135,7 +132,7 @@ export interface TestConfigEntry {
 	 * The various ways that you want to run the scripts in question to verify they work as expected.
 	 * Note, we will run each way per package manager + module project that is created.
 	 */
-	runWith: RunBy[];
+	runWith: RunWith[];
 	/**
 	 * Transforms that need to be run on the raw tests that were found via testMatch and copied into the project.
 	 *

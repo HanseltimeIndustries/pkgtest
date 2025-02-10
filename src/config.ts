@@ -6,7 +6,7 @@ import {
 	PkgManagerOptionsConfig,
 	PkgManager,
 	PkgManagerBaseOptions,
-	RunBy,
+	RunWith,
 	TestConfig,
 	TestConfigEntry,
 	TypescriptOptions,
@@ -115,7 +115,7 @@ const TestConfigEntryValidated = z.object({
 		.describe(`Which package managed we will use to install dependencies and run the various test scripts provided.
 Important - to preserve integrity during testing, each module type will get a brand new project per package manager to avoid dependency install and access issues.`),
 	runWith: z
-		.array(z.nativeEnum(RunBy))
+		.array(z.nativeEnum(RunWith))
 		.describe(`The various ways that you want to run the scripts in question to verify they work as expected.
 Note, we will run each way per package manager + module project that is created.`),
 	moduleTypes: z

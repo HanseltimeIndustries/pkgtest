@@ -1,5 +1,5 @@
 import { createDependencies } from "./createDependencies";
-import { PkgManager, RunBy, TypescriptOptions } from "./types";
+import { PkgManager, RunWith, TypescriptOptions } from "./types";
 
 const testPackageUnderTestJson = {
 	name: "@test/pkg",
@@ -42,10 +42,10 @@ describe.each(Object.values(PkgManager).map((pkgManager) => [pkgManager]))(
 	(pkgManager) => {
 		const expPrefix = expectedPrefix(pkgManager);
 
-		it(`creates correct dependencies for ${RunBy.Node}`, () => {
+		it(`creates correct dependencies for ${RunWith.Node}`, () => {
 			expect(
 				createDependencies(testPackageUnderTestJson, testRelativePath, {
-					runBy: [RunBy.Node],
+					runBy: [RunWith.Node],
 					pkgManager,
 				}),
 			).toEqual({
@@ -54,10 +54,10 @@ describe.each(Object.values(PkgManager).map((pkgManager) => [pkgManager]))(
 			});
 		});
 		// Default package.json tests
-		it(`creates correct dependencies for ${RunBy.TsNode} - only package.json deps`, () => {
+		it(`creates correct dependencies for ${RunWith.TsNode} - only package.json deps`, () => {
 			expect(
 				createDependencies(testPackageUnderTestJson, testRelativePath, {
-					runBy: [RunBy.TsNode],
+					runBy: [RunWith.TsNode],
 					pkgManager,
 					typescript: {},
 				}),
@@ -69,10 +69,10 @@ describe.each(Object.values(PkgManager).map((pkgManager) => [pkgManager]))(
 				[testPackageUnderTestJson.name]: `${expPrefix}${testRelativePath}`,
 			});
 		});
-		it(`creates correct dependencies for ${RunBy.Tsx} - only package.json deps`, () => {
+		it(`creates correct dependencies for ${RunWith.Tsx} - only package.json deps`, () => {
 			expect(
 				createDependencies(testPackageUnderTestJson, testRelativePath, {
-					runBy: [RunBy.Tsx],
+					runBy: [RunWith.Tsx],
 					pkgManager,
 					typescript: {},
 				}),
@@ -85,10 +85,10 @@ describe.each(Object.values(PkgManager).map((pkgManager) => [pkgManager]))(
 			});
 		});
 		// All explicit override tests
-		it(`creates correct dependencies for ${RunBy.TsNode} - with explicit values`, () => {
+		it(`creates correct dependencies for ${RunWith.TsNode} - with explicit values`, () => {
 			expect(
 				createDependencies(testPackageUnderTestJson, testRelativePath, {
-					runBy: [RunBy.TsNode],
+					runBy: [RunWith.TsNode],
 					pkgManager,
 					typescript: testExplicitVersion,
 				}),
@@ -100,10 +100,10 @@ describe.each(Object.values(PkgManager).map((pkgManager) => [pkgManager]))(
 				[testPackageUnderTestJson.name]: `${expPrefix}${testRelativePath}`,
 			});
 		});
-		it(`creates correct dependencies for ${RunBy.Tsx} - with explicit values`, () => {
+		it(`creates correct dependencies for ${RunWith.Tsx} - with explicit values`, () => {
 			expect(
 				createDependencies(testPackageUnderTestJson, testRelativePath, {
-					runBy: [RunBy.Tsx],
+					runBy: [RunWith.Tsx],
 					pkgManager,
 					typescript: testExplicitVersion,
 				}),
@@ -115,10 +115,10 @@ describe.each(Object.values(PkgManager).map((pkgManager) => [pkgManager]))(
 			});
 		});
 		// mixed explicit override tests
-		it(`creates correct dependencies for ${RunBy.TsNode} - with some explict values`, () => {
+		it(`creates correct dependencies for ${RunWith.TsNode} - with some explict values`, () => {
 			expect(
 				createDependencies(testPackageUnderTestJson, testRelativePath, {
-					runBy: [RunBy.Tsx],
+					runBy: [RunWith.Tsx],
 					pkgManager,
 					typescript: {
 						...testExplicitVersion,
@@ -133,10 +133,10 @@ describe.each(Object.values(PkgManager).map((pkgManager) => [pkgManager]))(
 				[testPackageUnderTestJson.name]: `${expPrefix}${testRelativePath}`,
 			});
 		});
-		it(`creates correct dependencies for ${RunBy.Tsx} - with some explict values`, () => {
+		it(`creates correct dependencies for ${RunWith.Tsx} - with some explict values`, () => {
 			expect(
 				createDependencies(testPackageUnderTestJson, testRelativePath, {
-					runBy: [RunBy.Tsx],
+					runBy: [RunWith.Tsx],
 					pkgManager,
 					typescript: {
 						...testExplicitVersion,
@@ -151,7 +151,7 @@ describe.each(Object.values(PkgManager).map((pkgManager) => [pkgManager]))(
 			});
 		});
 		// Typescript common requirement errors
-		const requiresTypescript = [RunBy.TsNode, RunBy.Tsx];
+		const requiresTypescript = [RunWith.TsNode, RunWith.Tsx];
 		const missingTypescriptDep = {
 			...testPackageUnderTestJson,
 			devDependencies: {
@@ -201,7 +201,7 @@ describe.each(Object.values(PkgManager).map((pkgManager) => [pkgManager]))(
 			});
 		}
 		// Required version resolution errors per runner
-		it(`throw an error if no discoverable ${RunBy.TsNode} version for running with ${RunBy.TsNode}`, () => {
+		it(`throw an error if no discoverable ${RunWith.TsNode} version for running with ${RunWith.TsNode}`, () => {
 			const missingTsxDep = {
 				...testPackageUnderTestJson,
 				dependencies: {
@@ -211,7 +211,7 @@ describe.each(Object.values(PkgManager).map((pkgManager) => [pkgManager]))(
 			};
 			expect(() =>
 				createDependencies(missingTsxDep as any, testRelativePath, {
-					runBy: [RunBy.TsNode],
+					runBy: [RunWith.TsNode],
 					pkgManager,
 					typescript: {
 						...testExplicitVersion,
@@ -222,7 +222,7 @@ describe.each(Object.values(PkgManager).map((pkgManager) => [pkgManager]))(
 				`Cannot run by ts-node without a ts-node version supplied or discoverable in package.json!`,
 			);
 		});
-		it(`throw an error if no discoverable ${RunBy.Tsx} version for running with ${RunBy.Tsx}`, () => {
+		it(`throw an error if no discoverable ${RunWith.Tsx} version for running with ${RunWith.Tsx}`, () => {
 			const missingTsxDep = {
 				...testPackageUnderTestJson,
 				devDependencies: {
@@ -236,7 +236,7 @@ describe.each(Object.values(PkgManager).map((pkgManager) => [pkgManager]))(
 			};
 			expect(() =>
 				createDependencies(missingTsxDep as any, testRelativePath, {
-					runBy: [RunBy.Tsx],
+					runBy: [RunWith.Tsx],
 					pkgManager,
 					typescript: {
 						...testExplicitVersion,
@@ -250,7 +250,7 @@ describe.each(Object.values(PkgManager).map((pkgManager) => [pkgManager]))(
 		it("Creates dependencies for full set of RunBy - no explicit version overrides", () => {
 			expect(
 				createDependencies(testPackageUnderTestJson, testRelativePath, {
-					runBy: Object.values(RunBy),
+					runBy: Object.values(RunWith),
 					pkgManager,
 					typescript: {},
 				}),
@@ -266,7 +266,7 @@ describe.each(Object.values(PkgManager).map((pkgManager) => [pkgManager]))(
 		it("Creates dependencies for full set of RunBy - with version overrides", () => {
 			expect(
 				createDependencies(testPackageUnderTestJson, testRelativePath, {
-					runBy: Object.values(RunBy),
+					runBy: Object.values(RunWith),
 					pkgManager,
 					typescript: testExplicitVersion,
 				}),
@@ -283,7 +283,7 @@ describe.each(Object.values(PkgManager).map((pkgManager) => [pkgManager]))(
 		it("Creates dependencies with additional Overrides taking preference", () => {
 			expect(
 				createDependencies(testPackageUnderTestJson, testRelativePath, {
-					runBy: Object.values(RunBy),
+					runBy: Object.values(RunWith),
 					pkgManager,
 					typescript: testExplicitVersion,
 					additionalDependencies: {

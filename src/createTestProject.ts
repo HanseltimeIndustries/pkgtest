@@ -5,7 +5,7 @@ import { exec, ExecOptions } from "child_process";
 import {
 	ModuleTypes,
 	PkgManager,
-	RunBy,
+	RunWith,
 	TypescriptOptions,
 	PkgManagerOptions,
 	YarnV4Options,
@@ -70,7 +70,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		 *
 		 * The node runner with typescript will run on the compiled typescript
 		 */
-		runBy: RunBy[];
+		runBy: RunWith[];
 		modType: ModuleTypes;
 		pkgManager: PkgManagerT;
 		pkgManagerVersion?: string;
@@ -267,7 +267,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 				[env: string]: string;
 			} = {};
 			switch (rBy) {
-				case RunBy.Node:
+				case RunWith.Node:
 					testFiles = copiedTestFiles.map(({ orig, actual }) => {
 						// Since ts builds to .js we also need to replace the extensions
 						return {
@@ -280,7 +280,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 					additionalArgs = "";
 					runCommand = rBy;
 					break;
-				case RunBy.TsNode:
+				case RunWith.TsNode:
 					testFiles = copiedTestFiles;
 					// ts-node and esm do not play well.  This is the most stable config I know of
 					if (modType === ModuleTypes.ESM) {
@@ -291,7 +291,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 						additionalArgs = `--project ${configFilePath}`;
 					}
 					break;
-				case RunBy.Tsx:
+				case RunWith.Tsx:
 					testFiles = copiedTestFiles;
 					additionalArgs = `--tsconfig ${configFilePath}`;
 					runCommand = rBy;
@@ -319,7 +319,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		runBy.forEach((rBy) => {
 			let testFiles: TestFile[];
 			switch (rBy) {
-				case RunBy.Node:
+				case RunWith.Node:
 					testFiles = copiedTestFiles;
 					break;
 				default:

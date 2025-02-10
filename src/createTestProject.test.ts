@@ -13,7 +13,12 @@ import {
 	createTestProject,
 	SRC_DIRECTORY,
 } from "./createTestProject";
-import { ModuleTypes, PkgManager, PkgManagerBaseOptions, RunBy } from "./types";
+import {
+	ModuleTypes,
+	PkgManager,
+	PkgManagerBaseOptions,
+	RunWith,
+} from "./types";
 import { join, resolve } from "path";
 import { TsConfigJson } from "get-tsconfig";
 
@@ -125,7 +130,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					matchIgnore: testMatchIgnore,
 				},
 				{
-					runBy: [RunBy.Node],
+					runBy: [RunWith.Node],
 					modType,
 					pkgManager: PkgManager.YarnV1,
 					pkgManagerAlias: "myalias",
@@ -148,8 +153,8 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			});
 			expect(testRunners).toHaveLength(1);
 			expect(testRunners[0]).toEqual({
-				runCommand: `${testBinCmd} ${RunBy.Node}`,
-				runBy: RunBy.Node,
+				runCommand: `${testBinCmd} ${RunWith.Node}`,
+				runBy: RunWith.Node,
 				testFiles: expectedCopyOver.map((e) => {
 					return {
 						orig: e.fromNorm,
@@ -203,7 +208,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				testPackageJson,
 				expectedRelativeInstallPath,
 				{
-					runBy: [RunBy.Node],
+					runBy: [RunWith.Node],
 					pkgManager: PkgManager.YarnV1,
 					// No typescript options provided
 				},
@@ -269,7 +274,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					matchIgnore: testMatchIgnore,
 				},
 				{
-					runBy: [RunBy.Node],
+					runBy: [RunWith.Node],
 					modType: modType,
 					pkgManager: PkgManager.YarnV1,
 					pkgManagerAlias: "myalias",
@@ -334,8 +339,8 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			});
 			expect(testRunners).toHaveLength(1);
 			expect(testRunners[0]).toEqual({
-				runCommand: `${testBinCmd} ${RunBy.Node}`,
-				runBy: RunBy.Node,
+				runCommand: `${testBinCmd} ${RunWith.Node}`,
+				runBy: RunWith.Node,
 				testFiles: expectedCopyOver.map((e) => {
 					return {
 						orig: e.fromNorm,
@@ -355,7 +360,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				testPackageJson,
 				expectedRelativeInstallPath,
 				{
-					runBy: [RunBy.Node],
+					runBy: [RunWith.Node],
 					pkgManager: PkgManager.YarnV1,
 					typescript: typescriptOptions,
 				},
@@ -401,7 +406,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			);
 		});
 
-		const allRunBy = Object.values(RunBy);
+		const allRunBy = Object.values(RunWith);
 		it(`creates a project for and returns the various runners for typescript based running on ${allRunBy.join(", ")}`, async () => {
 			const testPackageJson = {
 				name: "testProject",
@@ -501,10 +506,10 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				};
 			});
 			const expectedConfigFile = `tsconfig.${modType}.json`;
-			expect(testRunners).toHaveLength(Object.values(RunBy).length);
+			expect(testRunners).toHaveLength(Object.values(RunWith).length);
 			expect(testRunners).toContainEqual({
-				runCommand: `${testBinCmd} ${RunBy.Node}`,
-				runBy: RunBy.Node,
+				runCommand: `${testBinCmd} ${RunWith.Node}`,
+				runBy: RunWith.Node,
 				testFiles: expectedCopyOver.map((e) => {
 					return {
 						orig: e.fromNorm,
@@ -524,7 +529,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					modType === ModuleTypes.Commonjs
 						? `${testBinCmd} ts-node --project ${expectedConfigFile}`
 						: `${testBinCmd} node --loader ts-node/esm`,
-				runBy: RunBy.TsNode,
+				runBy: RunWith.TsNode,
 				testFiles: expectedCopyOver.map((e) => {
 					return {
 						orig: e.fromNorm,
@@ -545,7 +550,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			});
 			expect(testRunners).toContainEqual({
 				runCommand: `${testBinCmd} tsx --tsconfig ${expectedConfigFile}`,
-				runBy: RunBy.Tsx,
+				runBy: RunWith.Tsx,
 				testFiles: expectedCopyOver.map((e) => {
 					return {
 						orig: e.fromNorm,
@@ -623,7 +628,7 @@ it("throws an error if the projectdir is not absolute", async () => {
 				matchIgnore: testMatchIgnore,
 			},
 			{
-				runBy: [RunBy.Node],
+				runBy: [RunWith.Node],
 				modType: ModuleTypes.Commonjs,
 				pkgManager: PkgManager.YarnV1,
 				pkgManagerAlias: "myalias",
@@ -643,7 +648,7 @@ it("throws an error if the testProjectDir is not absolute", async () => {
 				matchIgnore: testMatchIgnore,
 			},
 			{
-				runBy: [RunBy.Node],
+				runBy: [RunWith.Node],
 				modType: ModuleTypes.Commonjs,
 				pkgManager: PkgManager.YarnV1,
 				pkgManagerAlias: "myalias",
