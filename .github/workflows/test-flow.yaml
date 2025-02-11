@@ -39,7 +39,7 @@ jobs:
           if [[ "${{ github.base_ref }}" != "" ]]; then
             echo "Setting up git environment for commitlint of pull request"
             git fetch origin ${{ github.base_ref }}
-            git fetch origin ${{ github.head_ref }}
+            git fetch ${{ github.event.pull_request.head.repo.clone_url }} ${{ github.head_ref }}
             yarn commitlint --from ${{ github.event.pull_request.head.sha }}~${{ github.event.pull_request.commits }} --to ${{ github.event.pull_request.head.sha }} --verbose
           else
             echo "Setting up git environment for commitlint of branch push"
@@ -66,3 +66,19 @@ jobs:
       #     npm install -g ./${packageDir} --ignore-scripts
       #     echo "Running script to ensure valid help dispaly"
       #     aws-cfn-console-import --help
+  no-committed-site:
+    runs-on: ubuntu-latest
+    if: ${{ github.base_ref }}
+    steps:
+      - id: site-changed-files
+        name: Run the action
+        uses: hanseltimeindustries/get-changed-files@v1
+        with:
+          format: 'space-delimited'
+          filter: "site/**/*"
+
+      - name: No committed bundle
+        if: ${{ steps.site-changed-files.outputs.all }}
+        run: |
+          echo "all files in site/ directory are committed by the release process.  Please make sure not to commit your site files!"
+          exit 1
