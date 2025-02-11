@@ -4,9 +4,16 @@ theme:
   features:
     - content.code.copy
     - content.code.select
+    - toc.follow
+    - navigation.top
+    - navigation.tabs
+    - navigation.tracking
 markdown_extensions:
   - admonition
   - pymdownx.details
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
+extra:
+  version:
+    provider: mike

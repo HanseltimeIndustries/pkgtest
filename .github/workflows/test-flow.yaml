@@ -21,7 +21,7 @@ jobs:
         node-version: [18.x, 20.x]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       # TODO: caching this action would accelerate the run
       - name: corepack
         run: |
@@ -66,6 +66,35 @@ jobs:
       #     npm install -g ./${packageDir} --ignore-scripts
       #     echo "Running script to ensure valid help dispaly"
       #     aws-cfn-console-import --help
+  ensure-typedoc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # TODO: caching this action would accelerate the run
+      - name: corepack
+        run: |
+          corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'yarn'
+          cache-dependency-path: yarn.lock
+      - name: install
+        run: |
+          yarn install --immutable
+      - name: generate typedoc
+        run: |
+          yarn typedoc
+      - name: ensure no uncommitted docs
+        shell: bash
+        run: |
+          changes=$(git status --porcelain=v1 2>/dev/null)
+          if [ ! -z "$changes" ]; then
+              echo "Found typedoc generated files that weren't commited!"
+              echo "Please run 'yarn typedoc', and commit the files"
+              echo "$changes"
+              exit 1
+          fi
   no-committed-site:
     runs-on: ubuntu-latest
     if: ${{ github.base_ref }}

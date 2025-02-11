@@ -7,6 +7,8 @@ make sure to be respectful of fellow users and developers.
   - [Submitting an issue](#submitting-an-issue)
   - [Developing a Feature or Fix](#developing-a-feature-or-fix)
     - [Documentation](#documentation)
+      - [Extensions](#extensions)
+      - [Api Generation](#api-generation)
     - [Opening a PR](#opening-a-pr)
     - [Development setup](#development-setup)
     - [Commit syntax](#commit-syntax)
@@ -36,16 +38,38 @@ the proposed change in (at least) terms of how the user experience would go.
 
 ### Documentation
 
-This repository uses [MkDocs](https://www.mkdocs.org/) to organize its documentation.  In general, you can simply update
+This repository uses [MkDocs](https://www.mkdocs.org/) to organize its instructional documentation.  In general, you can simply update
 markdown edits for any feature that you're creating and they will be auto-generated into the correct github pages html files.
 
-If you would like to preview the documentation site locally, the following start commands should help: 
+To get started with mkdocs, you can install the requisite dependencies via `pip3 install -r docs/requirements.txt`.  Then you can
+run `mkdocs serve`, which will serve the rendered documentation site on [localhost:8080](localhost:8080).
 
+This repository also uses [typedoc](https://typedoc.org/) to generate more rudimentary api documentation for the programmatic entrypoint
+of the library.  That means that we expect appropriate [TsDoc](https://tsdoc.org/) comments on any new classes, interface etc. so that
+users can find that information in the `api` section of the mkdocs site.
 
-* `mkdocs new [dir-name]` - Create a new project.
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
+#### Extensions
+
+This implementation of mkdocs uses the [mkdocs material theme](https://squidfunk.github.io/mkdocs-material/getting-started/).  This
+adds a lot of additional features.  Some key features used by this project are [Admonitions](https://squidfunk.github.io/mkdocs-material/reference/admonitions/) and [Content Tabs](https://squidfunk.github.io/mkdocs-material/reference/content-tabs/).   We welcome additional improvements 
+to any documentation and visual style via other material features.
+
+Additionally, we use [mike](https://squidfunk.github.io/mkdocs-material/setup/setting-up-versioning/) for maintaining different versions
+of documentation.  For the most part, this is something you don't need to worry yourself with, since we only allow our release process to build
+the new site versions.  However, if you want to view your documentation with the version drop down, you can run:
+
+```shell
+mike deploy "local-version" latest --update-aliases
+mike set-default latest
+mike serve
+```
+
+Unlike with `mkdocs serve`, you will need to call `mike deploy` to synthesize any changes you make, so we recommend just using `mkdocs serve` but this is
+added for completeness.
+
+#### Api Generation
+
+`yarn typedoc`
 
 ### Opening a PR
 

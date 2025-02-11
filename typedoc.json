@@ -1,0 +1,7 @@
+{
+	"plugin": ["typedoc-plugin-markdown"],
+	"out": "./docs/api",
+	"readme": "none",
+	"entryPoints": ["src/index.ts"],
+	"disableSources": true
+}

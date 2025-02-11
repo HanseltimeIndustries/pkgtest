@@ -17,13 +17,15 @@ jobs:
     needs: call-test-workflow
 
     steps:
-      - name: Remove this after template
-        run: |
-          echo "Remove this step after updating your package.json with the correct information"
-          exit 1
-      - uses: actions/checkout@v3
+      # Use our auto-commit permissioned app for our git actions
+      - uses: actions/create-github-app-token@v1
+        id: app-token
         with:
-          token: ${{ secrets.RELEASE_PAT }}
+          app-id: ${{ secrets.AUTO_COMMIT_APP_ID }}
+          private-key: ${{ secrets.AUTO_COMMIT_APP_PKEY }}
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
       - name: Use Node.js 20.x
         uses: actions/setup-node@v3
         with:
@@ -34,8 +36,11 @@ jobs:
         run: yarn install --immutable
       - name: Build
         run: yarn build
-      - name: Release
-        run: yarn release
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
+      - name: Publish documentation
+        run: |
+          ./bin/publish.sh 0.1.0-test
+      # - name: Release
+      #   run: yarn release
+      #   env:
+      #     NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      #     GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}

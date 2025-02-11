@@ -1,6 +1,7 @@
 {
-    "description": "This is a programmatically created file via /home/justin.hanselman/.nvm/versions/node/v20.15.0/bin/node /home/justin.hanselman/test-yarn/node_modules/@hanseltime/esm-interop-tools/dist/bin/get-esm-packages.js -p yarnv2+ -r --file esm-packages.json --quiet",
+    "description": "This is a programmatically created file via /home/justin.hanselman/.nvm/versions/node/v20.18.2/bin/node /home/justin.hanselman/test-yarn/node_modules/@hanseltime/esm-interop-tools/dist/bin/get-esm-packages.js -p yarnv2+ -r --file esm-packages.json --quiet",
     "packages": [
+        "@gerrit0/mini-shiki",
         "@isaacs/cliui",
         "@isaacs/fs-minipass",
         "@sec-ant/readable-stream",
@@ -9,6 +10,9 @@
         "@semantic-release/github",
         "@semantic-release/npm",
         "@semantic-release/release-notes-generator",
+        "@shikijs/engine-oniguruma",
+        "@shikijs/types",
+        "@shikijs/vscode-textmate",
         "@sindresorhus/is",
         "@sindresorhus/merge-streams",
         "@szmarczak/http-timer",
@@ -133,6 +137,8 @@
         "tempy",
         "token-types",
         "tsx",
+        "typedoc",
+        "typedoc-plugin-markdown",
         "uint8array-extras",
         "unicorn-magic",
         "unique-string",
