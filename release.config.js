@@ -8,7 +8,7 @@ const packageJson = JSON.parse(
 // Abbreviate for Git Commit readability
 const fullName = packageJson.name;
 const scopeLimiterIdx = fullName.lastIndexOf("/");
-const abbreviatedName = fullName.substring(
+const _abbreviatedName = fullName.substring(
 	scopeLimiterIdx >= 0 ? scopeLimiterIdx + 1 : 0,
 );
 
@@ -30,8 +30,8 @@ module.exports = {
 		// "@semantic-release/github",
 		// Create documentation for the new version
 		{
-			"path": "@semantic-release/exec",
-			"cmd": "./bin/publish-docs.sh ${nextRelease.version}",
+			path: "@semantic-release/exec",
+			cmd: "./bin/publish-docs.sh ${nextRelease.version}",
 		},
 	],
 	ci: false,

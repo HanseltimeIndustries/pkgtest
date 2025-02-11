@@ -17,3 +17,4 @@ dist/
 
 # swc tooling
 .swc/
+.swcrc_from_tsconfig*

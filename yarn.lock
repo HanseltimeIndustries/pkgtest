@@ -914,15 +914,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hanseltime/esm-interop-tools@file:/home/justin.hanselman/esm-interop-tools::locator=%40hanseltime%2Fpkgtest%40workspace%3A.":
-  version: 0.0.0
-  resolution: "@hanseltime/esm-interop-tools@file:/home/justin.hanselman/esm-interop-tools#/home/justin.hanselman/esm-interop-tools::hash=59c751&locator=%40hanseltime%2Fpkgtest%40workspace%3A."
+"@hanseltime/esm-interop-tools@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "@hanseltime/esm-interop-tools@npm:1.0.0"
   dependencies:
     commander: "npm:^12.1.0"
     resolve-package-path: "npm:^4.0.3"
   bin:
     get-esm-packages: dist/bin/get-esm-packages.js
-  checksum: 10/946cb2fcc37c57793ca2e63bdbae3b628cf3fc946297de64a3b17dcb012ad9b8688527c9c5ea724c03ff2bf0ef73219c549417800d3133381b0343af8a91ca4b
+  checksum: 10/4d3caf11de68b2396f8b6c1f5a3464c1c0d5cf9da0357bc8c0d8e97aa1dccc60855871b068fe55e2d06bdf00eecddf29764dce6a545aba8871fd053037cfe5c7
   languageName: node
   linkType: hard
 
@@ -935,7 +935,7 @@ __metadata:
     "@babel/plugin-transform-modules-commonjs": "npm:^7.26.3"
     "@biomejs/biome": "npm:1.9.4"
     "@commitlint/config-angular": "npm:^18.4.3"
-    "@hanseltime/esm-interop-tools": /home/justin.hanselman/esm-interop-tools
+    "@hanseltime/esm-interop-tools": "npm:^1.0.0"
     "@hanseltime/swc-plugin-node-globals-inject": "npm:^1.0.0"
     "@rspack/cli": "npm:^1.1.6"
     "@rspack/core": "npm:^1.1.6"
