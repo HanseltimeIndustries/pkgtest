@@ -33,7 +33,10 @@ jobs:
       - name: Enable yarn Berry
         run: corepack enable
       - name: Install
-        run: yarn install --immutable
+        run: |
+          yarn install --immutable
+          # Hack - the yarn team refuses to not take over formatting the package.json
+          git checkout package.json
       - name: Build
         run: yarn build
       - name: Publish documentation
@@ -43,4 +46,4 @@ jobs:
       #   run: yarn release
       #   env:
       #     NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      #     GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
+      #     GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
