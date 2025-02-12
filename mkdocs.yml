@@ -1,4 +1,5 @@
 site_name: '@hanseltime/pkgtest'
+repo_url: https://github.com/HanseltimeIndustries/pkgtest
 theme:
   name: material
   features:
