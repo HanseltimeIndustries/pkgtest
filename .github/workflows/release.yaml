@@ -41,7 +41,7 @@ jobs:
         run: yarn build
       - name: Publish documentation
         run: |
-          ./bin/publish.sh 0.1.0-test
+          ./bin/publish-docs.sh 0.1.0-test
       # - name: Release
       #   run: yarn release
       #   env:
