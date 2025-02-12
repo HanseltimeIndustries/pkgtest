@@ -1,6 +1,6 @@
 # Corepack
 
-To keep track of which package managers are running which projects, pkgtest uses (corepack)[https://www.npmjs.com/package/corepack].
+To keep track of which package managers are running which projects, pkgtest uses [corepack](https://www.npmjs.com/package/corepack).
 
 Corepack has historically been bundled with NodeJS, but is not guaranteed to always be bundled with NodeJS.  Additionally, there
 are some issues with expired package keys when corepack is downloading package managers.
