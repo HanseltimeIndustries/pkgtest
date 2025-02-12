@@ -1,5 +1,5 @@
 {
-    "description": "This is a programmatically created file via /home/justin.hanselman/.nvm/versions/node/v20.18.2/bin/node /home/justin.hanselman/test-yarn/node_modules/@hanseltime/esm-interop-tools/dist/bin/get-esm-packages.js -p yarnv2+ -r --file esm-packages.json --quiet",
+    "description": "This is a programmatically created file via get-esm-packages -p yarnv2+ -r --file esm-packages.json --quiet",
     "packages": [
         "@gerrit0/mini-shiki",
         "@isaacs/cliui",
@@ -7,6 +7,7 @@
         "@sec-ant/readable-stream",
         "@semantic-release/commit-analyzer",
         "@semantic-release/error",
+        "@semantic-release/exec",
         "@semantic-release/github",
         "@semantic-release/npm",
         "@semantic-release/release-notes-generator",
@@ -77,6 +78,7 @@
         "is-docker",
         "is-inside-container",
         "is-network-error",
+        "is-plain-obj",
         "is-stream",
         "is-unicode-supported",
         "is-wsl",
@@ -110,10 +112,12 @@
         "p-retry",
         "package-json-from-dist",
         "parse-json",
+        "parse-ms",
         "path-key",
         "path-scurry",
         "path-type",
         "peek-readable",
+        "pretty-ms",
         "promise-call-limit",
         "read",
         "read-pkg",
@@ -147,6 +151,7 @@
         "y18n",
         "yallist",
         "yargs",
-        "yargs-parser"
+        "yargs-parser",
+        "yoctocolors"
     ]
 }
