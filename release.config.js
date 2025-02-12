@@ -35,11 +35,6 @@ module.exports = {
 		// ],
 		// // This creates a release on github - you can decide if you want to mirror the files in package.json
 		// "@semantic-release/github",
-		// Create documentation for the new version
-		{
-			path: "@semantic-release/exec",
-			cmd: "./bin/publish-docs.sh ${nextRelease.version}",
-		},
 	],
 	ci: false,
 };

@@ -39,14 +39,42 @@ jobs:
           git checkout package.json
       - name: Build
         run: yarn build
+      - name: Release
+        shell: bash
+        run: yarn release
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+      # Note - we publish doc on non-release steps as well (i.e. a docs: commit)
+      # So we need the last tagged version and to make sure we are on the latest commit (to avoid re-runs on old actions)
+      - name: Should Publish Doc Check
+        id: publish-doc-check
+        shell: bash
+        run: |
+          # First ensure that we are still up-to-date 
+          # (do not allow reruns on old commits to override doc)
+          up_to_date=$(git status | grep "branch is up to date" || echo "false")
+
+          if [ "$up_to_date" ==  "false" ]; then
+              echo "Branch is not up to date and therefore will not publish documentation!"
+              exit
+          fi
+          # Get the last release tag on this branch (since we only publish doc with a successful publish)
+          # Note - the semantic-release step will have tagged if it performed a release
+          git fetch --tags
+          last_version=$(git describe --tags --abbrev=0 || false)
+
+          if [ "$last_version" == "false" ]; then
+            echo "No published version detected on branch.  Skipping publishing documentation!"
+            exit
+          fi
+
+          echo "version=${last_version}" >> "$GITHUB_OUTPUT"
       - name: Publish documentation
+        if: ${{ steps.publish-doc-check.outputs.version }}
         run: |
           pip install -r docs/requirements.txt
           git config user.name docs-bot
           git config user.email docs-bot@hanseltime.com
-          ./bin/publish-docs.sh 0.1.0-test
-      # - name: Release
-      #   run: yarn release
-      #   env:
-      #     NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      #     GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          ./bin/publish-docs.sh "${{ steps.publish-doc-check.outputs.version }}"
+
