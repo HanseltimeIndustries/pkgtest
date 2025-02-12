@@ -3,25 +3,6 @@
 There are multiple ways that you can contribute to this project.  In all of them, please
 make sure to be respectful of fellow users and developers.
 
-- [Contributing](#contributing)
-  - [Submitting an issue](#submitting-an-issue)
-  - [Developing a Feature or Fix](#developing-a-feature-or-fix)
-    - [Documentation](#documentation)
-      - [Extensions](#extensions)
-      - [Api Generation](#api-generation)
-    - [Opening a PR](#opening-a-pr)
-    - [Development setup](#development-setup)
-    - [Commit syntax](#commit-syntax)
-    - [Development Testing](#development-testing)
-      - [Unit tests](#unit-tests)
-      - [Linting](#linting)
-      - [Typescript \& SWC](#typescript--swc)
-      - [Optional - Testing built script locally](#optional---testing-built-script-locally)
-      - [Optional - Personal CI checks](#optional---personal-ci-checks)
-      - [Optional - Debugging](#optional---debugging)
-  
-*Table of Contents generated with VSCode Markdown All In One extension*
-
 ## Submitting an issue
 
 The simplest way that you can contribute to this project is to submit a issue asking for a
@@ -174,7 +155,7 @@ You can run the install again and again after building.
 
 #### Optional - Personal CI checks
 
-Github allows public repos to run CI/CD for free on github actions.  The [pr-checks.yaml](../.github/workflows/pr-checks.yaml) is set up
+Github allows public repos to run CI/CD for free on github actions.  The [pr-checks.yaml](https://github.com/HanseltimeIndustries/pkgtest/blob/main/.github/workflows/pr-checks.yaml) is set up
 to not require any specific secrets.  If you would like to test your PRs before submitting them back to the main repo, it is recommended that:
 
 1. You enable Github Actions

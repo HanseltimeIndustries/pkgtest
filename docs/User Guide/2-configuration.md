@@ -2,7 +2,7 @@
 
 `pkgtest` is configured by a `pkgtest.config.[json|js|cjs|mjs|ts]` file at the root of the package you want to test.
 
-The following will discuss the main concepts of the configuration file, but you can always check the [Config interface docs](./api/interfaces/TestConfig.md)
+The following will discuss the main concepts of the configuration file, but you can always check the [Config interface docs](../api/interfaces/TestConfig.md)
 for a full set of features.
 
 ## matchRootdir
@@ -55,7 +55,7 @@ In that case, we would add:
 
 ## Test Entries
 
-If you've read [Getting Started](./getting-started.md), then you will probably have noticed that a single entry in the entries array can
+If you've read [Getting Started](../1-getting-started.md), then you will probably have noticed that a single entry in the entries array can
 create many Test Suites.  While you technically could create multiple entries to do the same thing as we did in getting started, that would make
 your configuration file very repetitive and tedious to update or maintain.
 
@@ -235,7 +235,7 @@ configuration of the latest package manager project.
 This generally involves running `corepack use <package manager>@latest` or in the case of `yarn-v1`, `corepack use yarn@1,x`.
 
 This does mean that the package manager's default configuration behavior is tested, which in some cases may not be the full functionality that
-you want to test.  (The example given in [getting starter](./getting-started.md) was that yarn plug'n'play is not the same behavior as its
+you want to test.  (The example given in [getting starter](../1-getting-started.md) was that yarn plug'n'play is not the same behavior as its
 other simpler and less costly `nodeLinker` modes - which for some might be fine enough when covered via `npm` and `pnpm`).
 
 !!! note
@@ -264,7 +264,7 @@ For each simple package manager type, you can choose to create any number of adv
 
 See TODO LINK for the current options api.
 
-The [getting-started](./getting-started.md) guide worked through adding an additional entry for `yarn berry with a node-modules nodeLinker strategy`.
+The [getting-started](../1-getting-started.md) guide worked through adding an additional entry for `yarn berry with a node-modules nodeLinker strategy`.
 If you'd like the details of that, please take a look there.
 
 ##### Example Scenario
@@ -346,7 +346,7 @@ either esm or commonjs for node based tests as well.
 
 #### typescript
 
-The typescript object can be completely empty of fields if desired.  In that case, it will follow the [dependency lookup](./dependency-lookup.md) for
+The typescript object can be completely empty of fields if desired.  In that case, it will follow the [dependency lookup](./3-dependency-lookup.md) for
 any typescript related libraries.  Just like with the default package manager settings, this type of configuration may result in having a shifting target
 for tooling that runs transforms (in regards to different version fields) but might be desirable from a shifting target standpoint.
 
