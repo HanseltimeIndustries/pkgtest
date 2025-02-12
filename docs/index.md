@@ -30,55 +30,9 @@ low (at least if you're me).
 Enter `pkgtest`!  With pkgtest, we can create a set of script files that we want to execute to verify that nominal functionality
 of the package is there and then a `pkgtest.config.[json|js|cjs|mjs|ts]` file to let us know what type of projects to scaffold.
 
-Example Files:
+Example call:
 
-=== "pkgtest.config.js"
-    ```js
-    module.exports = {
-        entries: [
-            {
-                testMatch: "pkgtests/**/*.ts",
-                runWith: ["node", "ts-node", "tsx"],
-                packageManagers: ["yarn-v1", "yarn-berry", "npm", "pnpm"],
-                moduleTypes: ["commonjs", "esm"],
-                transforms: {
-                    typescript: {}, // Use the defaults, but we do want typescript transformation
-                },
-                // No additional files needed
-            },
-        ]
-    }
-    ```
-=== "pkgtests/simpleTest.ts"
-    ```typescript
-    import { someFunc } from 'my-package'
-
-    // Call someFunc to make sure it works nominally
-    someFunc()
-    ```
-=== "pkgtests/inner/index.ts"
-    ```typescript
-    import { someFunc2 } from 'my-package'
-
-    // Call someFunc2 to make sure it works nominally
-    someFunc2()
-    ```
-Command to call:
-
-=== "yarn"
-    ```shell
-    yarn pkgtest
-    ```
-=== "npm"
-    ```shell
-    npx pkgtest
-    ```
-=== "pnpm"
-    ```shell
-    pnpx pkgtest
-    ```
-
-Example output:
+`yarn pkgtest`
 
 <pre>
 <code>
@@ -129,14 +83,61 @@ Total: 2
 </code>
 </pre>
 
-As you can see, we've quickly created a set of projects, imported them and then run the typescript transformed files
-with node or tsx under each of those projects!
-
-You may have noticed that the example output isn't all that should be there according to the config file.  In reality, the output 
-would run tests for:
-
-* Package Managers: pnpm, yarn v1, yarn latest, npm
-* Each library type: commonjs, ES Module
-* Each node-like run tool: node, tsx, ts-node
+As you can see, we've quickly created a set of test projects that import our package, set up some test files in these projects,
+and then run the typescript transformed test files with node or tsx under each of those projects!
 
 That's a lot of bang for a single config file!
+
+### The example files in question
+
+!!! Note
+
+    Please use examples from [Getting Started](./1-getting-started.md) if you're trying to test out pkgtest.
+
+Example Files:
+
+=== "pkgtest.config.js"
+    ```js
+    module.exports = {
+        entries: [
+            {
+                testMatch: "pkgtests/**/*.ts",
+                runWith: ["node", "ts-node", "tsx"],
+                packageManagers: ["yarn-v1", "yarn-berry", "npm", "pnpm"],
+                moduleTypes: ["commonjs", "esm"],
+                transforms: {
+                    typescript: {}, // Use the defaults, but we do want typescript transformation
+                },
+                // No additional files needed
+            },
+        ]
+    }
+    ```
+=== "pkgtests/simpleTest.ts"
+    ```typescript
+    import { someFunc } from 'my-package'
+
+    // Call someFunc to make sure it works nominally
+    someFunc()
+    ```
+=== "pkgtests/inner/index.ts"
+    ```typescript
+    import { someFunc2 } from 'my-package'
+
+    // Call someFunc2 to make sure it works nominally
+    someFunc2()
+    ```
+Command to call:
+
+=== "yarn"
+    ```shell
+    yarn pkgtest
+    ```
+=== "npm"
+    ```shell
+    npx pkgtest
+    ```
+=== "pnpm"
+    ```shell
+    pnpx pkgtest
+    ```
