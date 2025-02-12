@@ -28,3 +28,4 @@ major_minor_optChannel=$(echo $full_version | awk -F. '{printf "%s.%s", $1, $2; 
 git fetch origin gh-pages --depth=1
 
 mike deploy $major_minor_optChannel latest --update-aliases --push
+mike set-default latest
