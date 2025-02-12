@@ -68,7 +68,7 @@ jobs:
       #     npm install -g ./${packageDir} --ignore-scripts
       #     echo "Running script to ensure valid help dispaly"
       #     aws-cfn-console-import --help
-  ensure-typedoc:
+  ensure-docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -100,19 +100,7 @@ jobs:
               echo "$changes"
               exit 1
           fi
-  no-committed-site:
-    runs-on: ubuntu-latest
-    if: ${{ github.base_ref }}
-    steps:
-      - id: site-changed-files
-        name: Run the action
-        uses: hanseltimeindustries/get-changed-files@v1
-        with:
-          format: 'space-delimited'
-          filter: "site/**/*"
-
-      - name: No committed bundle
-        if: ${{ steps.site-changed-files.outputs.all }}
+      - name: ensure no errors with mkdocs
         run: |
-          echo "all files in site/ directory are committed by the release process.  Please make sure not to commit your site files!"
-          exit 1
+          pip install -r docs/requirements.txt
+          mkdocs build --strict
