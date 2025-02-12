@@ -941,6 +941,7 @@ __metadata:
     "@rspack/cli": "npm:^1.1.6"
     "@rspack/core": "npm:^1.1.6"
     "@semantic-release/changelog": "npm:^6.0.3"
+    "@semantic-release/exec": "npm:^7.0.3"
     "@semantic-release/git": "npm:^10.0.1"
     "@swc/cli": "npm:^0.5.2"
     "@swc/core": "npm:^1.10.12"

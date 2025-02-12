@@ -18,6 +18,13 @@ module.exports = {
 		"@semantic-release/commit-analyzer",
 		"@semantic-release/release-notes-generator",
 		"@semantic-release/changelog",
+		// format any changed files
+		[
+			"@semantic-release/exec",
+			{
+				prepareCmd: "yarn format --fix",
+			},
+		],
 		// "@semantic-release/npm",
 		// [
 		// 	"@semantic-release/git",
