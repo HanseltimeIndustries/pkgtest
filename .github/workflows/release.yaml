@@ -42,6 +42,8 @@ jobs:
       - name: Publish documentation
         run: |
           pip install -r docs/requirements.txt
+          git config user.name docs-bot
+          git config user.email docs-bot@hanseltime.com
           ./bin/publish-docs.sh 0.1.0-test
       # - name: Release
       #   run: yarn release
