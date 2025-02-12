@@ -41,6 +41,7 @@ jobs:
         run: yarn build
       - name: Publish documentation
         run: |
+          pip install -r docs/requirements.txt
           ./bin/publish-docs.sh 0.1.0-test
       # - name: Release
       #   run: yarn release
