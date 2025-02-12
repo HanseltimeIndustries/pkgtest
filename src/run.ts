@@ -10,6 +10,7 @@ import chalk from "chalk";
 import { ModuleTypes, PkgManager, RunWith } from "./types";
 import { testSuiteDescribe } from "./reporters";
 import { getMatchIgnore } from "./getMatchIgnore";
+import { ensureMinimumCorepack } from "./pkgManager";
 
 export const DEFAULT_TIMEOUT = 2000;
 
@@ -226,6 +227,10 @@ export async function run(options: RunOptions) {
 							const testProjectDir = await mkdtemp(
 								join(tmpDir, `${LIBRARY_NAME}-`),
 							);
+							// Ensure that this directory has access to the correct corepack
+							ensureMinimumCorepack({
+								cwd: testProjectDir,
+							});
 							async function cleanup() {
 								// Clean up the folder
 								if (!preserveResources) {
