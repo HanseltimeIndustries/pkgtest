@@ -951,6 +951,7 @@ __metadata:
     "@types/js-yaml": "npm:^4"
     "@types/micromatch": "npm:^4.0.9"
     "@types/node": "npm:^18.11.18"
+    "@types/semver": "npm:^7"
     babel-preset-jest: "npm:^29.6.3"
     chalk: "npm:^5.4.1"
     commander: "npm:^13.1.0"
@@ -963,6 +964,7 @@ __metadata:
     micromatch: "npm:^4.0.8"
     pinst: "npm:^3.0.0"
     semantic-release: "npm:^22.0.12"
+    semver: "npm:^7.7.1"
     ts-jest: "npm:^29.1.1"
     tswc: "npm:^1.4.0"
     tsx: "npm:^4.19.2"
@@ -2953,6 +2955,13 @@ __metadata:
   version: 0.12.2
   resolution: "@types/retry@npm:0.12.2"
   checksum: 10/e5675035717b39ce4f42f339657cae9637cf0c0051cf54314a6a2c44d38d91f6544be9ddc0280587789b6afd056be5d99dbe3e9f4df68c286c36321579b1bf4a
+  languageName: node
+  linkType: hard
+
+"@types/semver@npm:^7":
+  version: 7.5.8
+  resolution: "@types/semver@npm:7.5.8"
+  checksum: 10/3496808818ddb36deabfe4974fd343a78101fa242c4690044ccdc3b95dcf8785b494f5d628f2f47f38a702f8db9c53c67f47d7818f2be1b79f2efb09692e1178
   languageName: node
   linkType: hard
 
@@ -9424,6 +9433,15 @@ __metadata:
   bin:
     semver: bin/semver.js
   checksum: 10/5d615860a54ff563955c451e467bff3aaf74c8d060489f936f25551d5ca05f5ac683eb46c9ed7ade082e1e53b313f205ed9c5df0b25ebb3517ec25c79e1f0d9c
+  languageName: node
+  linkType: hard
+
+"semver@npm:^7.7.1":
+  version: 7.7.1
+  resolution: "semver@npm:7.7.1"
+  bin:
+    semver: bin/semver.js
+  checksum: 10/4cfa1eb91ef3751e20fc52e47a935a0118d56d6f15a837ab814da0c150778ba2ca4f1a4d9068b33070ea4273629e615066664c2cfcd7c272caf7a8a0f6518b2c
   languageName: node
   linkType: hard
 
