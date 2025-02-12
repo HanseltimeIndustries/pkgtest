@@ -104,3 +104,13 @@ jobs:
         run: |
           pip install -r docs/requirements.txt
           mkdocs build --strict
+  # easy to require end cap job
+  done:
+    needs:
+      - ensure-docs
+      - ci-checks
+    runs-on: ubuntu-latest
+    name: Done
+    steps:
+      - run: exit 1
+        if: ${{ always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'skipped') || contains(needs.*.result, 'cancelled')) }}
