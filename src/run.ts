@@ -3,7 +3,7 @@ import { getConfig, LIBRARY_NAME } from "./config";
 import { createTestProject } from "./createTestProject";
 import { mkdtemp, rm } from "fs/promises";
 import { join } from "path";
-import { TestRunner } from "./TestRunner";
+import { FileTestRunner } from "./FileTestRunner";
 import { SimpleReporter } from "./reporters/SimpleReporter";
 import { Logger } from "./Logger";
 import chalk from "chalk";
@@ -285,7 +285,7 @@ export async function run(options: RunOptions) {
 			},
 			[] as Promise<
 				| {
-						runners: TestRunner[];
+						runners: FileTestRunner[];
 						cleanup: () => Promise<void>;
 				  }
 				| undefined

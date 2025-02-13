@@ -20,7 +20,7 @@ import {
 	getPkgManagerCommand,
 	getPkgManagerSetCommand,
 } from "./pkgManager";
-import { TestFile, TestRunner } from "./TestRunner";
+import { FileTest, FileTestRunner, TestFile } from "./FileTestRunner";
 import * as yaml from "js-yaml";
 import { Logger } from "./Logger";
 
@@ -87,7 +87,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		additionalDependencies?: CreateDependenciesOptions["additionalDependencies"];
 		typescript?: TypescriptOptions;
 	},
-): Promise<TestRunner[]> {
+): Promise<FileTestRunner[]> {
 	const {
 		projectDir,
 		testProjectDir,
@@ -224,7 +224,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 
 	logger.logDebug(`Finished copying test files to ${absSrcPath}`);
 
-	const runners: TestRunner[] = [];
+	const runners: FileTestRunner[] = [];
 	const binRunCmd = getPkgBinaryRunnerCommand(pkgManager, pkgManagerVersion);
 	// Add a tsconfig file if we are using typescript transpilation
 	if (typescript) {
@@ -302,7 +302,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 					);
 			}
 			runners.push(
-				new TestRunner({
+				new FileTestRunner({
 					projectDir: testProjectDir,
 					runCommand: `${binRunCmd} ${runCommand}${additionalArgs ? " " + additionalArgs : ""}`,
 					testFiles,
@@ -328,7 +328,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 					);
 			}
 			runners.push(
-				new TestRunner({
+				new FileTestRunner({
 					projectDir: testProjectDir,
 					runCommand: `${binRunCmd} ${rBy}`,
 					testFiles,

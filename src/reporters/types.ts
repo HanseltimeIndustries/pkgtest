@@ -1,11 +1,16 @@
-import { TestFile, TestRunner } from "../TestRunner";
+import { BinTest, BinTestRunner } from "../BinTestRunner";
+import { FileTest, FileTestRunner, TestFile } from "../FileTestRunner";
+
+type Test = FileTest | BinTest;
+
+type NotReachedInfo = TestFile | BinTest;
 
 export interface TestResult {
 	/**
-	 * The actual command run - this is in effect the true test
+	 * The command that was executed
 	 */
 	testCmd: string;
-	testFile: TestFile;
+	test: Test;
 	/**
 	 * The time in seconds that is took took to execute
 	 */
@@ -34,7 +39,7 @@ export interface TestsSummary {
 	/**
 	 * Not reached is a list of test names that were not run due to a fail fast event
 	 */
-	notReached: TestFile[];
+	notReached: NotReachedInfo[];
 	/**
 	 * passed + failed + skipped + notReached.length
 	 */
@@ -60,7 +65,7 @@ export interface Reporter {
 	 *
 	 * @param runner
 	 */
-	start(runner: TestRunner): void;
+	start(runner: FileTestRunner | BinTestRunner): void;
 	passed(res: TestResult): void;
 	failed(res: TestResult): void;
 	skipped(res: TestResult): void;

@@ -11,6 +11,7 @@ import {
 	TestConfigEntry,
 	TypescriptOptions,
 	YarnV4Options,
+	BinTestConfig,
 } from "./types";
 import { z, ZodError, ZodType } from "zod";
 import { fromError } from "zod-validation-error";
@@ -99,6 +100,16 @@ const additionalDependencies = z
 		"Additional dependencies that can't be inferred from the project's package.json or other explicit fields like \"typescript.tsx.version\".",
 	);
 
+const BinTestsValidated = z.record(
+	z.string(),
+	z.array(
+		z.object({
+			args: z.string(),
+			env: z.record(z.string(), z.string()).optional(),
+		}),
+	),
+) satisfies ZodType<BinTestConfig>;
+
 const TestConfigEntryValidated = z.object({
 	testMatch: z
 		.string()
@@ -124,6 +135,7 @@ Note, we will run each way per package manager + module project that is created.
 If you are writing in raw JS though, you will more than likely need to keep ESM and CommonJS equivalent versions of each package test and therefore will need to have an entry with ["commonjs"] and ["esm"] separately so that you can change the testMatch to pick the correct files.`),
 	additionalDependencies,
 	transforms: TransformValidated,
+	binTests: BinTestsValidated.optional(),
 }) satisfies ZodType<TestConfigEntry>;
 
 const TestConfigValidated = z.object({

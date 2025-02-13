@@ -4,13 +4,20 @@ import micromatch from "micromatch";
 import { Reporter } from "./reporters";
 
 export interface TestFile {
-	/** The original file name - i.e. the file that was copied, relative to the cwd of the framework */
-	orig: string;
-	/** The actual testFile that we want to run (i.e. copied or compiled) */
-	actual: string;
+		/** The original file name - i.e. the file that was copied, relative to the cwd of the framework */
+		orig: string;
+		/** The actual testFile that we want to run (i.e. copied or compiled) */
+		actual: string;
 }
 
-export class TestRunner {
+export interface FileTest extends TestFile {
+	/**
+	 * The actual command run - this is in effect the true test
+	 */
+	command: string;
+}
+
+export class FileTestRunner {
 	readonly runCommand: string;
 	readonly runBy: RunWith;
 	readonly testFiles: TestFile[];
@@ -86,7 +93,10 @@ export class TestRunner {
 						reporter.skipped({
 							testCmd: cmd,
 							time: 0,
-							testFile,
+							test: {
+								...testFile,
+								command: cmd,
+							}
 						});
 						continue;
 					}
@@ -112,7 +122,10 @@ export class TestRunner {
 									stdout,
 									stderr,
 									timedout: testTimeMs >= timeout,
-									testFile,
+									test: {
+										...testFile,
+										command: cmd,
+									}
 								});
 								if (this.failFast) {
 									rej();
@@ -124,7 +137,10 @@ export class TestRunner {
 									time: testTimeMs,
 									stdout,
 									stderr,
-									testFile,
+									test: {
+										...testFile,
+										command: cmd,
+									}
 								});
 							}
 

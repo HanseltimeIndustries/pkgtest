@@ -114,6 +114,30 @@ export interface PkgManagerOptionsConfig<T extends PkgManager> {
 	options: PkgManagerOptions<T>;
 }
 
+export interface BinTestEntry {
+	/**
+	 * A string of args to add after the call
+	 */
+	args: string;
+	/**
+	 * Any environment variables to set for this particular test
+	 */
+	env?: Record<string, string>;
+}
+
+/**
+ * Note: if the object is empty, then `--help` will be called on every found bin command
+ */
+export interface BinTestConfig {
+	/**
+	 * Per named bin command in your package.json, you can add a key to override cli calls that we run
+	 * to test.
+	 *
+	 * Each array entry creates a new test of the binary.
+	 */
+	[binCmd: string]: BinTestEntry[];
+}
+
 export interface TestConfigEntry {
 	/**
 	 * A glob patterned string from the cwd (the package root) that will identify any pkgTest files to copy into
@@ -157,6 +181,13 @@ export interface TestConfigEntry {
 	 * or other explicit fields like "typescript.tsx.version".
 	 */
 	additionalDependencies?: CreateDependenciesOptions["additionalDependencies"];
+	/**
+	 * If this is provided, this will also generate a test per package manager + module type combination
+	 * where each bin command provided is called accordingly
+	 *
+	 * By default, if you provide an empty object, all commands will be run with --help
+	 */
+	binTests?: BinTestConfig;
 }
 
 export interface TestConfig {
@@ -177,7 +208,6 @@ export interface TestConfig {
 	 * Logical unit separating out what test files should be run and under what conditions.
 	 */
 	entries: TestConfigEntry[];
-
 	/**
 	 * Additional dependencies that can't be inferred from the project's package.json
 	 * or other explicit fields like "typescript.tsx.version".

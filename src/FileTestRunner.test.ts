@@ -1,5 +1,5 @@
 import { Reporter } from "./reporters";
-import { TestRunner } from "./TestRunner";
+import { FileTestRunner } from "./FileTestRunner";
 import { ModuleTypes, PkgManager, RunWith } from "./types";
 import { exec, ExecException } from "child_process";
 
@@ -77,7 +77,7 @@ it("runs all test files and reports the results", async () => {
 			actual: "test3a",
 		},
 	];
-	const runner = new TestRunner({
+	const runner = new FileTestRunner({
 		runCommand: "npx",
 		runBy: RunWith.Node,
 		testFiles,
@@ -118,7 +118,8 @@ it("runs all test files and reports the results", async () => {
 	expect(mockReporter.start).toHaveBeenCalledWith(runner);
 	expect(mockReporter.passed).toHaveBeenCalledWith({
 		testCmd: `npx test1a`,
-		testFile: {
+		test: {
+			command: `npx test1a`,
 			orig: "test1",
 			actual: "test1a",
 		},
@@ -128,7 +129,8 @@ it("runs all test files and reports the results", async () => {
 	});
 	expect(mockReporter.failed).toHaveBeenCalledWith({
 		testCmd: `npx test2a`,
-		testFile: {
+		test: {
+			command: `npx test2a`,
 			orig: "test2",
 			actual: "test2a",
 		},
@@ -139,7 +141,8 @@ it("runs all test files and reports the results", async () => {
 	});
 	expect(mockReporter.passed).toHaveBeenCalledWith({
 		testCmd: `npx test3a`,
-		testFile: {
+		test: {
+			command: `npx test3a`,
 			orig: "test3",
 			actual: "test3a",
 		},
@@ -189,7 +192,7 @@ it("runs test files until first failure and reports the results with failFast", 
 			actual: "test3a",
 		},
 	];
-	const runner = new TestRunner({
+	const runner = new FileTestRunner({
 		runCommand: "npx",
 		runBy: RunWith.Node,
 		testFiles,
@@ -237,7 +240,8 @@ it("runs test files until first failure and reports the results with failFast", 
 	expect(mockReporter.passed).toHaveBeenCalledTimes(1);
 	expect(mockReporter.passed).toHaveBeenCalledWith({
 		testCmd: `npx test1a`,
-		testFile: {
+		test: {
+			command: `npx test1a`,
 			orig: "test1",
 			actual: "test1a",
 		},
@@ -248,7 +252,8 @@ it("runs test files until first failure and reports the results with failFast", 
 	expect(mockReporter.failed).toHaveBeenCalledTimes(1);
 	expect(mockReporter.failed).toHaveBeenCalledWith({
 		testCmd: `npx test2a`,
-		testFile: {
+		test: {
+			command: `npx test2a`,
 			orig: "test2",
 			actual: "test2a",
 		},
@@ -301,7 +306,7 @@ it("runs test files and handles timeouts", async () => {
 			actual: "test3a",
 		},
 	];
-	const runner = new TestRunner({
+	const runner = new FileTestRunner({
 		runCommand: "npx",
 		runBy: RunWith.Node,
 		testFiles,
@@ -344,7 +349,8 @@ it("runs test files and handles timeouts", async () => {
 	expect(mockReporter.passed).toHaveBeenCalledTimes(2);
 	expect(mockReporter.passed).toHaveBeenCalledWith({
 		testCmd: `npx test1a`,
-		testFile: {
+		test: {
+			command: `npx test1a`,
 			orig: "test1",
 			actual: "test1a",
 		},
@@ -354,7 +360,8 @@ it("runs test files and handles timeouts", async () => {
 	});
 	expect(mockReporter.passed).toHaveBeenCalledWith({
 		testCmd: `npx test3a`,
-		testFile: {
+		test: {
+			command: `npx test3a`,
 			orig: "test3",
 			actual: "test3a",
 		},
@@ -365,7 +372,8 @@ it("runs test files and handles timeouts", async () => {
 	expect(mockReporter.failed).toHaveBeenCalledTimes(1);
 	expect(mockReporter.failed).toHaveBeenCalledWith({
 		testCmd: `npx test2a`,
-		testFile: {
+		test: {
+			command: `npx test2a`,
 			orig: "test2",
 			actual: "test2a",
 		},
@@ -415,7 +423,7 @@ it("runs only designated test files", async () => {
 			actual: "test3a.ts",
 		},
 	];
-	const runner = new TestRunner({
+	const runner = new FileTestRunner({
 		runCommand: "npx",
 		runBy: RunWith.Node,
 		testFiles,
@@ -458,7 +466,8 @@ it("runs only designated test files", async () => {
 	expect(mockReporter.passed).toHaveBeenCalledTimes(2);
 	expect(mockReporter.passed).toHaveBeenCalledWith({
 		testCmd: `npx something/test1a.ts`,
-		testFile: {
+		test: {
+			command: `npx something/test1a.ts`,
 			orig: "something/test1.ts",
 			actual: "something/test1a.ts",
 		},
@@ -468,7 +477,8 @@ it("runs only designated test files", async () => {
 	});
 	expect(mockReporter.passed).toHaveBeenCalledWith({
 		testCmd: `npx test3a.ts`,
-		testFile: {
+		test: {
+			command: `npx test3a.ts`,
 			orig: "test3.ts",
 			actual: "test3a.ts",
 		},
@@ -480,7 +490,8 @@ it("runs only designated test files", async () => {
 	expect(mockReporter.skipped).toHaveBeenCalledTimes(1);
 	expect(mockReporter.skipped).toHaveBeenCalledWith({
 		testCmd: `npx else/test2a.ts`,
-		testFile: {
+		test: {
+			command: `npx else/test2a.ts`,
 			orig: "else/test2.js",
 			actual: "else/test2a.ts",
 		},
