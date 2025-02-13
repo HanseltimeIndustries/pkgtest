@@ -3,6 +3,9 @@
 	"version": "1.0.0",
 	"types": "./dist/types/index.d.ts",
 	"main": "./dist/cjs/index.js",
+	"bin": {
+		"pkgtest": "dist/bin/pkgtest.js"
+	},
 	"exports": {
 		"types": "./dist/types/index.d.ts",
 		"require": "./dist/cjs/index.js",

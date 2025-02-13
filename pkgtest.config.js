@@ -4,20 +4,21 @@ module.exports = {
 		{
 			testMatch: "**/*.ts",
 			runWith: ["node", "tsx", "ts-node"],
-			packageManagers: ["yarn-v1", "yarn-berry", "npm", "pnpm"],
-			// packageManagers: [
-			// 	"npm",
-			// 	"yarn-berry",
-			// 	{
-			// 		alias: "yarn node linked",
-			// 		packageManager: "yarn-berry",
-			// 		options: {
-			// 			yarnrc: {
-			// 				nodeLinker: "node-modules",
-			// 			},
-			// 		},
-			// 	},
-			// ],
+			packageManagers: [
+				"npm",
+				"pnpm",
+				"yarn-v1",
+				"yarn-berry",
+				{
+					alias: "yarn node linked",
+					packageManager: "yarn-berry",
+					options: {
+						yarnrc: {
+							nodeLinker: "node-modules",
+						},
+					},
+				},
+			],
 			moduleTypes: ["commonjs", "esm"],
 			transforms: {
 				typescript: {
@@ -26,6 +27,7 @@ module.exports = {
 					},
 				}, // Use the defaults, but we do want typescript transformation
 			},
+			binTests: {},
 		},
 	],
 };

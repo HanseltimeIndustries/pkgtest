@@ -3,6 +3,7 @@
  * are not reliant on external npm dependencies and subject to version mismatch
  */
 const { defineConfig } = require("@rspack/cli");
+const { BannerPlugin } = require("@rspack/core");
 const { basename, join } = require("path");
 const { readFileSync, existsSync } = require("fs");
 const { convert } = require("tsconfig-to-swcconfig");
@@ -83,4 +84,12 @@ module.exports = defineConfig({
 		__dirname: false,
 		__filename: false,
 	},
+	plugins: [
+		// Adds the node hashbang to the top of our entrypoints
+		new BannerPlugin({
+			entryOnly: true,
+			banner: "#!/usr/bin/env node",
+			raw: true,
+		}),
+	],
 });
