@@ -39,6 +39,18 @@ export enum PkgManager {
 	YarnBerry = "yarn-berry",
 }
 
+export enum TestType {
+	/**
+	 * Represents a test that we are going to call node or some node equivalent on a source file
+	 */
+	File = "file",
+	/**
+	 * Represents a test where we are actually going to call one of the declared bin's in the package
+	 * that we're testing
+	 */
+	Bin = "bin",
+}
+
 export interface InstalledTool {
 	/**
 	 * Explicit version to test.  If not supplied, we will use the

@@ -1,7 +1,7 @@
 import { program, Command, Argument, Option } from "commander";
 import { DEFAULT_CONFIG_FILE_NAME_BASE, LIBRARY_NAME } from "../config";
 import { DEFAULT_TIMEOUT, FailFastError, run } from "../run";
-import { ModuleTypes, PkgManager, RunWith } from "../types";
+import { ModuleTypes, PkgManager, RunWith, TestType } from "../types";
 
 interface Options {
 	config?: string;
@@ -14,6 +14,7 @@ interface Options {
 	pkgManager?: PkgManager[];
 	runWith?: RunWith[];
 	pkgManagerAlias?: string[];
+	testType?: TestType[];
 }
 
 program
@@ -54,6 +55,12 @@ program
 			"Limits the tests that run to the pkgManager config alias (pkgtest default) runs the string PkgManager configs",
 		),
 	)
+	.addOption(
+		new Option(
+			"--testType <testType...>",
+			"Limits the tests that run to the type of test",
+		).choices(Object.values(TestType)),
+	)
 	.addArgument(
 		new Argument(
 			"<testMatch...>",
@@ -71,11 +78,12 @@ program
 				configPath: options.config,
 				preserveResources: options.preserve,
 				filters: {
-					testNames: testMatch ?? [],
+					fileTestNames: testMatch ?? [],
 					moduleTypes: options.modType,
 					packageManagers: options.pkgManager,
 					runWith: options.runWith,
 					pkgManagerAlias: options.pkgManagerAlias,
+					testTypes: options.testType,
 				},
 			});
 			if (!passed) {

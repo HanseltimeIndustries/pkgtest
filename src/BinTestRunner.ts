@@ -1,5 +1,5 @@
 import { exec } from "child_process";
-import { BinTestConfig, ModuleTypes, PkgManager, } from "./types";
+import { BinTestConfig, ModuleTypes, PkgManager } from "./types";
 import { Reporter } from "./reporters";
 
 export interface BinTest {

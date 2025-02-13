@@ -1,4 +1,4 @@
-import { cp, readFile, writeFile, } from "fs/promises";
+import { cp, readFile, writeFile } from "fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "path";
 import { getAllMatchingFiles } from "./getAllMatchingFiles";
 import { exec, ExecOptions } from "child_process";

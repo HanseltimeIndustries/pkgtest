@@ -7,11 +7,12 @@ import { FileTestRunner } from "./FileTestRunner";
 import { SimpleReporter } from "./reporters/SimpleReporter";
 import { Logger } from "./Logger";
 import chalk from "chalk";
-import { ModuleTypes, PkgManager, RunWith } from "./types";
-import { testSuiteDescribe } from "./reporters";
+import { ModuleTypes, PkgManager, RunWith, TestType } from "./types";
 import { getMatchIgnore } from "./getMatchIgnore";
 import { ensureMinimumCorepack } from "./pkgManager";
 import { BinTestRunner } from "./BinTestRunner";
+import { skipSuiteDescribe } from "./reporters/skipSuitesNotice";
+import { TestGroupOverview } from "./reporters";
 
 export const DEFAULT_TIMEOUT = 2000;
 
@@ -52,10 +53,15 @@ export interface RunOptions {
 		packageManagers?: PkgManager[];
 		runWith?: RunWith[];
 		pkgManagerAlias?: string[];
+		testTypes?: TestType[];
 		/**
 		 * A glob filter of file names to run (relative to the cwd root)
 		 */
-		testNames?: string[];
+		fileTestNames?: string[];
+		/**
+		 * A string match/regex filter to only run bins that match
+		 */
+		binTestNames?: string[];
 	};
 }
 
@@ -71,96 +77,6 @@ interface Overview {
 
 const DEFAULT_PKG_MANAGER_ALIAS = "pkgtest default";
 
-class TestTypeOverview {
-	get passed() {
-		this.ensureFinalized();
-		return this._passed;
-	}
-	get failed() {
-		this.ensureFinalized();
-		return this._failed;
-	}
-	get notReached() {
-		this.ensureFinalized();
-		return this._notReached;
-	}
-	get skipped() {
-		this.ensureFinalized();
-		return this._skipped;
-	}
-	get total() {
-		this.ensureFinalized();
-		return this._total;
-	}
-	get time() {
-		this.ensureFinalized();
-		return this._time;
-	}
-	private _passed = 0;
-	private _failed = 0;
-	private _notReached = 0;
-	private _skipped = 0;
-	private _total = 0;
-	private _start: Date | undefined;
-	private _time: number = 0;
-	private _finalized = false;
-
-	addToTotal(n: number) {
-		this._total += n;
-	}
-
-	startTime() {
-		if (this._start) {
-			throw new Error("Can only start time once!");
-		}
-		this._start = new Date();
-	}
-
-	pass(n: number) {
-		this._passed += n;
-		this.ensureNoMonkeyBusiness();
-	}
-
-	fail(n: number) {
-		this._failed += n;
-		this.ensureNoMonkeyBusiness();
-	}
-
-	skip(n: number) {
-		this._skipped += n;
-		this.ensureNoMonkeyBusiness();
-	}
-
-	private ensureNoMonkeyBusiness() {
-		const sum = this._failed + this._passed + this._skipped;
-		if (sum > this._total) {
-			throw new Error(
-				`Unexpected condition when recording tests! Total of skipped + failed + pass is greater than total: ${this._total}`,
-			);
-		}
-	}
-
-	private ensureFinalized() {
-		if (!this._finalized) {
-			throw new Error(
-				"Must finalize an overview before retrieving its values!",
-			);
-		}
-	}
-
-	finalize() {
-		if (this._finalized) {
-			return;
-		}
-		if (this._start) {
-			this._time = new Date().getTime() - this._start.getTime();
-		}
-		this._notReached =
-			this._total - (this._failed + this._passed + this._skipped);
-		this._finalized = true;
-	}
-}
-
 export async function run(options: RunOptions) {
 	const {
 		configPath,
@@ -170,7 +86,7 @@ export async function run(options: RunOptions) {
 		preserveResources,
 		filters = {},
 	} = options;
-	const { testNames = [] } = filters;
+	const { fileTestNames: testNames = [] } = filters;
 	const logger = new Logger({
 		context: "[runner]",
 		debug: !!debug,
@@ -189,13 +105,23 @@ export async function run(options: RunOptions) {
 	const tmpDir = process.env.PKG_TEST_TEMP_DIR ?? tmpdir();
 	logger.logDebug(`Writing test projects to temporary directory: ${tmpDir}`);
 
+	// filter abstractions
+	const skipFileTests =
+		filters.testTypes && !filters.testTypes.includes(TestType.File);
+	const skipBinTests =
+		filters.testTypes && !filters.testTypes.includes(TestType.Bin);
+
 	// Set up the runner contexts
 	logger.logDebug(`Initializing test projects...`);
-	const fileTestSuitesOverview = new TestTypeOverview();
-	const fileTestsOverview = new TestTypeOverview();
-	const binTestSuitesOverview = new TestTypeOverview();
-	const binTestsOverview = new TestTypeOverview();
-	function addSkippedSuite(n: number) {
+	const fileTestSuitesOverview = new TestGroupOverview();
+	const fileTestsOverview = new TestGroupOverview();
+	const binTestSuitesOverview = new TestGroupOverview();
+	const binTestsOverview = new TestGroupOverview();
+	function addSkippedFileTestSuite(n: number) {
+		fileTestSuitesOverview.addToTotal(n);
+		fileTestSuitesOverview.skip(n);
+	}
+	function addSkippedBinTestSuite(n: number) {
 		fileTestSuitesOverview.addToTotal(n);
 		fileTestSuitesOverview.skip(n);
 	}
@@ -239,8 +165,8 @@ export async function run(options: RunOptions) {
 								filters.moduleTypes &&
 								!filters.moduleTypes.includes(modType)
 							) {
-								addSkippedSuite(
-									skipSuitesNotice(logger, {
+								addSkippedFileTestSuite(
+									skipFileSuitesNotice(logger, {
 										runWith: testConfigEntry.runWith,
 										modType,
 										pkgManager,
@@ -253,8 +179,8 @@ export async function run(options: RunOptions) {
 								filters.packageManagers &&
 								!filters.packageManagers.includes(pkgManager)
 							) {
-								addSkippedSuite(
-									skipSuitesNotice(logger, {
+								addSkippedFileTestSuite(
+									skipFileSuitesNotice(logger, {
 										runWith: testConfigEntry.runWith,
 										modType,
 										pkgManager,
@@ -267,8 +193,8 @@ export async function run(options: RunOptions) {
 								filters.pkgManagerAlias &&
 								!filters.pkgManagerAlias.includes(pkgManagerAlias)
 							) {
-								addSkippedSuite(
-									skipSuitesNotice(logger, {
+								addSkippedFileTestSuite(
+									skipFileSuitesNotice(logger, {
 										runWith: testConfigEntry.runWith,
 										modType,
 										pkgManager,
@@ -281,8 +207,8 @@ export async function run(options: RunOptions) {
 							if (filters.runWith) {
 								runWith = testConfigEntry.runWith.reduce((rWith, runBy) => {
 									if (!filters.runWith!.includes(runBy)) {
-										addSkippedSuite(
-											skipSuitesNotice(logger, {
+										addSkippedFileTestSuite(
+											skipFileSuitesNotice(logger, {
 												runWith: [runBy],
 												modType,
 												pkgManager,
@@ -343,13 +269,33 @@ export async function run(options: RunOptions) {
 											binTests: testConfigEntry.binTests,
 										},
 									);
-								fileTestSuitesOverview.addToTotal(fileTestRunners.length);
+
+								// Filter out whole test types (since they can be set up in the same project)
+								let filteredFileTestRunners: FileTestRunner[];
+								if (skipFileTests) {
+									fileTestRunners.forEach((ftr) => {
+										addSkippedFileTestSuite(1);
+										logger.log(skipSuiteDescribe(ftr));
+									});
+									filteredFileTestRunners = [];
+								} else {
+									fileTestSuitesOverview.addToTotal(fileTestRunners.length);
+									filteredFileTestRunners = fileTestRunners;
+								}
+								let filteredBinTestRunner: BinTestRunner | undefined;
 								if (binTestRunner) {
-									binTestSuitesOverview.addToTotal(1);
+									if (skipBinTests) {
+										addSkippedBinTestSuite(1);
+										logger.log(skipSuiteDescribe(binTestRunner));
+										filteredBinTestRunner = undefined;
+									} else {
+										filteredBinTestRunner = binTestRunner;
+										binTestSuitesOverview.addToTotal(1);
+									}
 								}
 								return {
-									fileTestRunners,
-									binTestRunner,
+									fileTestRunners: filteredFileTestRunners,
+									binTestRunner: filteredBinTestRunner,
 									cleanup,
 								};
 							} catch (err) {
@@ -481,7 +427,7 @@ export async function run(options: RunOptions) {
 	}
 }
 
-function skipSuitesNotice(
+function skipFileSuitesNotice(
 	logger: Logger,
 	opts: {
 		runWith: RunWith[];
@@ -493,10 +439,10 @@ function skipSuitesNotice(
 	const { runWith, ...rest } = opts;
 	runWith.forEach((runBy) => {
 		logger.log(
-			`${chalk.yellow("Skipping Suite:")} ${testSuiteDescribe({
+			skipSuiteDescribe({
 				...rest,
 				runBy,
-			})}`,
+			}),
 		);
 	});
 	return runWith.length;
