@@ -1,5 +1,5 @@
 import { exec } from "child_process";
-import { BinTestConfig, ModuleTypes, PkgManager, RunWith } from "./types";
+import { BinTestConfig, ModuleTypes, PkgManager, } from "./types";
 import { Reporter } from "./reporters";
 
 export interface BinTest {
@@ -8,7 +8,14 @@ export interface BinTest {
 	env?: Record<string, string>;
 }
 
-export class BinTestRunner {
+export interface BinTestRunnerDescribe {
+	readonly pkgManager: PkgManager;
+	readonly pkgManagerAlias: string;
+	readonly modType: ModuleTypes;
+	binTestConfig: BinTestConfig;
+}
+
+export class BinTestRunner implements BinTestRunnerDescribe {
 	readonly runCommand: string;
 	readonly binTestConfig: BinTestConfig;
 	readonly projectDir: string;
@@ -31,8 +38,8 @@ export class BinTestRunner {
 		modType: ModuleTypes;
 		failFast?: boolean;
 	}) {
-		(this.binTestConfig = options.binTestConfig),
-			(this.runCommand = options.runCommand);
+		this.binTestConfig = options.binTestConfig;
+		this.runCommand = options.runCommand;
 		this.projectDir = options.projectDir;
 		this.pkgManager = options.pkgManager;
 		this.pkgManagerAlias = options.pkgManagerAlias;
@@ -47,15 +54,11 @@ export class BinTestRunner {
 		 */
 		timeout: number;
 		/**
-		 * If the array is non-empty, we only run tests that include the glob pattern provided
-		 */
-		testNames: string[];
-		/**
 		 * How we will be reporting out each test that runs
 		 */
 		reporter: Reporter;
 	}) {
-		const { timeout, testNames, reporter } = options;
+		const { timeout, reporter } = options;
 		const suiteStart = new Date().getTime();
 		reporter.start(this);
 		let passed = 0;
@@ -65,76 +68,77 @@ export class BinTestRunner {
 
 		const binCmds = Object.keys(this.binTestConfig);
 		const flatBinTests = binCmds.reduce((flat, binCmd) => {
-			flat.push(...this.binTestConfig[binCmd].map((config) => {
-				return {
-					...config,
-					bin: binCmd,
-				}
-			}))
-			return flat
-		}, [] as BinTest[])
+			flat.push(
+				...this.binTestConfig[binCmd].map((config) => {
+					return {
+						...config,
+						bin: binCmd,
+					};
+				}),
+			);
+			return flat;
+		}, [] as BinTest[]);
 		for (let i = 0; i < flatBinTests.length; i++) {
-			const { args, env, bin } = flatBinTests[i]
-				try {
-					const cmd = `${this.runCommand} ${bin} ${args}`;
-					const start = new Date();
-					await new Promise<void>((res, rej) => {
-						exec(
-							cmd,
-							{
-								env: {
-									...process.env,
-									...env,
-								},
-								cwd: this.projectDir,
-								timeout,
+			const { args, env, bin } = flatBinTests[i];
+			try {
+				const cmd = `${this.runCommand} ${bin} ${args}`;
+				const start = new Date();
+				await new Promise<void>((res, rej) => {
+					exec(
+						cmd,
+						{
+							env: {
+								...process.env,
+								...env,
 							},
-							(err, stdout, stderr) => {
-								const testTimeMs = new Date().getTime() - start.getTime();
-								if (err) {
-									failed++;
-									reporter.failed({
-										testCmd: cmd,
-										time: testTimeMs,
-										stdout,
-										stderr,
-										timedout: testTimeMs >= timeout,
-										test: {
-											bin,
-											args,
-											env,
-										},
-									});
-									if (this.failFast) {
-										rej();
-									}
-								} else {
-									passed++;
-									reporter.passed({
-										testCmd: cmd,
-										time: testTimeMs,
-										stdout,
-										stderr,
-										test: {
-											bin,
-											args,
-											env,
-										},
-									});
+							cwd: this.projectDir,
+							timeout,
+						},
+						(err, stdout, stderr) => {
+							const testTimeMs = new Date().getTime() - start.getTime();
+							if (err) {
+								failed++;
+								reporter.failed({
+									testCmd: cmd,
+									time: testTimeMs,
+									stdout,
+									stderr,
+									timedout: testTimeMs >= timeout,
+									test: {
+										bin,
+										args,
+										env,
+									},
+								});
+								if (this.failFast) {
+									rej();
 								}
+							} else {
+								passed++;
+								reporter.passed({
+									testCmd: cmd,
+									time: testTimeMs,
+									stdout,
+									stderr,
+									test: {
+										bin,
+										args,
+										env,
+									},
+								});
+							}
 
-								// Always return unless we have failFast set
-								res();
-							},
-						);
-					});
-					i++;
-				} catch (_e) {
-					// Process the unready for the summary
-					notReached.push(...flatBinTests.slice(i + 1));
-					// if we throw an error here, then we are failing fast
-					break;
-				}
+							// Always return unless we have failFast set
+							res();
+						},
+					);
+				});
+			} catch (_e) {
+				// Process the unready for the summary
+				notReached.push(...flatBinTests.slice(i + 1));
+				// if we throw an error here, then we are failing fast
+				break;
+			}
 		}
 
 		const summary = {

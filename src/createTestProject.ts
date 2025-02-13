@@ -1,4 +1,4 @@
-import { cp, readFile, writeFile, rm } from "fs/promises";
+import { cp, readFile, writeFile, } from "fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "path";
 import { getAllMatchingFiles } from "./getAllMatchingFiles";
 import { exec, ExecOptions } from "child_process";
@@ -9,6 +9,7 @@ import {
 	TypescriptOptions,
 	PkgManagerOptions,
 	YarnV4Options,
+	BinTestConfig,
 } from "./types";
 import { getTypescriptConfig } from "./getTypescriptConfig";
 import {
@@ -20,9 +21,10 @@ import {
 	getPkgManagerCommand,
 	getPkgManagerSetCommand,
 } from "./pkgManager";
-import { FileTest, FileTestRunner, TestFile } from "./FileTestRunner";
+import { FileTestRunner, TestFile } from "./FileTestRunner";
 import * as yaml from "js-yaml";
 import { Logger } from "./Logger";
+import { BinTestRunner } from "./BinTestRunner";
 
 export const SRC_DIRECTORY = "src";
 export const BUILD_DIRECTORY = "dist";
@@ -86,8 +88,12 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		testMatch: string;
 		additionalDependencies?: CreateDependenciesOptions["additionalDependencies"];
 		typescript?: TypescriptOptions;
+		binTests?: BinTestConfig;
 	},
-): Promise<FileTestRunner[]> {
+): Promise<{
+	fileTestRunners: FileTestRunner[];
+	binTestRunner?: BinTestRunner;
+}> {
 	const {
 		projectDir,
 		testProjectDir,
@@ -134,7 +140,23 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 	const relativePath = relative(testProjectDir, projectDir);
 	const packageJson = JSON.parse(
 		(await readFile(join(projectDir, "package.json"))).toString(),
-	);
+	) as {
+		name: string;
+		dependencies?: {
+			[pkg: string]: string;
+		};
+		devDependencies?: {
+			[pkg: string]: string;
+		};
+		peerDependencies?: {
+			[pkg: string]: string;
+		};
+		bin?:
+			| string
+			| {
+					[cmd: string]: string;
+			  };
+	};
 
 	// Add the module type of the test package
 	const typeProps: {
@@ -224,7 +246,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 
 	logger.logDebug(`Finished copying test files to ${absSrcPath}`);
 
-	const runners: FileTestRunner[] = [];
+	const fileTestRunners: FileTestRunner[] = [];
 	const binRunCmd = getPkgBinaryRunnerCommand(pkgManager, pkgManagerVersion);
 	// Add a tsconfig file if we are using typescript transpilation
 	if (typescript) {
@@ -301,7 +323,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 						`Unimplemented testFile mapping for ${rBy} and typescript configuration!`,
 					);
 			}
-			runners.push(
+			fileTestRunners.push(
 				new FileTestRunner({
 					projectDir: testProjectDir,
 					runCommand: `${binRunCmd} ${runCommand}${additionalArgs ? " " + additionalArgs : ""}`,
@@ -327,7 +349,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 						`Unimplemented testFile mapping for ${rBy} and non-typescript configuration!`,
 					);
 			}
-			runners.push(
+			fileTestRunners.push(
 				new FileTestRunner({
 					projectDir: testProjectDir,
 					runCommand: `${binRunCmd} ${rBy}`,
@@ -342,7 +364,59 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 			);
 		});
 	}
-	return runners;
+
+	let binTestRunner: BinTestRunner | undefined = undefined;
+	// If this runs bintests, set those up as well
+	if (options.binTests) {
+		// By default create a bin help configurations
+		if (!packageJson.bin) {
+			throw new Error(
+				'binTests are configured but there is no "bin" property in the package.json!',
+			);
+		}
+		const { bin } = packageJson;
+		const binCmds =
+			typeof bin === "string"
+				? [packageJson.name]
+				: Object.keys(packageJson.bin);
+
+		// Validate the entry
+		Object.keys(options.binTests).forEach((binCmd) => {
+			if (!binCmds.includes(binCmd)) {
+				throw new Error(
+					`${binCmd} in binTests configuration does not have a matching bin entry in the package.json`,
+				);
+			}
+		});
+
+		const fullConfig = binCmds.reduce(
+			(fconfig, binCmd) => {
+				if (!fconfig[binCmd]) {
+					fconfig[binCmd] = [
+						{
+							args: "--help",
+						},
+					];
+				}
+				return fconfig;
+			},
+			{ ...options.binTests },
+		);
+
+		binTestRunner = new BinTestRunner({
+			runCommand: binRunCmd,
+			projectDir: testProjectDir,
+			binTestConfig: fullConfig,
+			pkgManager,
+			pkgManagerAlias,
+			modType,
+		});
+	}
+
+	return {
+		binTestRunner,
+		fileTestRunners,
+	};
 }
 
 async function controlledExec(

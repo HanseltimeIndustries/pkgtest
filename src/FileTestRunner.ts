@@ -4,10 +4,10 @@ import micromatch from "micromatch";
 import { Reporter } from "./reporters";
 
 export interface TestFile {
-		/** The original file name - i.e. the file that was copied, relative to the cwd of the framework */
-		orig: string;
-		/** The actual testFile that we want to run (i.e. copied or compiled) */
-		actual: string;
+	/** The original file name - i.e. the file that was copied, relative to the cwd of the framework */
+	orig: string;
+	/** The actual testFile that we want to run (i.e. copied or compiled) */
+	actual: string;
 }
 
 export interface FileTest extends TestFile {
@@ -17,7 +17,14 @@ export interface FileTest extends TestFile {
 	command: string;
 }
 
-export class FileTestRunner {
+export interface FileTestRunnerDescribe {
+	modType: ModuleTypes;
+	pkgManager: PkgManager;
+	pkgManagerAlias: string;
+	runBy: RunWith;
+}
+
+export class FileTestRunner implements FileTestRunnerDescribe {
 	readonly runCommand: string;
 	readonly runBy: RunWith;
 	readonly testFiles: TestFile[];
@@ -96,7 +103,7 @@ export class FileTestRunner {
 							test: {
 								...testFile,
 								command: cmd,
-							}
+							},
 						});
 						continue;
 					}
@@ -125,7 +132,7 @@ export class FileTestRunner {
 									test: {
 										...testFile,
 										command: cmd,
-									}
+									},
 								});
 								if (this.failFast) {
 									rej();
@@ -140,7 +147,7 @@ export class FileTestRunner {
 									test: {
 										...testFile,
 										command: cmd,
-									}
+									},
 								});
 							}
 

@@ -38,6 +38,7 @@
 				"noUnusedLabels": "error",
 				"noUnusedPrivateClassMembers": "error",
 				"noUnusedVariables": "error",
+				"noUnusedImports": "error",
 				"useIsNan": "error",
 				"useValidForDirection": "error",
 				"useYield": "error"

@@ -11,6 +11,7 @@ import { ModuleTypes, PkgManager, RunWith } from "./types";
 import { testSuiteDescribe } from "./reporters";
 import { getMatchIgnore } from "./getMatchIgnore";
 import { ensureMinimumCorepack } from "./pkgManager";
+import { BinTestRunner } from "./BinTestRunner";
 
 export const DEFAULT_TIMEOUT = 2000;
 
@@ -70,6 +71,96 @@ interface Overview {
 
 const DEFAULT_PKG_MANAGER_ALIAS = "pkgtest default";
 
+class TestTypeOverview {
+	get passed() {
+		this.ensureFinalized();
+		return this._passed;
+	}
+	get failed() {
+		this.ensureFinalized();
+		return this._failed;
+	}
+	get notReached() {
+		this.ensureFinalized();
+		return this._notReached;
+	}
+	get skipped() {
+		this.ensureFinalized();
+		return this._skipped;
+	}
+	get total() {
+		this.ensureFinalized();
+		return this._total;
+	}
+	get time() {
+		this.ensureFinalized();
+		return this._time;
+	}
+	private _passed = 0;
+	private _failed = 0;
+	private _notReached = 0;
+	private _skipped = 0;
+	private _total = 0;
+	private _start: Date | undefined;
+	private _time: number = 0;
+	private _finalized = false;
+
+	addToTotal(n: number) {
+		this._total += n;
+	}
+
+	startTime() {
+		if (this._start) {
+			throw new Error("Can only start time once!");
+		}
+		this._start = new Date();
+	}
+
+	pass(n: number) {
+		this._passed += n;
+		this.ensureNoMonkeyBusiness();
+	}
+
+	fail(n: number) {
+		this._failed += n;
+		this.ensureNoMonkeyBusiness();
+	}
+
+	skip(n: number) {
+		this._skipped += n;
+		this.ensureNoMonkeyBusiness();
+	}
+
+	private ensureNoMonkeyBusiness() {
+		const sum = this._failed + this._passed + this._skipped;
+		if (sum > this._total) {
+			throw new Error(
+				`Unexpected condition when recording tests! Total of skipped + failed + pass is greater than total: ${this._total}`,
+			);
+		}
+	}
+
+	private ensureFinalized() {
+		if (!this._finalized) {
+			throw new Error(
+				"Must finalize an overview before retrieving its values!",
+			);
+		}
+	}
+
+	finalize() {
+		if (this._finalized) {
+			return;
+		}
+		if (this._start) {
+			this._time = new Date().getTime() - this._start.getTime();
+		}
+		this._notReached =
+			this._total - (this._failed + this._passed + this._skipped);
+		this._finalized = true;
+	}
+}
+
 export async function run(options: RunOptions) {
 	const {
 		configPath,
@@ -100,32 +191,13 @@ export async function run(options: RunOptions) {
 
 	// Set up the runner contexts
 	logger.logDebug(`Initializing test projects...`);
-	const overview: {
-		suite: Overview;
-		tests: Overview;
-		setupTime: number;
-		testTime: number;
-	} = {
-		suite: {
-			passed: 0,
-			failed: 0,
-			notReached: 0,
-			skipped: 0,
-			total: 0,
-		},
-		tests: {
-			passed: 0,
-			failed: 0,
-			notReached: 0,
-			skipped: 0,
-			total: 0,
-		},
-		setupTime: 0,
-		testTime: 0,
-	};
+	const fileTestSuitesOverview = new TestTypeOverview();
+	const fileTestsOverview = new TestTypeOverview();
+	const binTestSuitesOverview = new TestTypeOverview();
+	const binTestsOverview = new TestTypeOverview();
 	function addSkippedSuite(n: number) {
-		overview.suite.passed += n;
-		overview.suite.total += n;
+		fileTestSuitesOverview.addToTotal(n);
+		fileTestSuitesOverview.skip(n);
 	}
 	const startSetup = new Date();
 	const testRunnerPkgs = await Promise.all(
@@ -246,32 +318,38 @@ export async function run(options: RunOptions) {
 								}
 							}
 							try {
-								const runners = await createTestProject(
-									{
-										projectDir,
-										testProjectDir,
-										debug,
-										failFast,
-										matchIgnore,
-										matchRootDir,
-									},
-									{
-										runBy: runWith,
-										modType,
-										pkgManager,
-										pkgManagerOptions,
-										pkgManagerAlias,
-										testMatch: testConfigEntry.testMatch,
-										typescript: testConfigEntry.transforms.typescript,
-										additionalDependencies: {
-											...config.additionalDependencies,
-											...testConfigEntry.additionalDependencies,
+								const { fileTestRunners, binTestRunner } =
+									await createTestProject(
+										{
+											projectDir,
+											testProjectDir,
+											debug,
+											failFast,
+											matchIgnore,
+											matchRootDir,
 										},
-									},
-								);
-								overview.suite.total += runners.length;
+										{
+											runBy: runWith,
+											modType,
+											pkgManager,
+											pkgManagerOptions,
+											pkgManagerAlias,
+											testMatch: testConfigEntry.testMatch,
+											typescript: testConfigEntry.transforms.typescript,
+											additionalDependencies: {
+												...config.additionalDependencies,
+												...testConfigEntry.additionalDependencies,
+											},
+											binTests: testConfigEntry.binTests,
+										},
+									);
+								fileTestSuitesOverview.addToTotal(fileTestRunners.length);
+								if (binTestRunner) {
+									binTestSuitesOverview.addToTotal(1);
+								}
 								return {
-									runners,
+									fileTestRunners,
+									binTestRunner,
 									cleanup,
 								};
 							} catch (err) {
@@ -285,7 +363,8 @@ export async function run(options: RunOptions) {
 			},
 			[] as Promise<
 				| {
-						runners: FileTestRunner[];
+						fileTestRunners: FileTestRunner[];
+						binTestRunner?: BinTestRunner;
 						cleanup: () => Promise<void>;
 				  }
 				| undefined
@@ -294,18 +373,18 @@ export async function run(options: RunOptions) {
 	);
 	const testRunnerPkgsFiltered = testRunnerPkgs.filter((run) => !!run);
 	logger.logDebug(`Finished initializing test projects.`);
-	overview.setupTime = new Date().getTime() - startSetup.getTime();
+	const setupTime = new Date().getTime() - startSetup.getTime();
 
 	const reporter = new SimpleReporter({
 		debug,
 	});
 
 	// TODO: multi-threading pool for better results, although there's not a large amount of tests necessary at the moment
-	const startTests = new Date();
 	try {
 		let pass = true;
+		fileTestSuitesOverview.startTime();
 		for (const testRunnerPkg of testRunnerPkgsFiltered) {
-			for (const runner of testRunnerPkg.runners) {
+			for (const runner of testRunnerPkg.fileTestRunners) {
 				const summary = await runner.runTests({
 					timeout,
 					testNames,
@@ -313,16 +392,15 @@ export async function run(options: RunOptions) {
 				});
 				// Do all tests updating
 				if (summary.failed > 0) {
-					overview.suite.failed++;
+					fileTestSuitesOverview.fail(1);
 					pass = false;
 				} else {
-					overview.suite.passed++;
+					fileTestSuitesOverview.pass(1);
 				}
-				overview.tests.failed += summary.failed;
-				overview.tests.notReached += summary.notReached.length;
-				overview.tests.passed += summary.passed;
-				overview.tests.skipped += summary.skipped;
-				overview.tests.total += summary.total;
+				fileTestsOverview.addToTotal(summary.total);
+				fileTestsOverview.fail(summary.failed);
+				fileTestsOverview.pass(summary.passed);
+				fileTestsOverview.skip(summary.skipped);
 
 				if (summary.failedFast) {
 					// Fail normally instead of letting an error make it to the top
@@ -331,26 +409,67 @@ export async function run(options: RunOptions) {
 				}
 			}
 		}
+		// Run bin tests as well
+		for (const { binTestRunner } of testRunnerPkgsFiltered) {
+			// Since bin Tests are less certain, we filter here
+			if (!binTestRunner) continue;
+			const summary = await binTestRunner.runTests({
+				timeout,
+				reporter,
+			});
+			// Do all tests updating
+			if (summary.failed > 0) {
+				binTestSuitesOverview.fail(1);
+				pass = false;
+			} else {
+				binTestSuitesOverview.pass(1);
+			}
+			binTestsOverview.addToTotal(summary.total);
+			binTestsOverview.fail(summary.failed);
+			binTestsOverview.pass(summary.passed);
+			binTestsOverview.skip(summary.skipped);
+
+			if (summary.failedFast) {
+				// Fail normally instead of letting an error make it to the top
+				logger.log("Tests failed fast");
+				throw new FailFastError("Tests failed fast");
+			}
+		}
 		return pass;
 	} finally {
 		// Do a final report
-		overview.testTime = new Date().getTime() - startTests.getTime();
-		overview.suite.notReached =
-			overview.suite.total -
-			(overview.suite.failed + overview.suite.passed + overview.suite.skipped);
+		fileTestsOverview.finalize();
+		fileTestSuitesOverview.finalize();
+		binTestSuitesOverview.finalize();
+		binTestsOverview.finalize();
 
-		const labelLength = 14;
+		const labelLength = 20;
 		overviewNotice(
 			logger,
-			"Test Suites:".padEnd(labelLength, " "),
-			overview.suite,
+			"File Test Suites:".padEnd(labelLength, " "),
+			fileTestSuitesOverview,
 		);
-		overviewNotice(logger, "Tests:".padEnd(labelLength, " "), overview.tests);
+		overviewNotice(
+			logger,
+			"File Tests:".padEnd(labelLength, " "),
+			fileTestsOverview,
+		);
+		overviewNotice(
+			logger,
+			"Bin Test Suites:".padEnd(labelLength, " "),
+			binTestSuitesOverview,
+		);
+		overviewNotice(
+			logger,
+			"Bin Tests:".padEnd(labelLength, " "),
+			binTestsOverview,
+		);
+		logger.log(`${"Setup Time:".padEnd(labelLength)} ${setupTime / 1000} s`);
 		logger.log(
-			`${"Setup Time:".padEnd(labelLength)} ${overview.setupTime / 1000} s`,
+			`${"File Test Time:".padEnd(labelLength)} ${fileTestSuitesOverview.time / 1000} s`,
 		);
 		logger.log(
-			`${"Test Time:".padEnd(labelLength)} ${overview.testTime / 1000} s`,
+			`${"Bin Test Time:".padEnd(labelLength)} ${binTestSuitesOverview.time / 1000} s`,
 		);
 
 		// Cleanup async

@@ -122,23 +122,24 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				"..",
 				projectUnderTestDirName,
 			); // Since the the package under test dir at cwd + dir
-			const testRunners = await createTestProject(
-				{
-					projectDir: testProjectUnderTestDir,
-					testProjectDir,
-					matchRootDir: testMatchRootDir,
-					matchIgnore: testMatchIgnore,
-				},
-				{
-					runBy: [RunWith.Node],
-					modType,
-					pkgManager: PkgManager.YarnV1,
-					pkgManagerAlias: "myalias",
-					pkgManagerOptions: testPkgManagerOptions,
-					pkgManagerVersion: testPkgManagerVersion,
-					testMatch: "some**glob",
-				},
-			);
+			const { fileTestRunners: testRunners, binTestRunner } =
+				await createTestProject(
+					{
+						projectDir: testProjectUnderTestDir,
+						testProjectDir,
+						matchRootDir: testMatchRootDir,
+						matchIgnore: testMatchIgnore,
+					},
+					{
+						runBy: [RunWith.Node],
+						modType,
+						pkgManager: PkgManager.YarnV1,
+						pkgManagerAlias: "myalias",
+						pkgManagerOptions: testPkgManagerOptions,
+						pkgManagerVersion: testPkgManagerVersion,
+						testMatch: "some**glob",
+					},
+				);
 
 			const expectedCopyOver = testMatchingTests.map((t) => {
 				return {
@@ -168,6 +169,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				failFast: false,
 				extraEnv: {},
 			});
+			expect(binTestRunner).toBeUndefined();
 
 			// confirm corepack use called
 			expect(mockExec).toHaveBeenCalledWith(
@@ -266,25 +268,26 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				},
 				version: "someTsVersion",
 			};
-			const testRunners = await createTestProject(
-				{
-					projectDir: testProjectUnderTestDir,
-					testProjectDir,
-					matchRootDir: testMatchRootDir,
-					matchIgnore: testMatchIgnore,
-				},
-				{
-					runBy: [RunWith.Node],
-					modType: modType,
-					pkgManager: PkgManager.YarnV1,
-					pkgManagerAlias: "myalias",
-					pkgManagerOptions: testPkgManagerOptions,
-					pkgManagerVersion: testPkgManagerVersion,
-					testMatch: "some**glob",
-					// Just providing typescript object will do
-					typescript: typescriptOptions,
-				},
-			);
+			const { fileTestRunners: testRunners, binTestRunner } =
+				await createTestProject(
+					{
+						projectDir: testProjectUnderTestDir,
+						testProjectDir,
+						matchRootDir: testMatchRootDir,
+						matchIgnore: testMatchIgnore,
+					},
+					{
+						runBy: [RunWith.Node],
+						modType: modType,
+						pkgManager: PkgManager.YarnV1,
+						pkgManagerAlias: "myalias",
+						pkgManagerOptions: testPkgManagerOptions,
+						pkgManagerVersion: testPkgManagerVersion,
+						testMatch: "some**glob",
+						// Just providing typescript object will do
+						typescript: typescriptOptions,
+					},
+				);
 
 			// confirm corepack use called
 			expect(mockExec).toHaveBeenCalledWith(
@@ -353,6 +356,224 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				modType: modType,
 				failFast: false,
 				extraEnv: {},
+			});
+			expect(binTestRunner).toBeUndefined();
+
+			// Confirm correct function calls to mocks
+			expect(mockCreateDependencies).toHaveBeenCalledWith(
+				testPackageJson,
+				expectedRelativeInstallPath,
+				{
+					runBy: [RunWith.Node],
+					pkgManager: PkgManager.YarnV1,
+					typescript: typescriptOptions,
+				},
+			);
+			expect(mockWriteFile).toHaveBeenCalledWith(
+				join(testProjectDir, "package.json"),
+				JSON.stringify(
+					{
+						name: `@dummy-test-package/test-${modType}`,
+						description: `Compiled tests for ${testPackageJson.name} as ${modType} project import`,
+						...expectedTypeField,
+						// These were populated by the createDependencies method we mocked
+						dependencies: {
+							...testDeps,
+						},
+						private: true,
+					},
+					null,
+					4,
+				),
+			);
+			expect(mockGetAllMatchingFiles).toHaveBeenCalledWith(
+				resolve(testProjectUnderTestDir, testMatchRootDir),
+				"some**glob",
+				testMatchIgnore,
+			);
+			for (const { copiedTo, from } of expectedCopyOver) {
+				expect(mockCp).toHaveBeenCalledWith(from, copiedTo);
+			}
+			// Make sure we wrote out tsconfig and commpiled
+			const expectedConfigFile = `tsconfig.${modType}.json`;
+			expect(writeFile).toHaveBeenCalledWith(
+				join(testProjectDir, expectedConfigFile),
+				JSON.stringify(testTsConfig, null, 4),
+			);
+			expect(mockExec).toHaveBeenCalledWith(
+				`${testBinCmd} tsc -p ${expectedConfigFile}`,
+				{
+					cwd: testProjectDir,
+					env: process.env,
+				},
+				expect.anything(), // callback
+			);
+		});
+
+		it("creates a project for various runners and a BinTestRunner", async () => {
+			const testPackageJson = {
+				name: "testProject",
+			};
+			mockReadFile.mockImplementation(async (file) => {
+				if (typeof file === "string" && file.endsWith("package.json")) {
+					return Buffer.from(JSON.stringify(testPackageJson));
+				}
+				throw new Error("Unimplemented file read mocking " + file);
+			});
+			const testProjectDir = resolve(
+				process.cwd(),
+				"someNesting",
+				"testProjectDir",
+			);
+			const expectedRelativeInstallPath = join(
+				"..",
+				"..",
+				projectUnderTestDirName,
+			); // Since the the package under test dir at cwd + dir
+			const typescriptOptions = {
+				config: {
+					exclude: ["tmp"],
+				},
+				version: "someTsVersion",
+			};
+			const { fileTestRunners: testRunners, binTestRunner } =
+				await createTestProject(
+					{
+						projectDir: testProjectUnderTestDir,
+						testProjectDir,
+						matchRootDir: testMatchRootDir,
+						matchIgnore: testMatchIgnore,
+					},
+					{
+						runBy: [RunWith.Node],
+						modType: modType,
+						pkgManager: PkgManager.YarnV1,
+						pkgManagerAlias: "myalias",
+						pkgManagerOptions: testPkgManagerOptions,
+						pkgManagerVersion: testPkgManagerVersion,
+						testMatch: "some**glob",
+						// Just providing typescript object will do
+						typescript: typescriptOptions,
+						binTests: {
+							bin1: [
+								{
+									args: "--help",
+									env: {
+										something: "here",
+									},
+								},
+							],
+							bin2: [
+								{
+									args: "someArg",
+								},
+								{
+									args: "someArg",
+									env: {
+										another: "val",
+									},
+								},
+							],
+						},
+					},
+				);
+
+			// confirm corepack use called
+			expect(mockExec).toHaveBeenCalledWith(
+				testPkgManagerSetCmd,
+				{
+					cwd: testProjectDir,
+					env: process.env,
+				},
+				expect.anything(),
+			);
+
+			// confirm pkg install command called
+			expect(mockExec).toHaveBeenCalledWith(
+				`${testPkgManagerCmd} install ${testPkgManagerOptions.installCliArgs}`,
+				{
+					cwd: testProjectDir,
+					env: process.env,
+				},
+				expect.anything(),
+			);
+
+			// Confirm command retrieval functions called with versions
+			expect(mockGetPkgBinaryRunnerCommand).toHaveBeenCalledWith(
+				PkgManager.YarnV1,
+				testPkgManagerVersion,
+			);
+			expect(mockGetPkgManagerCommand).toHaveBeenCalledWith(
+				PkgManager.YarnV1,
+				testPkgManagerVersion,
+			);
+			expect(mockGetPkgManagerSetCommand).toHaveBeenCalledWith(
+				PkgManager.YarnV1,
+				testPkgManagerVersion,
+			);
+
+			const expectedCopyOver = testMatchingTests.map((t) => {
+				return {
+					copiedTo: t.replace(
+						testProjectUnderTestDir,
+						join(testProjectDir, SRC_DIRECTORY),
+					),
+					builtTo: t
+						.replace(
+							testProjectUnderTestDir,
+							join(testProjectDir, BUILD_DIRECTORY),
+						)
+						.replace(".ts", ".js"),
+					from: t,
+					// The normalized from for pattern matching
+					fromNorm: t.replace(testProjectUnderTestDir + "/", ""),
+				};
+			});
+			expect(testRunners).toHaveLength(1);
+			expect(testRunners[0]).toEqual({
+				runCommand: `${testBinCmd} ${RunWith.Node}`,
+				runBy: RunWith.Node,
+				testFiles: expectedCopyOver.map((e) => {
+					return {
+						orig: e.fromNorm,
+						actual: e.builtTo,
+					};
+				}),
+				projectDir: testProjectDir,
+				pkgManager: PkgManager.YarnV1,
+				pkgManagerAlias: "myalias",
+				modType: modType,
+				failFast: false,
+				extraEnv: {},
+			});
+			expect(binTestRunner).toEqual({
+				runCommand: testBinCmd,
+				projectDir: testProjectDir,
+				pkgManager: PkgManager.YarnV1,
+				pkgManagerAlias: "myalias",
+				modType: modType,
+				failFast: false,
+				binTestConfig: {
+					bin1: [
+						{
+							args: "--help",
+							env: {
+								something: "here",
+							},
+						},
+					],
+					bin2: [
+						{
+							args: "someArg",
+						},
+						{
+							args: "someArg",
+							env: {
+								another: "val",
+							},
+						},
+					],
+				},
 			});
 
 			// Confirm correct function calls to mocks
@@ -433,26 +654,27 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				},
 				version: "someTsVersion",
 			};
-			const testRunners = await createTestProject(
-				{
-					projectDir: testProjectUnderTestDir,
-					testProjectDir,
-					matchRootDir: testMatchRootDir,
-					matchIgnore: testMatchIgnore,
-				},
-				{
-					runBy: allRunBy,
-					modType,
-					pkgManager: PkgManager.YarnV1,
-					pkgManagerAlias: "myalias",
-					pkgManagerOptions: testPkgManagerOptions,
-					pkgManagerVersion: testPkgManagerVersion,
-					testMatch: "some**glob",
-					// Just providing typescript object will do
-					typescript: typescriptOptions,
-					additionalDependencies: testAdditionalDeps,
-				},
-			);
+			const { fileTestRunners: testRunners, binTestRunner } =
+				await createTestProject(
+					{
+						projectDir: testProjectUnderTestDir,
+						testProjectDir,
+						matchRootDir: testMatchRootDir,
+						matchIgnore: testMatchIgnore,
+					},
+					{
+						runBy: allRunBy,
+						modType,
+						pkgManager: PkgManager.YarnV1,
+						pkgManagerAlias: "myalias",
+						pkgManagerOptions: testPkgManagerOptions,
+						pkgManagerVersion: testPkgManagerVersion,
+						testMatch: "some**glob",
+						// Just providing typescript object will do
+						typescript: typescriptOptions,
+						additionalDependencies: testAdditionalDeps,
+					},
+				);
 
 			// confirm corepack use called
 			expect(mockExec).toHaveBeenCalledWith(
@@ -564,6 +786,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				failFast: false,
 				extraEnv: {},
 			});
+			expect(binTestRunner).toBeUndefined();
 
 			// Confirm correct function calls to mocks
 			expect(mockCreateDependencies).toHaveBeenCalledWith(
