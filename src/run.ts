@@ -7,7 +7,13 @@ import { FileTestRunner } from "./FileTestRunner";
 import { SimpleReporter } from "./reporters/SimpleReporter";
 import { Logger } from "./Logger";
 import chalk from "chalk";
-import { ModuleTypes, PkgManager, RunWith, TestType } from "./types";
+import {
+	ModuleTypes,
+	PkgManager,
+	RunWith,
+	TestConfigEntry,
+	TestType,
+} from "./types";
 import { getMatchIgnore } from "./getMatchIgnore";
 import { ensureMinimumCorepack } from "./pkgManager";
 import { BinTestRunner } from "./BinTestRunner";
@@ -117,14 +123,6 @@ export async function run(options: RunOptions) {
 	const fileTestsOverview = new TestGroupOverview();
 	const binTestSuitesOverview = new TestGroupOverview();
 	const binTestsOverview = new TestGroupOverview();
-	function addSkippedFileTestSuite(n: number) {
-		fileTestSuitesOverview.addToTotal(n);
-		fileTestSuitesOverview.skip(n);
-	}
-	function addSkippedBinTestSuite(n: number) {
-		fileTestSuitesOverview.addToTotal(n);
-		fileTestSuitesOverview.skip(n);
-	}
 	const startSetup = new Date();
 	const testRunnerPkgs = await Promise.all(
 		config.entries.reduce(
@@ -165,13 +163,16 @@ export async function run(options: RunOptions) {
 								filters.moduleTypes &&
 								!filters.moduleTypes.includes(modType)
 							) {
-								addSkippedFileTestSuite(
-									skipFileSuitesNotice(logger, {
-										runWith: testConfigEntry.runWith,
+								testEntryLevelSkip(
+									logger,
+									{
 										modType,
 										pkgManager,
 										pkgManagerAlias,
-									}),
+									},
+									testConfigEntry,
+									fileTestSuitesOverview,
+									binTestSuitesOverview,
 								);
 								return;
 							}
@@ -179,13 +180,16 @@ export async function run(options: RunOptions) {
 								filters.packageManagers &&
 								!filters.packageManagers.includes(pkgManager)
 							) {
-								addSkippedFileTestSuite(
-									skipFileSuitesNotice(logger, {
-										runWith: testConfigEntry.runWith,
+								testEntryLevelSkip(
+									logger,
+									{
 										modType,
 										pkgManager,
 										pkgManagerAlias,
-									}),
+									},
+									testConfigEntry,
+									fileTestSuitesOverview,
+									binTestSuitesOverview,
 								);
 								return;
 							}
@@ -193,33 +197,39 @@ export async function run(options: RunOptions) {
 								filters.pkgManagerAlias &&
 								!filters.pkgManagerAlias.includes(pkgManagerAlias)
 							) {
-								addSkippedFileTestSuite(
-									skipFileSuitesNotice(logger, {
-										runWith: testConfigEntry.runWith,
+								testEntryLevelSkip(
+									logger,
+									{
 										modType,
 										pkgManager,
 										pkgManagerAlias,
-									}),
+									},
+									testConfigEntry,
+									fileTestSuitesOverview,
+									binTestSuitesOverview,
 								);
 								return;
 							}
-							let runWith = testConfigEntry.runWith;
-							if (filters.runWith) {
-								runWith = testConfigEntry.runWith.reduce((rWith, runBy) => {
-									if (!filters.runWith!.includes(runBy)) {
-										addSkippedFileTestSuite(
-											skipFileSuitesNotice(logger, {
-												runWith: [runBy],
-												modType,
-												pkgManager,
-												pkgManagerAlias,
-											}),
-										);
-									} else {
-										rWith.push(runBy);
-									}
-									return rWith;
-								}, [] as RunWith[]);
+							if (testConfigEntry.fileTests) {
+								if (filters.runWith) {
+									// Reset - todo this doesn't preserve idempotency of the config...
+									testConfigEntry.fileTests.runWith =
+										testConfigEntry.fileTests.runWith.reduce((rWith, runBy) => {
+											if (!filters.runWith!.includes(runBy)) {
+												fileTestSuitesOverview.addSkippedToTotal(
+													skipFileSuitesNotice(logger, {
+														runWith: [runBy],
+														modType,
+														pkgManager,
+														pkgManagerAlias,
+													}),
+												);
+											} else {
+												rWith.push(runBy);
+											}
+											return rWith;
+										}, [] as RunWith[]);
+								}
 							}
 							// End filters
 							const testProjectDir = await mkdtemp(
@@ -255,17 +265,15 @@ export async function run(options: RunOptions) {
 											matchRootDir,
 										},
 										{
-											runBy: runWith,
 											modType,
 											pkgManager,
 											pkgManagerOptions,
 											pkgManagerAlias,
-											testMatch: testConfigEntry.testMatch,
-											typescript: testConfigEntry.transforms.typescript,
 											additionalDependencies: {
 												...config.additionalDependencies,
 												...testConfigEntry.additionalDependencies,
 											},
+											fileTests: testConfigEntry.fileTests,
 											binTests: testConfigEntry.binTests,
 										},
 									);
@@ -274,7 +282,7 @@ export async function run(options: RunOptions) {
 								let filteredFileTestRunners: FileTestRunner[];
 								if (skipFileTests) {
 									fileTestRunners.forEach((ftr) => {
-										addSkippedFileTestSuite(1);
+										fileTestSuitesOverview.addSkippedToTotal(1);
 										logger.log(skipSuiteDescribe(ftr));
 									});
 									filteredFileTestRunners = [];
@@ -285,7 +293,7 @@ export async function run(options: RunOptions) {
 								let filteredBinTestRunner: BinTestRunner | undefined;
 								if (binTestRunner) {
 									if (skipBinTests) {
-										addSkippedBinTestSuite(1);
+										binTestSuitesOverview.addSkippedToTotal(1);
 										logger.log(skipSuiteDescribe(binTestRunner));
 										filteredBinTestRunner = undefined;
 									} else {
@@ -356,6 +364,7 @@ export async function run(options: RunOptions) {
 			}
 		}
 		// Run bin tests as well
+		binTestSuitesOverview.startTime();
 		for (const { binTestRunner } of testRunnerPkgsFiltered) {
 			// Since bin Tests are less certain, we filter here
 			if (!binTestRunner) continue;
@@ -460,4 +469,37 @@ function overviewNotice(logger: Logger, prefix: string, overview: Overview) {
 				: ""
 		}${chalk.green(overview.passed + " passed,")} ${overview.total} total`,
 	);
+}
+
+/**
+ * Used to indicate that we're skipping all tests related to a single project that would be created
+ */
+function testEntryLevelSkip(
+	logger: Logger,
+	context: {
+		modType: ModuleTypes;
+		pkgManager: PkgManager;
+		pkgManagerAlias: string;
+	},
+	config: TestConfigEntry,
+	fileTestsSuiteOverview: TestGroupOverview,
+	binTestsSuiteOverview: TestGroupOverview,
+) {
+	if (config.fileTests) {
+		fileTestsSuiteOverview.addSkippedToTotal(
+			skipFileSuitesNotice(logger, {
+				runWith: config.fileTests.runWith,
+				...context,
+			}),
+		);
+	}
+	if (config.binTests) {
+		binTestsSuiteOverview.addSkippedToTotal(1);
+		logger.log(
+			skipSuiteDescribe({
+				...context,
+				binTestConfig: config.binTests,
+			}),
+		);
+	}
 }

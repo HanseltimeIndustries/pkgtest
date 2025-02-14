@@ -6,10 +6,10 @@ import {
 	ModuleTypes,
 	PkgManager,
 	RunWith,
-	TypescriptOptions,
 	PkgManagerOptions,
 	YarnV4Options,
 	BinTestConfig,
+	FileTestConfig,
 } from "./types";
 import { getTypescriptConfig } from "./getTypescriptConfig";
 import {
@@ -65,14 +65,6 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		failFast?: boolean;
 	},
 	options: {
-		/**
-		 * The list of tools that we will use to run the pkgTests scripts
-		 *
-		 * Note: Ts based tooling will require the typescript property
-		 *
-		 * The node runner with typescript will run on the compiled typescript
-		 */
-		runBy: RunWith[];
 		modType: ModuleTypes;
 		pkgManager: PkgManagerT;
 		pkgManagerVersion?: string;
@@ -85,10 +77,9 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		 * (set up before installing)
 		 */
 		pkgManagerOptions?: PkgManagerOptions<PkgManagerT>;
-		testMatch: string;
 		additionalDependencies?: CreateDependenciesOptions["additionalDependencies"];
-		typescript?: TypescriptOptions;
 		binTests?: BinTestConfig;
+		fileTests?: FileTestConfig;
 	},
 ): Promise<{
 	fileTestRunners: FileTestRunner[];
@@ -111,24 +102,25 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 	}
 
 	const {
-		runBy,
 		modType,
 		pkgManager,
-		testMatch,
-		typescript,
 		pkgManagerOptions,
 		pkgManagerAlias,
 		pkgManagerVersion,
+		fileTests,
 	} = options;
 	const logPrefix = `[${pkgManager}, ${modType}, @${testProjectDir}]`;
 
-	const testFiles = await getAllMatchingFiles(
-		resolve(projectDir, matchRootDir),
-		testMatch,
-		matchIgnore,
-	);
-	if (testFiles.length == 0) {
-		throw new Error(`Cannot find any tests to match: ${testMatch}`);
+	let testFiles: string[] = [];
+	if (fileTests) {
+		testFiles = await getAllMatchingFiles(
+			resolve(projectDir, matchRootDir),
+			fileTests.testMatch,
+			matchIgnore,
+		);
+		if (testFiles.length == 0) {
+			throw new Error(`Cannot find any tests to match: ${fileTests.testMatch}`);
+		}
 	}
 	const logger = new Logger({
 		context: logPrefix,
@@ -178,8 +170,8 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		...typeProps,
 		dependencies: createDependencies(packageJson, relativePath, {
 			pkgManager: options.pkgManager,
-			runBy: options.runBy,
-			typescript: options.typescript,
+			runBy: fileTests?.runWith,
+			typescript: fileTests?.transforms?.typescript,
 			additionalDependencies: options.additionalDependencies,
 		}),
 		private: true,
@@ -224,189 +216,161 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 	);
 	logger.logDebug(`Finished installation (${pkgManager}) at ${testProjectDir}`);
 
-	const absSrcPath = join(testProjectDir, SRC_DIRECTORY);
-
-	logger.logDebug(`Copying ${testFiles.length} test files to ${absSrcPath}`);
-
-	// Copy over the test files to the project directory
-	const normalizeProjectDir = projectDir.endsWith(sep)
-		? projectDir
-		: projectDir + sep;
-	const copiedTestFiles: TestFile[] = await Promise.all(
-		testFiles.map(async (tf) => {
-			const copiedTestFile = tf.replace(projectDir, absSrcPath);
-			await cp(tf, copiedTestFile);
-			return {
-				// Normalize it to avoid globs matching upstream folders, etc.
-				orig: tf.replace(normalizeProjectDir, ""),
-				actual: copiedTestFile,
-			};
-		}),
-	);
-
-	logger.logDebug(`Finished copying test files to ${absSrcPath}`);
-
 	const fileTestRunners: FileTestRunner[] = [];
 	const binRunCmd = getPkgBinaryRunnerCommand(pkgManager, pkgManagerVersion);
-	// Add a tsconfig file if we are using typescript transpilation
-	if (typescript) {
-		const configFilePath = `tsconfig.${modType}.json`;
-		logger.logDebug(`Creating ${configFilePath} at ${testProjectDir}`);
-		const tsConfig = getTypescriptConfig(
-			{
-				modType,
-				tsBuildDir: BUILD_DIRECTORY,
-				tsSrcDir: SRC_DIRECTORY,
-			},
-			typescript,
+
+	// Create fileTests if necessary
+	if (fileTests) {
+		const absSrcPath = join(testProjectDir, SRC_DIRECTORY);
+
+		logger.logDebug(`Copying ${testFiles.length} test files to ${absSrcPath}`);
+
+		// Copy over the test files to the project directory
+		const normalizeProjectDir = projectDir.endsWith(sep)
+			? projectDir
+			: projectDir + sep;
+		const copiedTestFiles = await Promise.all(
+			testFiles.map(async (tf) => {
+				const copiedTestFile = tf.replace(projectDir, absSrcPath);
+				await cp(tf, copiedTestFile);
+				return {
+					// Normalize it to avoid globs matching upstream folders, etc.
+					orig: tf.replace(normalizeProjectDir, ""),
+					actual: copiedTestFile,
+				};
+			}),
 		);
-		await writeFile(
-			join(testProjectDir, configFilePath),
-			JSON.stringify(tsConfig, null, 4),
-		);
-		logger.logDebug(`Created ${configFilePath} at ${testProjectDir}`);
 
-		logger.logDebug(`Compiling ${configFilePath} at ${testProjectDir}`);
+		logger.logDebug(`Finished copying test files to ${absSrcPath}`);
 
-		// Transpile the typescript projects
-		await controlledExec(
-			`${binRunCmd} tsc -p ${configFilePath}`,
-			{
-				cwd: testProjectDir,
-				env: process.env,
-			},
-			logger,
-		);
-		logger.logDebug(`Compiled ${configFilePath} at ${testProjectDir}`);
+		// Add a tsconfig file if we are using typescript transpilation
+		if (fileTests.transforms?.typescript) {
+			const configFilePath = `tsconfig.${modType}.json`;
+			logger.logDebug(`Creating ${configFilePath} at ${testProjectDir}`);
+			const tsConfig = getTypescriptConfig(
+				{
+					modType,
+					tsBuildDir: BUILD_DIRECTORY,
+					tsSrcDir: SRC_DIRECTORY,
+				},
+				fileTests.transforms.typescript,
+			);
+			await writeFile(
+				join(testProjectDir, configFilePath),
+				JSON.stringify(tsConfig, null, 4),
+			);
+			logger.logDebug(`Created ${configFilePath} at ${testProjectDir}`);
 
-		const absBuildPath = join(testProjectDir, tsConfig.compilerOptions.outDir);
+			logger.logDebug(`Compiling ${configFilePath} at ${testProjectDir}`);
 
-		let runCommand: string;
-		runBy.forEach((rBy) => {
-			let testFiles: TestFile[];
-			let additionalArgs: string = "";
-			let additionalEnv: {
-				[env: string]: string;
-			} = {};
-			switch (rBy) {
-				case RunWith.Node:
-					testFiles = copiedTestFiles.map(({ orig, actual }) => {
-						// Since ts builds to .js we also need to replace the extensions
-						return {
-							orig,
-							actual: actual
-								.replace(absSrcPath, absBuildPath)
-								.replace(/\.tsx?$/, ".js"),
-						};
-					});
-					additionalArgs = "";
-					runCommand = rBy;
-					break;
-				case RunWith.TsNode:
-					testFiles = copiedTestFiles;
-					// ts-node and esm do not play well.  This is the most stable config I know of
-					if (modType === ModuleTypes.ESM) {
-						runCommand = "node --loader ts-node/esm";
-						additionalEnv.TS_NODE_PROJECT = configFilePath;
-					} else {
+			// Transpile the typescript projects
+			await controlledExec(
+				`${binRunCmd} tsc -p ${configFilePath}`,
+				{
+					cwd: testProjectDir,
+					env: process.env,
+				},
+				logger,
+			);
+			logger.logDebug(`Compiled ${configFilePath} at ${testProjectDir}`);
+
+			const absBuildPath = join(
+				testProjectDir,
+				tsConfig.compilerOptions.outDir,
+			);
+
+			let runCommand: string;
+			fileTests.runWith.forEach((rBy) => {
+				let testFiles: TestFile[];
+				let additionalArgs: string = "";
+				let additionalEnv: {
+					[env: string]: string;
+				} = {};
+				switch (rBy) {
+					case RunWith.Node:
+						testFiles = copiedTestFiles.map(({ orig, actual }) => {
+							// Since ts builds to .js we also need to replace the extensions
+							return {
+								orig,
+								actual: actual
+									.replace(absSrcPath, absBuildPath)
+									.replace(/\.tsx?$/, ".js"),
+							};
+						});
+						additionalArgs = "";
 						runCommand = rBy;
-						additionalArgs = `--project ${configFilePath}`;
-					}
-					break;
-				case RunWith.Tsx:
-					testFiles = copiedTestFiles;
-					additionalArgs = `--tsconfig ${configFilePath}`;
-					runCommand = rBy;
-					break;
-				default:
-					throw new Error(
-						`Unimplemented testFile mapping for ${rBy} and typescript configuration!`,
-					);
-			}
-			fileTestRunners.push(
-				new FileTestRunner({
-					projectDir: testProjectDir,
-					runCommand: `${binRunCmd} ${runCommand}${additionalArgs ? " " + additionalArgs : ""}`,
-					testFiles,
-					runBy: rBy,
-					pkgManager,
-					pkgManagerAlias,
-					modType,
-					failFast,
-					extraEnv: additionalEnv,
-				}),
-			);
-		});
-	} else {
-		runBy.forEach((rBy) => {
-			let testFiles: TestFile[];
-			switch (rBy) {
-				case RunWith.Node:
-					testFiles = copiedTestFiles;
-					break;
-				default:
-					throw new Error(
-						`Unimplemented testFile mapping for ${rBy} and non-typescript configuration!`,
-					);
-			}
-			fileTestRunners.push(
-				new FileTestRunner({
-					projectDir: testProjectDir,
-					runCommand: `${binRunCmd} ${rBy}`,
-					testFiles,
-					runBy: rBy,
-					pkgManagerAlias,
-					pkgManager,
-					modType,
-					failFast,
-					extraEnv: {},
-				}),
-			);
-		});
+						break;
+					case RunWith.TsNode:
+						testFiles = copiedTestFiles;
+						// ts-node and esm do not play well.  This is the most stable config I know of
+						if (modType === ModuleTypes.ESM) {
+							runCommand = "node --loader ts-node/esm";
+							additionalEnv.TS_NODE_PROJECT = configFilePath;
+						} else {
+							runCommand = rBy;
+							additionalArgs = `--project ${configFilePath}`;
+						}
+						break;
+					case RunWith.Tsx:
+						testFiles = copiedTestFiles;
+						additionalArgs = `--tsconfig ${configFilePath}`;
+						runCommand = rBy;
+						break;
+					default:
+						throw new Error(
+							`Unimplemented testFile mapping for ${rBy} and typescript configuration!`,
+						);
+				}
+				fileTestRunners.push(
+					new FileTestRunner({
+						projectDir: testProjectDir,
+						runCommand: `${binRunCmd} ${runCommand}${additionalArgs ? " " + additionalArgs : ""}`,
+						testFiles,
+						runBy: rBy,
+						pkgManager,
+						pkgManagerAlias,
+						modType,
+						failFast,
+						extraEnv: additionalEnv,
+					}),
+				);
+			});
+		} else {
+			fileTests.runWith.forEach((rBy) => {
+				let testFiles: TestFile[];
+				switch (rBy) {
+					case RunWith.Node:
+						testFiles = copiedTestFiles;
+						break;
+					default:
+						throw new Error(
+							`Unimplemented testFile mapping for ${rBy} and non-typescript configuration!`,
+						);
+				}
+				fileTestRunners.push(
+					new FileTestRunner({
+						projectDir: testProjectDir,
+						runCommand: `${binRunCmd} ${rBy}`,
+						testFiles,
+						runBy: rBy,
+						pkgManagerAlias,
+						pkgManager,
+						modType,
+						failFast,
+						extraEnv: {},
+					}),
+				);
+			});
+		}
 	}
 
 	let binTestRunner: BinTestRunner | undefined = undefined;
 	// If this runs bintests, set those up as well
 	if (options.binTests) {
-		// By default create a bin help configurations
-		if (!packageJson.bin) {
-			throw new Error(
-				'binTests are configured but there is no "bin" property in the package.json!',
-			);
-		}
-		const { bin } = packageJson;
-		const binCmds =
-			typeof bin === "string"
-				? [packageJson.name]
-				: Object.keys(packageJson.bin);
-
-		// Validate the entry
-		Object.keys(options.binTests).forEach((binCmd) => {
-			if (!binCmds.includes(binCmd)) {
-				throw new Error(
-					`${binCmd} in binTests configuration does not have a matching bin entry in the package.json`,
-				);
-			}
-		});
-
-		const fullConfig = binCmds.reduce(
-			(fconfig, binCmd) => {
-				if (!fconfig[binCmd]) {
-					fconfig[binCmd] = [
-						{
-							args: "--help",
-						},
-					];
-				}
-				return fconfig;
-			},
-			{ ...options.binTests },
-		);
-
 		binTestRunner = new BinTestRunner({
 			runCommand: binRunCmd,
 			projectDir: testProjectDir,
-			binTestConfig: fullConfig,
+			binTestConfig: options.binTests,
 			pkgManager,
 			pkgManagerAlias,
 			modType,

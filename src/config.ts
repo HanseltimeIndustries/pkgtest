@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "fs";
-import { isAbsolute, extname, resolve } from "path";
+import { isAbsolute, extname, resolve, join } from "path";
 import {
 	InstalledTool,
 	ModuleTypes,
@@ -15,6 +15,7 @@ import {
 } from "./types";
 import { z, ZodError, ZodType } from "zod";
 import { fromError } from "zod-validation-error";
+import { readFile } from "fs/promises";
 
 export const LIBRARY_NAME = "pkgTest";
 export const DEFAULT_CONFIG_FILE_NAME_BASE = `pkgtest.config`;
@@ -110,12 +111,21 @@ const BinTestsValidated = z.record(
 	),
 ) satisfies ZodType<BinTestConfig>;
 
-const TestConfigEntryValidated = z.object({
+const FileTestsValidated = z.object({
 	testMatch: z
 		.string()
 		.describe(
 			"A glob patterned string from the cwd (the package root) that will identify any pkgTest files to copy into respective package tests and then run.",
 		),
+	runWith: z
+		.array(z.nativeEnum(RunWith))
+		.describe(`The various ways that you want to run the scripts in question to verify they work as expected.
+Note, we will run each way per package manager + module project that is created.`),
+	transforms: TransformValidated,
+});
+
+const TestConfigEntryValidated = z.object({
+	fileTests: FileTestsValidated.optional(),
 	packageManagers: z
 		.array(
 			z.union([
@@ -125,16 +135,11 @@ const TestConfigEntryValidated = z.object({
 		)
 		.describe(`Which package managed we will use to install dependencies and run the various test scripts provided.
 Important - to preserve integrity during testing, each module type will get a brand new project per package manager to avoid dependency install and access issues.`),
-	runWith: z
-		.array(z.nativeEnum(RunWith))
-		.describe(`The various ways that you want to run the scripts in question to verify they work as expected.
-Note, we will run each way per package manager + module project that is created.`),
 	moduleTypes: z
 		.array(z.nativeEnum(ModuleTypes))
 		.describe(`A list of module types that we will import the package under test with.  If you are using typescript, you will probably want the same configuration for both moduleTypes and will only need one TetsConfigEntry for both.
 If you are writing in raw JS though, you will more than likely need to keep ESM and CommonJS equivalent versions of each package test and therefore will need to have an entry with ["commonjs"] and ["esm"] separately so that you can change the testMatch to pick the correct files.`),
 	additionalDependencies,
-	transforms: TransformValidated,
 	binTests: BinTestsValidated.optional(),
 }) satisfies ZodType<TestConfigEntry>;
 
@@ -205,15 +210,22 @@ export async function getConfig(configFile?: string, cwd = process.cwd()) {
 	}
 
 	const ext = extname(resolvedFile);
+	let rawConfig: TestConfig;
 	try {
 		if (ext === ".json") {
-			return TestConfigValidated.parse(
+			rawConfig = TestConfigValidated.parse(
 				JSON.parse(readFileSync(resolvedFile).toString()),
 			);
-		}
-
-		if (allowdScriptExtensions.some((allowed) => ext.endsWith(`.${allowed}`))) {
-			return TestConfigValidated.parse((await import(resolvedFile)).default);
+		} else if (
+			allowdScriptExtensions.some((allowed) => ext.endsWith(`.${allowed}`))
+		) {
+			rawConfig = TestConfigValidated.parse(
+				(await import(resolvedFile)).default,
+			);
+		} else {
+			throw new Error(
+				`Unimplemented handling of file extension for config file ${resolvedFile}`,
+			);
 		}
 	} catch (err) {
 		if (err instanceof ZodError) {
@@ -223,7 +235,62 @@ export async function getConfig(configFile?: string, cwd = process.cwd()) {
 		throw err;
 	}
 
-	throw new Error(
-		`Unimplemented handling of file extension for config file ${resolvedFile}`,
-	);
+	// Validate portions of config that are harder to define
+	const packageJsonPath = join(cwd, "package.json");
+	if (!existsSync(packageJsonPath)) {
+		throw new Error(
+			`Must have a package.json at the same location as pkgtest config: ${packageJsonPath}`,
+		);
+	}
+	const packageJson = JSON.parse((await readFile(packageJsonPath)).toString());
+	const { bin } = packageJson;
+	const binCmds = !bin
+		? []
+		: typeof bin === "string"
+			? [packageJson.name]
+			: Object.keys(packageJson.bin);
+
+	rawConfig.entries.forEach((ent, idx) => {
+		const entryLocation = `entries[${idx}]`;
+		if (!ent.fileTests && !ent.binTests) {
+			throw new Error(
+				`${entryLocation} must supply at least one binTests or fileTests config!`,
+			);
+		}
+		// Coerce bin tests to a default config
+		if (ent.binTests) {
+			// By default create a bin help configuration
+			if (!packageJson.bin) {
+				throw new Error(
+					`${entryLocation} binTests are configured but there is no "bin" property in the package.json!`,
+				);
+			}
+
+			// Validate the entry
+			Object.keys(ent.binTests).forEach((binCmd) => {
+				if (!binCmds.includes(binCmd)) {
+					throw new Error(
+						`${entryLocation} ${binCmd} in binTests configuration does not have a matching bin entry in the package.json`,
+					);
+				}
+			});
+
+			ent.binTests = binCmds.reduce(
+				(fconfig, binCmd) => {
+					if (!fconfig[binCmd]) {
+						fconfig[binCmd] = [
+							{
+								args: "--help",
+							},
+						];
+					}
+					return fconfig;
+				},
+				{ ...ent.binTests },
+			);
+		}
+	});
+
+	// return the config after validation and some normalizing
+	return rawConfig;
 }

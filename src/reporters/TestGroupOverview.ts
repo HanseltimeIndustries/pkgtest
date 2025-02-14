@@ -50,6 +50,13 @@ export class TestGroupOverview {
 		this._total += n;
 	}
 
+	addSkippedToTotal(n: number) {
+		this.ensureNotFinalized();
+		this._total += n;
+		this._skipped += n;
+		this.ensureNoMonkeyBusiness();
+	}
+
 	startTime() {
 		if (this._start) {
 			throw new Error("Can only start time once!");

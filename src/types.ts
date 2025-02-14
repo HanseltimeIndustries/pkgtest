@@ -150,20 +150,12 @@ export interface BinTestConfig {
 	[binCmd: string]: BinTestEntry[];
 }
 
-export interface TestConfigEntry {
+export interface FileTestConfig {
 	/**
 	 * A glob patterned string from the cwd (the package root) that will identify any pkgTest files to copy into
 	 * respective package tests and then run.
 	 */
 	testMatch: string;
-	/**
-	 * Which package managed we will use to install dependencies and run the various test scripts provided.
-	 *
-	 * Important - to preserve integrity during testing, each module type will get a brand new project per package
-	 * manager to avoid dependency install and access issues.
-	 */
-	packageManagers: (PkgManager | PkgManagerOptionsConfig<PkgManager>)[];
-
 	/**
 	 * The various ways that you want to run the scripts in question to verify they work as expected.
 	 * Note, we will run each way per package manager + module project that is created.
@@ -175,9 +167,20 @@ export interface TestConfigEntry {
 	 * If none are provided, then you can only use runWith tools that can operate directly on js and we expect
 	 * the files to be in the correct raw js flavor
 	 */
-	transforms: {
+	transforms?: {
 		typescript: TypescriptOptions;
 	};
+}
+
+export interface TestConfigEntry {
+	fileTests?: FileTestConfig;
+	/**
+	 * Which package managed we will use to install dependencies and run the various test scripts provided.
+	 *
+	 * Important - to preserve integrity during testing, each module type will get a brand new project per package
+	 * manager to avoid dependency install and access issues.
+	 */
+	packageManagers: (PkgManager | PkgManagerOptionsConfig<PkgManager>)[];
 	/**
 	 * A list of module types that we will import the package under test with.  If you are using typescript,
 	 * you will probably want the same configuration for both moduleTypes and will only need one TetsConfigEntry

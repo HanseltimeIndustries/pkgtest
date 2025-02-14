@@ -2,8 +2,18 @@ module.exports = {
 	matchRootDir: "pkgtest",
 	entries: [
 		{
-			testMatch: "**/*.ts",
-			runWith: ["node", "tsx", "ts-node"],
+			binTests: {},
+			fileTests: {
+				testMatch: "**/*.ts",
+				runWith: ["node", "tsx", "ts-node"],
+				transforms: {
+					typescript: {
+						tsNode: {
+							version: "^10.9.2",
+						},
+					}, // Use the defaults, but we do want typescript transformation
+				},
+			},
 			packageManagers: [
 				"npm",
 				"pnpm",
@@ -20,14 +30,6 @@ module.exports = {
 				},
 			],
 			moduleTypes: ["commonjs", "esm"],
-			transforms: {
-				typescript: {
-					tsNode: {
-						version: "^10.9.2",
-					},
-				}, // Use the defaults, but we do want typescript transformation
-			},
-			binTests: {},
 		},
 	],
 };

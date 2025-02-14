@@ -12,26 +12,30 @@ const explicitConfigFileName = "someCustomConfig";
 const explicitConfig: TestConfig = {
 	entries: [
 		{
-			testMatch: "something**.ts",
 			packageManagers: [PkgManager.YarnV1],
-			runWith: [RunWith.Node],
-			transforms: {
-				typescript: {},
-			},
 			moduleTypes: [ModuleTypes.Commonjs, ModuleTypes.ESM],
+			fileTests: {
+				testMatch: "something**.ts",
+				runWith: [RunWith.Node],
+				transforms: {
+					typescript: {},
+				},
+			},
 		},
 	],
 };
 const defaultDetectedConfig: TestConfig = {
 	entries: [
 		{
-			testMatch: "default**.ts",
 			packageManagers: [PkgManager.YarnV1],
-			runWith: [RunWith.Node],
-			transforms: {
-				typescript: {},
-			},
 			moduleTypes: [ModuleTypes.Commonjs, ModuleTypes.ESM],
+			fileTests: {
+				runWith: [RunWith.Node],
+				transforms: {
+					typescript: {},
+				},
+				testMatch: "default**.ts",
+			},
 		},
 	],
 };
@@ -41,6 +45,9 @@ module.exports = ${JSON.stringify(explicitConfig, null, 4)};
 const defaultDetectedConfigJs = `
 module.exports = ${JSON.stringify(defaultDetectedConfig, null, 4)};
 `;
+const packageJson = {
+	name: "mypkg",
+};
 
 let tempDir: string;
 beforeAll(() => {
@@ -84,6 +91,7 @@ for (const ext of ["json", "js", "cjs", "mjs", "ts"]) {
 			file,
 			ext === "json" ? JSON.stringify(explicitConfig) : explictConfigJs,
 		);
+		writeFileSync(join(testDir, "package.json"), JSON.stringify(packageJson));
 		// Use a different directory to make sure we use the absolute
 		expect(
 			await getConfig(`${explicitConfigFileName}.${ext}`, testDir),
@@ -105,9 +113,232 @@ for (const ext of ["json", "js", "cjs", "mjs", "ts"]) {
 			join(tempDir, `${explicitConfigFileName}.json`),
 			"something that should break parsing",
 		);
+		writeFileSync(join(testDir, "package.json"), JSON.stringify(packageJson));
 		expect(await getConfig(file, testDir)).toEqual(defaultDetectedConfig);
 	});
 }
+
+it("throws an error if we cannot find a package.json in the cwd", async () => {
+	const testDir = join(tempDir, `require-pkgjson`);
+	mkdirSync(testDir);
+	const file = join(testDir, `${DEFAULT_CONFIG_FILE_NAME_BASE}.json`);
+	writeFileSync(file, JSON.stringify(defaultDetectedConfig));
+	// Write a custom file too
+	writeFileSync(
+		join(tempDir, `${explicitConfigFileName}.json`),
+		"something that should break parsing",
+	);
+	await expect(async () => await getConfig(file, testDir)).rejects.toThrow(
+		"Must have a package.json at the same location as pkgtest config:",
+	);
+});
+
+it("throws an error if binTests but no bin entry", async () => {
+	const testDir = join(tempDir, `no-bin`);
+	mkdirSync(testDir);
+	const file = join(testDir, `${DEFAULT_CONFIG_FILE_NAME_BASE}.json`);
+	writeFileSync(
+		file,
+		JSON.stringify({
+			...defaultDetectedConfig,
+			entries: [
+				{
+					...defaultDetectedConfig.entries[0],
+					binTests: {},
+				},
+			],
+		}),
+	);
+	// Write a custom file too
+	writeFileSync(
+		join(tempDir, `${explicitConfigFileName}.json`),
+		"something that should break parsing",
+	);
+	writeFileSync(join(testDir, "package.json"), JSON.stringify(packageJson));
+	await expect(async () => await getConfig(file, testDir)).rejects.toThrow(
+		"entries[0] binTests are configured but there is no \"bin\" property in the package.json!",
+	);
+});
+
+it("throws an error if binTests has a missing command", async () => {
+	const testDir = join(tempDir, `missing-bin-command`);
+	mkdirSync(testDir);
+	const file = join(testDir, `${DEFAULT_CONFIG_FILE_NAME_BASE}.json`);
+	writeFileSync(
+		file,
+		JSON.stringify({
+			...defaultDetectedConfig,
+			entries: [
+				{
+					...defaultDetectedConfig.entries[0],
+					binTests: {
+						command1: [
+							{
+								args: 'something'
+							}
+						]
+					},
+				},
+			],
+		}),
+	);
+	// Write a custom file too
+	writeFileSync(
+		join(tempDir, `${explicitConfigFileName}.json`),
+		"something that should break parsing",
+	);
+	writeFileSync(join(testDir, "package.json"), JSON.stringify({
+		...packageJson,
+		bin: {
+			cmd1: 'something.js',
+		}
+	}));
+	await expect(async () => await getConfig(file, testDir)).rejects.toThrow(
+		"entries[0] command1 in binTests configuration does not have a matching bin entry in the package.json",
+	);
+});
+
+it("throws an error if binTests and fileTests are missing", async () => {
+	const testDir = join(tempDir, `missing-alltests-command`);
+	mkdirSync(testDir);
+	const file = join(testDir, `${DEFAULT_CONFIG_FILE_NAME_BASE}.json`);
+	writeFileSync(
+		file,
+		JSON.stringify({
+			...defaultDetectedConfig,
+			entries: [
+				{
+					...defaultDetectedConfig.entries[0],
+					binTests: undefined,
+					fileTests: undefined,
+				},
+			],
+		}),
+	);
+	// Write a custom file too
+	writeFileSync(
+		join(tempDir, `${explicitConfigFileName}.json`),
+		"something that should break parsing",
+	);
+	writeFileSync(join(testDir, "package.json"), JSON.stringify({
+		...packageJson,
+		bin: {
+			cmd1: 'something.js',
+		}
+	}));
+	await expect(async () => await getConfig(file, testDir)).rejects.toThrow(
+		"entries[0] must supply at least one binTests or fileTests config!",
+	);
+});
+
+
+it("adds default commands for missing bin fields", async () => {
+	const testDir = join(tempDir, `default-bin-commands`);
+	mkdirSync(testDir);
+	const file = join(testDir, `${DEFAULT_CONFIG_FILE_NAME_BASE}.json`);
+	writeFileSync(
+		file,
+		JSON.stringify({
+			...defaultDetectedConfig,
+			entries: [
+				{
+					...defaultDetectedConfig.entries[0],
+					binTests: {
+						cmd1: [
+							{
+								args: 'something'
+							}
+						]
+					},
+				},
+			],
+		}),
+	);
+	// Write a custom file too
+	writeFileSync(
+		join(tempDir, `${explicitConfigFileName}.json`),
+		"something that should break parsing",
+	);
+	writeFileSync(join(testDir, "package.json"), JSON.stringify({
+		...packageJson,
+		bin: {
+			cmd2: 'somethingelse.js',
+			cmd1: 'something.js',
+		}
+	}));
+	expect(await getConfig(file, testDir)).toEqual({
+		...defaultDetectedConfig,
+		entries: [
+			{
+				...defaultDetectedConfig.entries[0],
+				binTests: {
+					cmd1: [
+						{
+							args: 'something'
+						}
+					],
+					cmd2: [
+						{
+							args: '--help'
+						}
+					]
+				},
+			},
+		],
+	});
+});
+
+it("handles binTests only", async () => {
+	const testDir = join(tempDir, `bin-tests-only`);
+	mkdirSync(testDir);
+	const file = join(testDir, `${DEFAULT_CONFIG_FILE_NAME_BASE}.json`);
+	writeFileSync(
+		file,
+		JSON.stringify({
+			...defaultDetectedConfig,
+			entries: [
+				{
+					...defaultDetectedConfig.entries[0],
+					fileTests: undefined,
+					binTests: {},
+				},
+			],
+		}),
+	);
+	// Write a custom file too
+	writeFileSync(
+		join(tempDir, `${explicitConfigFileName}.json`),
+		"something that should break parsing",
+	);
+	writeFileSync(join(testDir, "package.json"), JSON.stringify({
+		...packageJson,
+		bin: {
+			cmd2: 'somethingelse.js',
+			cmd1: 'something.js',
+		}
+	}));
+	const { fileTests, ...expEntry } = defaultDetectedConfig.entries[0]
+	expect(await getConfig(file, testDir)).toEqual({
+		...defaultDetectedConfig,
+		entries: [
+			{
+				...expEntry,
+				binTests: {
+					cmd1: [
+						{
+							args: '--help'
+						}
+					],
+					cmd2: [
+						{
+							args: '--help'
+						}
+					]
+				},
+			},
+		],
+	});
+});
 
 it("throws an error if we cannot find the explict file", async () => {
 	await expect(async () => getConfig("not-here.json")).rejects.toThrow(

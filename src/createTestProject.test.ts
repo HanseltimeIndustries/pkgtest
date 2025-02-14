@@ -131,13 +131,15 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						matchIgnore: testMatchIgnore,
 					},
 					{
-						runBy: [RunWith.Node],
 						modType,
 						pkgManager: PkgManager.YarnV1,
 						pkgManagerAlias: "myalias",
 						pkgManagerOptions: testPkgManagerOptions,
 						pkgManagerVersion: testPkgManagerVersion,
-						testMatch: "some**glob",
+						fileTests: {
+							runWith: [RunWith.Node],
+							testMatch: "some**glob",
+						},
 					},
 				);
 
@@ -277,15 +279,19 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						matchIgnore: testMatchIgnore,
 					},
 					{
-						runBy: [RunWith.Node],
 						modType: modType,
 						pkgManager: PkgManager.YarnV1,
 						pkgManagerAlias: "myalias",
 						pkgManagerOptions: testPkgManagerOptions,
 						pkgManagerVersion: testPkgManagerVersion,
-						testMatch: "some**glob",
-						// Just providing typescript object will do
-						typescript: typescriptOptions,
+						fileTests: {
+							runWith: [RunWith.Node],
+							testMatch: "some**glob",
+							transforms: {
+								// Just providing typescript object will do
+								typescript: typescriptOptions,
+							},
+						},
 					},
 				);
 
@@ -445,15 +451,19 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						matchIgnore: testMatchIgnore,
 					},
 					{
-						runBy: [RunWith.Node],
+						fileTests: {
+							runWith: [RunWith.Node],
+							testMatch: "some**glob",
+							transforms: {
+								// Just providing typescript object will do
+								typescript: typescriptOptions,
+							},
+						},
 						modType: modType,
 						pkgManager: PkgManager.YarnV1,
 						pkgManagerAlias: "myalias",
 						pkgManagerOptions: testPkgManagerOptions,
 						pkgManagerVersion: testPkgManagerVersion,
-						testMatch: "some**glob",
-						// Just providing typescript object will do
-						typescript: typescriptOptions,
 						binTests: {
 							bin1: [
 								{
@@ -663,16 +673,20 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						matchIgnore: testMatchIgnore,
 					},
 					{
-						runBy: allRunBy,
 						modType,
 						pkgManager: PkgManager.YarnV1,
 						pkgManagerAlias: "myalias",
 						pkgManagerOptions: testPkgManagerOptions,
 						pkgManagerVersion: testPkgManagerVersion,
-						testMatch: "some**glob",
 						// Just providing typescript object will do
-						typescript: typescriptOptions,
 						additionalDependencies: testAdditionalDeps,
+						fileTests: {
+							runWith: allRunBy,
+							testMatch: "some**glob",
+							transforms: {
+								typescript: typescriptOptions,
+							},
+						},
 					},
 				);
 
@@ -851,11 +865,13 @@ it("throws an error if the projectdir is not absolute", async () => {
 				matchIgnore: testMatchIgnore,
 			},
 			{
-				runBy: [RunWith.Node],
 				modType: ModuleTypes.Commonjs,
 				pkgManager: PkgManager.YarnV1,
 				pkgManagerAlias: "myalias",
-				testMatch: "some**glob",
+				fileTests: {
+					runWith: [RunWith.Node],
+					testMatch: "some**glob",
+				},
 			},
 		);
 	}).rejects.toThrow("projectDir must be absolute path!");
@@ -871,11 +887,13 @@ it("throws an error if the testProjectDir is not absolute", async () => {
 				matchIgnore: testMatchIgnore,
 			},
 			{
-				runBy: [RunWith.Node],
 				modType: ModuleTypes.Commonjs,
 				pkgManager: PkgManager.YarnV1,
 				pkgManagerAlias: "myalias",
-				testMatch: "some**glob",
+				fileTests: {
+					runWith: [RunWith.Node],
+					testMatch: "some**glob",
+				},
 			},
 		);
 	}).rejects.toThrow("testProjectDir must be absolute path!");
