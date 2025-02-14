@@ -53,6 +53,46 @@ In that case, we would add:
     Remember for typescript files to add the `@types/` dependency if the library doesn't export its own types.  You will run into typescript compilation
     errors about not being able to find declarations if not!
 
+## additionalFiles
+
+You can provide a list of additional files that you want installed in the test project.  This is especially useful if you are testing something like
+config file lookup (in fact, pkgtest tests itself this way).
+
+When you specify a direct file, that one file is copied to the location specified in the test project.  Otherwise, if you specify a directory,
+it is copied recursively starting at the location specified in the test project.
+
+### String interpolation
+
+To support different project structures, we provide some variables that you can use in your path string.
+
+`${configDir}` - This resolves to the directory where the config file was found
+
+`${rootDir}` - This resolves to the specified rootDir for test match searches etc
+
+By default, any non-absolute file path is resolved to `${rootDir}` if there is no interpolation detected.
+
+Examples (assuming config is in `/usr/project/` and rootDir is `/usr/project/pkgtest`): 
+
+- `/my/normal/path` - This is an absolute lookup so pkgtest just looks for it (note, this has limited utility, we recommend relative paths)
+- `${configDir}/my/path` - `usr/project/my/path`
+- `${rootDir}/my/path` - `usr/project/pkgtest/my/path`
+- `my/path` - `usr/project/pkgtest/my/path`
+
+### Simple format
+
+In the simplest format, you can just provide the path to your additional files and they will be copied to the root of the test project that is
+created.
+
+### Advanced format
+
+If you would like to copy your files to a different directory, you can use the tuple format:
+
+```javascript
+[ 'my/path', 'inner/folder' ]
+```
+
+The following format basically says copy the files at `my/path` to `${testProjectFolder}/inner/folder`.
+
 ## Test Entries
 
 If you've read [Getting Started](../1-getting-started.md), then you will probably have noticed that a single entry in the entries array can
@@ -388,6 +428,11 @@ Adds additional dependencies to the test projects.  This will override any top-l
 have been explicitly detailed in the test config enntry.
 
 See the top level `additionalDependencies` for an example use case.
+
+### additionalFiles
+
+This is the same configuration option as the top-level `additionalFiles`, but only applies files to the current entry.  Please see the top-level
+description for a description.
 
 ### fileTests
 

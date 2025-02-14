@@ -126,6 +126,27 @@ export interface PkgManagerOptionsConfig<T extends PkgManager> {
 	options: PkgManagerOptions<T>;
 }
 
+/**
+ * This can either be an absolute path to anywhere, a relative path (relative to the rootDir of pkgtest)
+ *
+ * Directories will be copied recursively
+ */
+export type AddFileMatch = string;
+/**
+ * A path that is set up relative to the test project directory where this file will be copied (same name)
+ */
+export type ToDir = string;
+/**
+ * Specifies exactly where within the project directory that we want to copy the files provided
+ */
+export type AddFileCopyTo = [AddFileMatch, ToDir];
+/**
+ * If you just supply a string as an entry, then the file/files will be copied to the root of the test project.
+ *
+ * If you provide your own to directory, then all files will be copied relative to that directory.
+ */
+export type AdditionalFilesEntry = AddFileMatch | [AddFileMatch, ToDir];
+
 export interface BinTestEntry {
 	/**
 	 * A string of args to add after the call
@@ -203,6 +224,10 @@ export interface TestConfigEntry {
 	 * By default, if you provide an empty object, all commands will be run with --help
 	 */
 	binTests?: BinTestConfig;
+	/**
+	 * If you would like to place additional files within the test projects
+	 */
+	additionalFiles?: AdditionalFilesEntry[];
 }
 
 export interface TestConfig {
@@ -215,7 +240,7 @@ export interface TestConfig {
 	/**
 	 * A string of globs to ignore when searching for file test matches.  This is helpful for performance by ensuring that we skip scanning large
 	 * directories like node_modules.
-	 * 
+	 *
 	 * Keep in mind that this glob is relative to rootDir.
 	 *
 	 * (As a matter of performance, we don't scan node_modules, .yarn, or .git)
@@ -230,4 +255,8 @@ export interface TestConfig {
 	 * or other explicit fields like "typescript.tsx.version".
 	 */
 	additionalDependencies?: CreateDependenciesOptions["additionalDependencies"];
+	/**
+	 * If you would like to place additional files within the test projects
+	 */
+	additionalFiles?: AdditionalFilesEntry[];
 }

@@ -1,6 +1,6 @@
 import { cp, readFile, writeFile } from "fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "path";
-import { getAllMatchingFiles } from "./getAllMatchingFiles";
+import { getAllMatchingFiles } from "./files";
 import { exec, ExecOptions } from "child_process";
 import {
 	ModuleTypes,
@@ -25,6 +25,9 @@ import { FileTestRunner, TestFile } from "./FileTestRunner";
 import * as yaml from "js-yaml";
 import { Logger } from "./Logger";
 import { BinTestRunner } from "./BinTestRunner";
+import { existsSync, statSync } from "fs";
+import { copyOverAdditionalFiles } from "./files";
+import { AdditionalFilesCopy } from "./files/types";
 
 export const SRC_DIRECTORY = "src";
 export const BUILD_DIRECTORY = "dist";
@@ -80,6 +83,10 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		additionalDependencies?: CreateDependenciesOptions["additionalDependencies"];
 		binTests?: BinTestConfig;
 		fileTests?: FileTestConfig;
+		/**
+		 * Any additional files that we want to copy into the project directory
+		 */
+		additionalFiles: AdditionalFilesCopy[];
 	},
 ): Promise<{
 	fileTestRunners: FileTestRunner[];
@@ -102,6 +109,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		pkgManagerAlias,
 		pkgManagerVersion,
 		fileTests,
+		additionalFiles,
 	} = options;
 	const logPrefix = `[${pkgManager}, ${modType}, @${testProjectDir}]`;
 
@@ -160,6 +168,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 
 	const pkgJson = {
 		name: `@dummy-test-package/test-${modType}`,
+		version: '0.0.0',
 		description: `Compiled tests for ${packageJson.name} as ${modType} project import`,
 		...typeProps,
 		dependencies: createDependencies(packageJson, relativePath, {
@@ -369,6 +378,11 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 			pkgManagerAlias,
 			modType,
 		});
+	}
+
+	// Copy over files at the end
+	if (additionalFiles) {
+		await copyOverAdditionalFiles(additionalFiles, testProjectDir);
 	}
 
 	return {

@@ -12,6 +12,8 @@ import {
 	TypescriptOptions,
 	YarnV4Options,
 	BinTestConfig,
+	AdditionalFilesEntry,
+	AddFileCopyTo,
 } from "./types";
 import { z, ZodError, ZodType } from "zod";
 import { fromError } from "zod-validation-error";
@@ -101,6 +103,16 @@ const additionalDependencies = z
 		"Additional dependencies that can't be inferred from the project's package.json or other explicit fields like \"typescript.tsx.version\".",
 	);
 
+const AdditionalFileCopyToValidated = z.tuple([
+	z.string(),
+	z.string(),
+]) satisfies ZodType<AddFileCopyTo>;
+
+const AdditionalFilesEntryValidated = z.union([
+	z.string(),
+	AdditionalFileCopyToValidated,
+]) satisfies ZodType<AdditionalFilesEntry>;
+
 const BinTestsValidated = z.record(
 	z.string(),
 	z.array(
@@ -140,6 +152,7 @@ Important - to preserve integrity during testing, each module type will get a br
 		.describe(`A list of module types that we will import the package under test with.  If you are using typescript, you will probably want the same configuration for both moduleTypes and will only need one TetsConfigEntry for both.
 If you are writing in raw JS though, you will more than likely need to keep ESM and CommonJS equivalent versions of each package test and therefore will need to have an entry with ["commonjs"] and ["esm"] separately so that you can change the testMatch to pick the correct files.`),
 	additionalDependencies,
+	additionalFiles: z.array(AdditionalFilesEntryValidated).optional(),
 	binTests: BinTestsValidated.optional(),
 }) satisfies ZodType<TestConfigEntry>;
 
@@ -147,6 +160,7 @@ const TestConfigValidated = z.object({
 	rootDir: z.string().optional(),
 	matchIgnore: z.array(z.string()).optional(),
 	additionalDependencies,
+	additionalFiles: z.array(AdditionalFilesEntryValidated).optional(),
 	entries: z
 		.array(TestConfigEntryValidated)
 		.describe(

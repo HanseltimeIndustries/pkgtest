@@ -1,5 +1,5 @@
 import { createDependencies } from "./createDependencies";
-import { getAllMatchingFiles } from "./getAllMatchingFiles";
+import { getAllMatchingFiles, copyOverAdditionalFiles } from "./files";
 import {
 	getPkgBinaryRunnerCommand,
 	getPkgManagerCommand,
@@ -21,11 +21,12 @@ import {
 } from "./types";
 import { join, resolve } from "path";
 import { TsConfigJson } from "get-tsconfig";
+import { AdditionalFilesCopy } from "./files/types";
 
 jest.mock("./createDependencies");
 jest.mock("fs/promises");
 jest.mock("child_process");
-jest.mock("./getAllMatchingFiles");
+jest.mock("./files");
 jest.mock("./pkgManager");
 jest.mock("./getTypescriptConfig");
 const mockCreateDependencies = jest.mocked(createDependencies);
@@ -33,6 +34,7 @@ const mockWriteFile = jest.mocked(writeFile);
 const mockCp = jest.mocked(cp);
 const mockExec = jest.mocked(exec);
 const mockGetAllMatchingFiles = jest.mocked(getAllMatchingFiles);
+const mockCopyOverAdditionalFiles = jest.mocked(copyOverAdditionalFiles);
 const mockGetPkgManagerCommand = jest.mocked(getPkgManagerCommand);
 const mockGetPkgBinaryRunnerCommand = jest.mocked(getPkgBinaryRunnerCommand);
 const mockGetPkgManagerSetCommand = jest.mocked(getPkgManagerSetCommand);
@@ -64,6 +66,16 @@ const testTsConfig: TsConfigJson = {
 const testAdditionalDeps = {
 	addDep: "3.0.0",
 };
+const testAdditionalFiles: AdditionalFilesCopy[] = [
+	{
+		files: ["addFile1.txt", "addFile2.txt"],
+		toDir: "./something",
+	},
+	{
+		files: ["someDir/", "anotherDir/"],
+		toDir: "./",
+	},
+];
 const testrootDir = "./pkgtests";
 const testMatchIgnore = ["someglob"];
 
@@ -133,6 +145,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					{
 						modType,
 						pkgManager: PkgManager.YarnV1,
+						additionalFiles: testAdditionalFiles,
 						pkgManagerAlias: "myalias",
 						pkgManagerOptions: testPkgManagerOptions,
 						pkgManagerVersion: testPkgManagerVersion,
@@ -242,6 +255,11 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			for (const { copiedTo, from } of expectedCopyOver) {
 				expect(mockCp).toHaveBeenCalledWith(from, copiedTo);
 			}
+			// expect we copied files
+			expect(mockCopyOverAdditionalFiles).toHaveBeenCalledWith(
+				testAdditionalFiles,
+				testProjectDir,
+			);
 		});
 
 		it("creates a project for and returns the various runner for typescript based node running", async () => {
@@ -284,6 +302,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						pkgManagerAlias: "myalias",
 						pkgManagerOptions: testPkgManagerOptions,
 						pkgManagerVersion: testPkgManagerVersion,
+						additionalFiles: testAdditionalFiles,
 						fileTests: {
 							runWith: [RunWith.Node],
 							testMatch: "some**glob",
@@ -414,6 +433,11 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				},
 				expect.anything(), // callback
 			);
+			// expect we copied files
+			expect(mockCopyOverAdditionalFiles).toHaveBeenCalledWith(
+				testAdditionalFiles,
+				testProjectDir,
+			);
 		});
 
 		it("creates a project for various runners and a BinTestRunner", async () => {
@@ -464,6 +488,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						pkgManagerAlias: "myalias",
 						pkgManagerOptions: testPkgManagerOptions,
 						pkgManagerVersion: testPkgManagerVersion,
+						additionalFiles: testAdditionalFiles,
 						binTests: {
 							bin1: [
 								{
@@ -635,6 +660,11 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				},
 				expect.anything(), // callback
 			);
+			// expect we copied files
+			expect(mockCopyOverAdditionalFiles).toHaveBeenCalledWith(
+				testAdditionalFiles,
+				testProjectDir,
+			);
 		});
 
 		const allRunBy = Object.values(RunWith);
@@ -680,6 +710,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						pkgManagerVersion: testPkgManagerVersion,
 						// Just providing typescript object will do
 						additionalDependencies: testAdditionalDeps,
+						additionalFiles: testAdditionalFiles,
 						fileTests: {
 							runWith: allRunBy,
 							testMatch: "some**glob",
@@ -851,6 +882,11 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				},
 				expect.anything(), // callback
 			);
+			// expect we copied files
+			expect(mockCopyOverAdditionalFiles).toHaveBeenCalledWith(
+				testAdditionalFiles,
+				testProjectDir,
+			);
 		});
 	},
 );
@@ -868,6 +904,7 @@ it("throws an error if the projectdir is not absolute", async () => {
 				modType: ModuleTypes.Commonjs,
 				pkgManager: PkgManager.YarnV1,
 				pkgManagerAlias: "myalias",
+				additionalFiles: [],
 				fileTests: {
 					runWith: [RunWith.Node],
 					testMatch: "some**glob",
@@ -890,6 +927,7 @@ it("throws an error if the testProjectDir is not absolute", async () => {
 				modType: ModuleTypes.Commonjs,
 				pkgManager: PkgManager.YarnV1,
 				pkgManagerAlias: "myalias",
+				additionalFiles: [],
 				fileTests: {
 					runWith: [RunWith.Node],
 					testMatch: "some**glob",

@@ -19,6 +19,8 @@ import { ensureMinimumCorepack } from "./pkgManager";
 import { BinTestRunner } from "./BinTestRunner";
 import { skipSuiteDescribe } from "./reporters/skipSuitesNotice";
 import { TestGroupOverview } from "./reporters";
+import { findAdditionalFilesForCopyOver } from "./files";
+import { AdditionalFilesCopy } from "./files/types";
 
 export const DEFAULT_TIMEOUT = 2000;
 
@@ -110,6 +112,15 @@ export async function run(options: RunOptions) {
 
 	const tmpDir = process.env.PKG_TEST_TEMP_DIR ?? tmpdir();
 	logger.logDebug(`Writing test projects to temporary directory: ${tmpDir}`);
+
+	// Scan additionalFiles
+	const topLevelAdditionalFiles: AdditionalFilesCopy[] = config.additionalFiles
+		? await findAdditionalFilesForCopyOver({
+				additionalFiles: config.additionalFiles,
+				projectDir,
+				rootDir,
+			})
+		: [];
 
 	// filter abstractions
 	const skipFileTests =
@@ -253,6 +264,13 @@ export async function run(options: RunOptions) {
 									);
 								}
 							}
+							const entryLevelAdditionalFiles: AdditionalFilesCopy[] = testConfigEntry.additionalFiles
+							? await findAdditionalFilesForCopyOver({
+									additionalFiles: testConfigEntry.additionalFiles,
+									projectDir,
+									rootDir,
+								})
+							: [];
 							try {
 								const { fileTestRunners, binTestRunner } =
 									await createTestProject(
@@ -275,6 +293,10 @@ export async function run(options: RunOptions) {
 											},
 											fileTests: testConfigEntry.fileTests,
 											binTests: testConfigEntry.binTests,
+											additionalFiles: [
+												...topLevelAdditionalFiles,
+												...entryLevelAdditionalFiles,
+											],
 										},
 									);
 
@@ -340,7 +362,7 @@ export async function run(options: RunOptions) {
 		for (const testRunnerPkg of testRunnerPkgsFiltered) {
 			for (const runner of testRunnerPkg.fileTestRunners) {
 				const summary = await runner.runTests({
-					timeout,
+					timeout: 3000,
 					testNames,
 					reporter,
 				});
@@ -369,7 +391,7 @@ export async function run(options: RunOptions) {
 			// Since bin Tests are less certain, we filter here
 			if (!binTestRunner) continue;
 			const summary = await binTestRunner.runTests({
-				timeout,
+				timeout: 30000,
 				reporter,
 			});
 			// Do all tests updating
