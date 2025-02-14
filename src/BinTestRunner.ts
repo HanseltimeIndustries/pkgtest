@@ -1,6 +1,7 @@
 import { exec } from "child_process";
 import { BinTestConfig, ModuleTypes, PkgManager } from "./types";
 import { Reporter } from "./reporters";
+import { FailFastError } from "./run";
 
 export interface BinTest {
 	bin: string;
@@ -111,7 +112,7 @@ export class BinTestRunner implements BinTestRunnerDescribe {
 									},
 								});
 								if (this.failFast) {
-									rej();
+									rej(new FailFastError());
 								}
 							} else {
 								passed++;
@@ -133,11 +134,15 @@ export class BinTestRunner implements BinTestRunnerDescribe {
 						},
 					);
 				});
-			} catch (_e) {
+			} catch (e) {
 				// Process the unready for the summary
 				notReached.push(...flatBinTests.slice(i + 1));
-				// if we throw an error here, then we are failing fast
-				break;
+				if (e instanceof FailFastError) {
+					// if we throw an error here, then we are failing fast
+					break;
+				} else {
+					throw e;
+				}
 			}
 		}
 

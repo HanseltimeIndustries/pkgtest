@@ -362,7 +362,7 @@ export async function run(options: RunOptions) {
 		for (const testRunnerPkg of testRunnerPkgsFiltered) {
 			for (const runner of testRunnerPkg.fileTestRunners) {
 				const summary = await runner.runTests({
-					timeout: 3000,
+					timeout,
 					testNames,
 					reporter,
 				});
@@ -391,7 +391,7 @@ export async function run(options: RunOptions) {
 			// Since bin Tests are less certain, we filter here
 			if (!binTestRunner) continue;
 			const summary = await binTestRunner.runTests({
-				timeout: 30000,
+				timeout,
 				reporter,
 			});
 			// Do all tests updating

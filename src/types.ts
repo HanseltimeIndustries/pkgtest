@@ -260,3 +260,8 @@ export interface TestConfig {
 	 */
 	additionalFiles?: AdditionalFilesEntry[];
 }
+
+/**
+ * Simple error to indicate controlled failures of a test internally
+ */
+export class TestFailError extends Error {};

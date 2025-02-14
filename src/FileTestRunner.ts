@@ -1,7 +1,8 @@
 import { exec } from "child_process";
-import { ModuleTypes, PkgManager, RunWith } from "./types";
+import { ModuleTypes, PkgManager, RunWith, TestFailError } from "./types";
 import micromatch from "micromatch";
 import { Reporter } from "./reporters";
+import { FailFastError } from "./run";
 
 export interface TestFile {
 	/** The original file name - i.e. the file that was copied, relative to the cwd of the framework */
@@ -135,7 +136,7 @@ export class FileTestRunner implements FileTestRunnerDescribe {
 									},
 								});
 								if (this.failFast) {
-									rej();
+									rej(new TestFailError());
 								}
 							} else {
 								passed++;
@@ -156,11 +157,15 @@ export class FileTestRunner implements FileTestRunnerDescribe {
 						},
 					);
 				});
-			} catch (_e) {
+			} catch (e) {
 				// Process the unready for the summary
 				notReached.push(...this.testFiles.slice(i + 1));
-				// if we throw an error here, then we are failing fast
-				break;
+				if (e instanceof FailFastError) {
+					// if we throw an error here, then we are failing fast
+					break;
+				} else {
+					throw e;
+				}
 			}
 		}
 
