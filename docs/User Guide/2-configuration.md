@@ -5,13 +5,13 @@
 The following will discuss the main concepts of the configuration file, but you can always check the [Config interface docs](../api/interfaces/TestConfig.md)
 for a full set of features.
 
-## matchRootdir
+## rootDir
 
 This is a relative path to the directory with the `pkgtest.config` file that limits where any `testMatch` patterns are applied relatively.  This is
 helpful for:
 
 1. reducing time to find tests (by minimizing the number of files to scan)
-2. simplifying testMatch patterns to not have to worry about matching the other files (i.e. **/*.ts will only match in the matchRootDir)
+2. simplifying testMatch patterns to not have to worry about matching the other files (i.e. **/*.ts will only match in the rootDir)
 
 Default: `./`
 
@@ -22,7 +22,7 @@ Default: `./`
     Isolating your pkgtests to a single directory can negate the need to keep lots of matchIgnores since the folder will presumably only hold the tests you want
 
 matchIgnore can take a list of glob patterns that will cause `pkgtest` to skip any search activity.  This is helpful for the same reasons as
-`matchRootDir`.
+`rootDir`.
 
 Default: `**/node_modules/**, **/.yarn/**, **/.git/**`
 
@@ -101,7 +101,7 @@ In this case, we would need 3 test entries since we'll have:
     ```js title="pkgtest.config.js"
     const pkgManagers = [ "yarn-v1", "yarn-berry", "npm", "pnpm" ]
     module.exports = {
-        matchRootDir: 'pkgtests',
+        rootDir: 'pkgtests',
         entries: [
             {
 
@@ -149,7 +149,7 @@ In this case, we would need 3 test entries since we'll have:
 === "esm project"
     ```js title="pkgtest.config.js"
     export default {
-        matchRootDir: 'pkgtests',
+        rootDir: 'pkgtests',
         entries: [
             {
 
@@ -220,7 +220,7 @@ field.
 
 ```javascript
 {
-    matchRootDir: 'pkgtests',
+    rootDir: 'pkgtests',
     entries: [
         {  
             fileTests: {
@@ -395,14 +395,14 @@ When supplied, this indicates that pkgtest will be finding actual js/ts test fil
 
 #### testMatch
 
-Each test entry will find and copy over all tests within the `matchRootDir` that match the glob pattern.
+Each test entry will find and copy over all tests within the `rootDir` that match the glob pattern.
 
-The pattern is relative to the matchRootDir and is still subject to any `matchIgnore` patterns.
+The pattern is relative to the rootDir and is still subject to any `matchIgnore` patterns.
 
 For example:
 
 ```js
-    matchRootDir: "pkgtests",
+    rootDir: "pkgtests",
     matchIgnore: "fixtures/**/*"
     entries: [
         {

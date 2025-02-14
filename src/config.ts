@@ -144,7 +144,7 @@ If you are writing in raw JS though, you will more than likely need to keep ESM 
 }) satisfies ZodType<TestConfigEntry>;
 
 const TestConfigValidated = z.object({
-	matchRootDir: z.string().optional(),
+	rootDir: z.string().optional(),
 	matchIgnore: z.array(z.string()).optional(),
 	additionalDependencies,
 	entries: z

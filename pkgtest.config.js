@@ -1,5 +1,6 @@
 module.exports = {
-	matchRootDir: "pkgtest",
+	rootDir: "pkgtest",
+	matchIgnore: "pkgtest/fixture**",
 	entries: [
 		{
 			binTests: {},

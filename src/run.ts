@@ -104,8 +104,8 @@ export async function run(options: RunOptions) {
 
 	const matchIgnore = getMatchIgnore(process.cwd(), config.matchIgnore);
 	logger.logDebug(`matchIgnore: ${JSON.stringify(matchIgnore)}`);
-	const matchRootDir = config.matchRootDir ?? ".";
-	logger.logDebug(`matchRootDir: ${matchRootDir}`);
+	const rootDir = config.rootDir ?? ".";
+	logger.logDebug(`rootDir: ${rootDir}`);
 	const projectDir = process.cwd();
 
 	const tmpDir = process.env.PKG_TEST_TEMP_DIR ?? tmpdir();
@@ -262,7 +262,7 @@ export async function run(options: RunOptions) {
 											debug,
 											failFast,
 											matchIgnore,
-											matchRootDir,
+											rootDir,
 										},
 										{
 											modType,

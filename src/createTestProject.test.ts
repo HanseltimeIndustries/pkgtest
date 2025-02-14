@@ -64,7 +64,7 @@ const testTsConfig: TsConfigJson = {
 const testAdditionalDeps = {
 	addDep: "3.0.0",
 };
-const testMatchRootDir = "./pkgtests";
+const testrootDir = "./pkgtests";
 const testMatchIgnore = ["someglob"];
 
 const testPkgManagerOptions: PkgManagerBaseOptions = {
@@ -127,7 +127,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					{
 						projectDir: testProjectUnderTestDir,
 						testProjectDir,
-						matchRootDir: testMatchRootDir,
+						rootDir: testrootDir,
 						matchIgnore: testMatchIgnore,
 					},
 					{
@@ -235,7 +235,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				),
 			);
 			expect(mockGetAllMatchingFiles).toHaveBeenCalledWith(
-				resolve(testProjectUnderTestDir, testMatchRootDir),
+				resolve(testProjectUnderTestDir, testrootDir),
 				"some**glob",
 				testMatchIgnore,
 			);
@@ -275,7 +275,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					{
 						projectDir: testProjectUnderTestDir,
 						testProjectDir,
-						matchRootDir: testMatchRootDir,
+						rootDir: testrootDir,
 						matchIgnore: testMatchIgnore,
 					},
 					{
@@ -393,7 +393,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				),
 			);
 			expect(mockGetAllMatchingFiles).toHaveBeenCalledWith(
-				resolve(testProjectUnderTestDir, testMatchRootDir),
+				resolve(testProjectUnderTestDir, testrootDir),
 				"some**glob",
 				testMatchIgnore,
 			);
@@ -447,7 +447,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					{
 						projectDir: testProjectUnderTestDir,
 						testProjectDir,
-						matchRootDir: testMatchRootDir,
+						rootDir: testrootDir,
 						matchIgnore: testMatchIgnore,
 					},
 					{
@@ -614,7 +614,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				),
 			);
 			expect(mockGetAllMatchingFiles).toHaveBeenCalledWith(
-				resolve(testProjectUnderTestDir, testMatchRootDir),
+				resolve(testProjectUnderTestDir, testrootDir),
 				"some**glob",
 				testMatchIgnore,
 			);
@@ -669,7 +669,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					{
 						projectDir: testProjectUnderTestDir,
 						testProjectDir,
-						matchRootDir: testMatchRootDir,
+						rootDir: testrootDir,
 						matchIgnore: testMatchIgnore,
 					},
 					{
@@ -831,7 +831,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				),
 			);
 			expect(mockGetAllMatchingFiles).toHaveBeenCalledWith(
-				resolve(testProjectUnderTestDir, testMatchRootDir),
+				resolve(testProjectUnderTestDir, testrootDir),
 				"some**glob",
 				testMatchIgnore,
 			);
@@ -861,7 +861,7 @@ it("throws an error if the projectdir is not absolute", async () => {
 			{
 				projectDir: "someUnderTest",
 				testProjectDir: join(process.cwd(), "testProjectDir"),
-				matchRootDir: testMatchRootDir,
+				rootDir: testrootDir,
 				matchIgnore: testMatchIgnore,
 			},
 			{
@@ -883,7 +883,7 @@ it("throws an error if the testProjectDir is not absolute", async () => {
 			{
 				projectDir: join(process.cwd(), "someUnderTest"),
 				testProjectDir: "testProjectDir",
-				matchRootDir: testMatchRootDir,
+				rootDir: testrootDir,
 				matchIgnore: testMatchIgnore,
 			},
 			{

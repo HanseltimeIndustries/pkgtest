@@ -51,7 +51,7 @@ Let's go ahead and create a `pkgtest.config.js`:
 === "commonjs project"
     ```js title="pkgtest.config.js"
     module.exports = {
-        matchRootDir: "pkgtests",
+        rootDir: "pkgtests",
         entries: [
             {
                 fileTests: {
@@ -87,7 +87,7 @@ Let's go ahead and create a `pkgtest.config.js`:
 === "esm project"
     ```js title="pkgtest.config.js"
     export default {
-        matchRootDir: "pkgtests",
+        rootDir: "pkgtests",
         entries: [
             {
                 fileTests: {
@@ -141,7 +141,7 @@ This means that there will be 8 testing package folders created.
     }
 ```
 
-This means that all `.ts` files in the `pkgtests/` (`matchRootDir`) directory will be copied into each project and run.
+This means that all `.ts` files in the `pkgtests/` (`rootDir`) directory will be copied into each project and run.
 In our case, that is just `pkgtests/tests1.ts`.
 
 #### 3. Transformation

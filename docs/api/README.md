@@ -19,6 +19,7 @@
 
 - [BinTestConfig](interfaces/BinTestConfig.md)
 - [BinTestEntry](interfaces/BinTestEntry.md)
+- [FileTestConfig](interfaces/FileTestConfig.md)
 - [InstalledTool](interfaces/InstalledTool.md)
 - [PkgManagerBaseOptions](interfaces/PkgManagerBaseOptions.md)
 - [PkgManagerOptionsConfig](interfaces/PkgManagerOptionsConfig.md)

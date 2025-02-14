@@ -156,7 +156,7 @@ it("throws an error if binTests but no bin entry", async () => {
 	);
 	writeFileSync(join(testDir, "package.json"), JSON.stringify(packageJson));
 	await expect(async () => await getConfig(file, testDir)).rejects.toThrow(
-		"entries[0] binTests are configured but there is no \"bin\" property in the package.json!",
+		'entries[0] binTests are configured but there is no "bin" property in the package.json!',
 	);
 });
 
@@ -174,9 +174,9 @@ it("throws an error if binTests has a missing command", async () => {
 					binTests: {
 						command1: [
 							{
-								args: 'something'
-							}
-						]
+								args: "something",
+							},
+						],
 					},
 				},
 			],
@@ -187,12 +187,15 @@ it("throws an error if binTests has a missing command", async () => {
 		join(tempDir, `${explicitConfigFileName}.json`),
 		"something that should break parsing",
 	);
-	writeFileSync(join(testDir, "package.json"), JSON.stringify({
-		...packageJson,
-		bin: {
-			cmd1: 'something.js',
-		}
-	}));
+	writeFileSync(
+		join(testDir, "package.json"),
+		JSON.stringify({
+			...packageJson,
+			bin: {
+				cmd1: "something.js",
+			},
+		}),
+	);
 	await expect(async () => await getConfig(file, testDir)).rejects.toThrow(
 		"entries[0] command1 in binTests configuration does not have a matching bin entry in the package.json",
 	);
@@ -220,17 +223,19 @@ it("throws an error if binTests and fileTests are missing", async () => {
 		join(tempDir, `${explicitConfigFileName}.json`),
 		"something that should break parsing",
 	);
-	writeFileSync(join(testDir, "package.json"), JSON.stringify({
-		...packageJson,
-		bin: {
-			cmd1: 'something.js',
-		}
-	}));
+	writeFileSync(
+		join(testDir, "package.json"),
+		JSON.stringify({
+			...packageJson,
+			bin: {
+				cmd1: "something.js",
+			},
+		}),
+	);
 	await expect(async () => await getConfig(file, testDir)).rejects.toThrow(
 		"entries[0] must supply at least one binTests or fileTests config!",
 	);
 });
-
 
 it("adds default commands for missing bin fields", async () => {
 	const testDir = join(tempDir, `default-bin-commands`);
@@ -246,9 +251,9 @@ it("adds default commands for missing bin fields", async () => {
 					binTests: {
 						cmd1: [
 							{
-								args: 'something'
-							}
-						]
+								args: "something",
+							},
+						],
 					},
 				},
 			],
@@ -259,13 +264,16 @@ it("adds default commands for missing bin fields", async () => {
 		join(tempDir, `${explicitConfigFileName}.json`),
 		"something that should break parsing",
 	);
-	writeFileSync(join(testDir, "package.json"), JSON.stringify({
-		...packageJson,
-		bin: {
-			cmd2: 'somethingelse.js',
-			cmd1: 'something.js',
-		}
-	}));
+	writeFileSync(
+		join(testDir, "package.json"),
+		JSON.stringify({
+			...packageJson,
+			bin: {
+				cmd2: "somethingelse.js",
+				cmd1: "something.js",
+			},
+		}),
+	);
 	expect(await getConfig(file, testDir)).toEqual({
 		...defaultDetectedConfig,
 		entries: [
@@ -274,14 +282,14 @@ it("adds default commands for missing bin fields", async () => {
 				binTests: {
 					cmd1: [
 						{
-							args: 'something'
-						}
+							args: "something",
+						},
 					],
 					cmd2: [
 						{
-							args: '--help'
-						}
-					]
+							args: "--help",
+						},
+					],
 				},
 			},
 		],
@@ -310,14 +318,17 @@ it("handles binTests only", async () => {
 		join(tempDir, `${explicitConfigFileName}.json`),
 		"something that should break parsing",
 	);
-	writeFileSync(join(testDir, "package.json"), JSON.stringify({
-		...packageJson,
-		bin: {
-			cmd2: 'somethingelse.js',
-			cmd1: 'something.js',
-		}
-	}));
-	const { fileTests, ...expEntry } = defaultDetectedConfig.entries[0]
+	writeFileSync(
+		join(testDir, "package.json"),
+		JSON.stringify({
+			...packageJson,
+			bin: {
+				cmd2: "somethingelse.js",
+				cmd1: "something.js",
+			},
+		}),
+	);
+	const { fileTests, ...expEntry } = defaultDetectedConfig.entries[0];
 	expect(await getConfig(file, testDir)).toEqual({
 		...defaultDetectedConfig,
 		entries: [
@@ -326,14 +337,14 @@ it("handles binTests only", async () => {
 				binTests: {
 					cmd1: [
 						{
-							args: '--help'
-						}
+							args: "--help",
+						},
 					],
 					cmd2: [
 						{
-							args: '--help'
-						}
-					]
+							args: "--help",
+						},
+					],
 				},
 			},
 		],

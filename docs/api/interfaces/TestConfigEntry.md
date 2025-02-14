@@ -32,6 +32,12 @@ By default, if you provide an empty object, all commands will be run with --help
 
 ***
 
+### fileTests?
+
+> `optional` **fileTests**: [`FileTestConfig`](FileTestConfig.md)
+
+***
+
 ### moduleTypes
 
 > **moduleTypes**: [`ModuleTypes`](../enumerations/ModuleTypes.md)[]
@@ -54,36 +60,3 @@ Which package managed we will use to install dependencies and run the various te
 
 Important - to preserve integrity during testing, each module type will get a brand new project per package
 manager to avoid dependency install and access issues.
-
-***
-
-### runWith
-
-> **runWith**: [`RunWith`](../enumerations/RunWith.md)[]
-
-The various ways that you want to run the scripts in question to verify they work as expected.
-Note, we will run each way per package manager + module project that is created.
-
-***
-
-### testMatch
-
-> **testMatch**: `string`
-
-A glob patterned string from the cwd (the package root) that will identify any pkgTest files to copy into
-respective package tests and then run.
-
-***
-
-### transforms
-
-> **transforms**: `object`
-
-Transforms that need to be run on the raw tests that were found via testMatch and copied into the project.
-
-If none are provided, then you can only use runWith tools that can operate directly on js and we expect
-the files to be in the correct raw js flavor
-
-#### typescript
-
-> **typescript**: [`TypescriptOptions`](TypescriptOptions.md)

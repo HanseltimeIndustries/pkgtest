@@ -211,12 +211,14 @@ export interface TestConfig {
 	 *
 	 * @default "./"
 	 */
-	matchRootDir?: string;
+	rootDir?: string;
 	/**
-	 * A string of globs to ignore even searching for matches.  This is helpful for performance by ensuring that we skip scanning large
+	 * A string of globs to ignore when searching for file test matches.  This is helpful for performance by ensuring that we skip scanning large
 	 * directories like node_modules.
+	 * 
+	 * Keep in mind that this glob is relative to rootDir.
 	 *
-	 * Note: pkgtest will use .gitignore as a baseline
+	 * (As a matter of performance, we don't scan node_modules, .yarn, or .git)
 	 */
 	matchIgnore?: string[];
 	/**

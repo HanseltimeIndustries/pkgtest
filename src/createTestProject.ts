@@ -49,7 +49,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		 *
 		 * This defaults to ./
 		 */
-		matchRootDir: string;
+		rootDir: string;
 		/**
 		 * For each glob pattern, this will not even bother looking for tests inside of it.
 		 *
@@ -85,14 +85,8 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 	fileTestRunners: FileTestRunner[];
 	binTestRunner?: BinTestRunner;
 }> {
-	const {
-		projectDir,
-		testProjectDir,
-		debug,
-		failFast,
-		matchRootDir,
-		matchIgnore,
-	} = context;
+	const { projectDir, testProjectDir, debug, failFast, rootDir, matchIgnore } =
+		context;
 
 	if (!isAbsolute(projectDir)) {
 		throw new Error("projectDir must be absolute path!");
@@ -114,7 +108,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 	let testFiles: string[] = [];
 	if (fileTests) {
 		testFiles = await getAllMatchingFiles(
-			resolve(projectDir, matchRootDir),
+			resolve(projectDir, rootDir),
 			fileTests.testMatch,
 			matchIgnore,
 		);

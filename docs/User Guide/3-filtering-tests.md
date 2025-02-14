@@ -6,7 +6,7 @@
 
 ### [testMatch]
 
-`pkgtest` will take any number of last arguments as glob patterns to match to test files.  The glob patterns are relative to your `matchRootDir`.
+`pkgtest` will take any number of last arguments as glob patterns to match to test files.  The glob patterns are relative to your `rootDir`.
 
 === "yarn"
     ```shell
@@ -21,7 +21,7 @@
     pnpm pkgtest "**/test2.ts"
     ```
 
-Assuming we have a `matchRootDir: "pkgtests"`, the above command will only run the tests that result from `pkgtests/test2.ts`:
+Assuming we have a `rootDir: "pkgtests"`, the above command will only run the tests that result from `pkgtests/test2.ts`:
 
 <pre>
 <code>Test Suite for Module commonjs, Package Manager yarn-v1 (<span style="color:magenta">pkgtest default</span>), Run with node
