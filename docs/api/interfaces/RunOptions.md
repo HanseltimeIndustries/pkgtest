@@ -39,6 +39,18 @@ Immediately stop running tests after a failure
 For every supplied filter, the tests that would be created via the configs will be paired down to only thouse
 that match all filters provided
 
+#### binTestNames?
+
+> `optional` **binTestNames**: `string`[]
+
+A string match/regex filter to only run bins that match
+
+#### fileTestNames?
+
+> `optional` **fileTestNames**: `string`[]
+
+A glob filter of file names to run (relative to the cwd root)
+
 #### moduleTypes?
 
 > `optional` **moduleTypes**: [`ModuleTypes`](../enumerations/ModuleTypes.md)[]
@@ -55,11 +67,9 @@ that match all filters provided
 
 > `optional` **runWith**: [`RunWith`](../enumerations/RunWith.md)[]
 
-#### testNames?
+#### testTypes?
 
-> `optional` **testNames**: `string`[]
-
-A glob filter of file names to run (relative to the cwd root)
+> `optional` **testTypes**: [`TestType`](../enumerations/TestType.md)[]
 
 ***
 

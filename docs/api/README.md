@@ -9,6 +9,7 @@
 - [ModuleTypes](enumerations/ModuleTypes.md)
 - [PkgManager](enumerations/PkgManager.md)
 - [RunWith](enumerations/RunWith.md)
+- [TestType](enumerations/TestType.md)
 
 ## Classes
 
@@ -16,6 +17,8 @@
 
 ## Interfaces
 
+- [BinTestConfig](interfaces/BinTestConfig.md)
+- [BinTestEntry](interfaces/BinTestEntry.md)
 - [InstalledTool](interfaces/InstalledTool.md)
 - [PkgManagerBaseOptions](interfaces/PkgManagerBaseOptions.md)
 - [PkgManagerOptionsConfig](interfaces/PkgManagerOptionsConfig.md)

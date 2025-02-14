@@ -51,26 +51,34 @@ Let's go ahead and create a `pkgtest.config.js`:
 === "commonjs project"
     ```js title="pkgtest.config.js"
     module.exports = {
+        matchRootDir: "pkgtests",
         entries: [
             {
-                testMatch: "pkgtests/**/*.ts",
-                runWith: ["node", "ts-node", "tsx"],
-                packageManagers: ["yarn-v1", "yarn-berry", "npm", "pnpm"],
-                moduleTypes: ["commonjs", "esm"],
-                transforms: {
-                    typescript: {
-                        version: '^5.0.0',
-                        tsNode: {
-                            version: '^10.9.2'
-                        },
-                        tsx: {
-                            version: '^4.19.2',
-                        },
-                        nodeTypes: {
-                            version: '^20.0.0',
-                        } 
-                    }
+                fileTests: {
+                    testMatch: "pkgtests/**/*.ts",
+                    runWith: ["node", "ts-node", "tsx"],
+                    transforms: {
+                        typescript: {
+                            version: '^5.0.0',
+                            tsNode: {
+                                version: '^10.9.2'
+                            },
+                            tsx: {
+                                version: '^4.19.2',
+                            },
+                            nodeTypes: {
+                                version: '^20.0.0',
+                            } 
+                        }
+                    },
                 },
+                packageManagers: [
+                    "yarn-v1",
+                    "yarn-berry",
+                    "npm", 
+                    "pnpm",
+                ],
+                moduleTypes: ["commonjs", "esm"],
                 // No additional files needed
             },
         ]
@@ -79,26 +87,34 @@ Let's go ahead and create a `pkgtest.config.js`:
 === "esm project"
     ```js title="pkgtest.config.js"
     export default {
+        matchRootDir: "pkgtests",
         entries: [
             {
-                testMatch: "pkgtests/**/*.ts",
-                runWith: ["node", "ts-node", "tsx"],
-                packageManagers: ["yarn-v1", "yarn-berry", "npm", "pnpm"],
-                moduleTypes: ["commonjs", "esm"],
-                transforms: {
-                    typescript: {
-                        version: '^5.0.0',
-                        tsNode: {
-                            version: '^10.9.2'
-                        },
-                        tsx: {
-                            version: '^4.19.2',
-                        },
-                        nodeTypes: {
-                            version: '^20.0.0',
-                        } 
-                    }
+                fileTests: {
+                    testMatch: "pkgtests/**/*.ts",
+                    runWith: ["node", "ts-node", "tsx"],
+                    transforms: {
+                        typescript: {
+                            version: '^5.0.0',
+                            tsNode: {
+                                version: '^10.9.2'
+                            },
+                            tsx: {
+                                version: '^4.19.2',
+                            },
+                            nodeTypes: {
+                                version: '^20.0.0',
+                            } 
+                        }
+                    },
                 },
+                packageManagers: [
+                    "yarn-v1",
+                    "yarn-berry",
+                    "npm", 
+                    "pnpm",
+                ],
+                moduleTypes: ["commonjs", "esm"],
                 // No additional files needed
             },
         ]
@@ -120,29 +136,33 @@ This means that there will be 8 testing package folders created.
 #### 2. The scripts that will be run
 
 ```js
-    testMatch: "pkgtests/**/*.ts",
+    fileTests: {
+        testMatch: "pkgtests/**/*.ts",
+    }
 ```
 
-This means that all `.ts` files in the `pkgtests/` directory will be copied into each project and run.
+This means that all `.ts` files in the `pkgtests/` (`matchRootDir`) directory will be copied into each project and run.
 In our case, that is just `pkgtests/tests1.ts`.
 
 #### 3. Transformation
 
 ```js
-    transforms: {
-        typescript: {
-            version: '^5.0.0',
-            tsNode: {
-                version: '^10.9.2'
-            },
-            tsx: {
-                version: '^4.19.2',
-            },
-            nodeTypes: {
-                version: '^20.0.0',
-            } 
-        }
-    },
+    fileTests: {
+        transforms: {
+            typescript: {
+                version: '^5.0.0',
+                tsNode: {
+                    version: '^10.9.2'
+                },
+                tsx: {
+                    version: '^4.19.2',
+                },
+                nodeTypes: {
+                    version: '^20.0.0',
+                } 
+            }
+        },
+    }
 ```
 
 If you think about the fact that we provided a typescript file `test1.ts` as a test, there has to be
@@ -154,7 +174,9 @@ option tells pkgtest to make sure to set up a tsconfig file and use it when eith
 #### 4. How to run the test files
 
 ```js
-    runWith: ["node", "ts-node", "tsx"],
+    fileTests: {
+        runWith: ["node", "ts-node", "tsx"],
+    }
 ```
 
 For each testing package that was created, we will run the test files (in this case, just `test1.ts`) via the run methods
@@ -202,10 +224,13 @@ Total: 1
 
 ### Understanding the output
 
-#### Test Suite
+#### File Test Suite
 
-In pkgtest, a Test Suite is `module type` + `package manager`  + `pkg manager config alias` + `runWith`.  
-The suite is located in your os's temporary directory and, after all installation and compiling, it consists of
+In pkgtest, a Test Suite is a collection of same style tests in a given environment.
+So far we've been working with [file tests](./User%20Guide/1-test-types.md#file_tests), which are ways of testing your programmatic
+APIs on import.
+For a file test, a test suite is all files run under `module type` + `package manager`  + `pkg manager config alias` + `runWith`.  
+The suite's test project is located in your os's temporary directory and, after all installation and compiling, it consists of
 running the specific run command for the `runWith` we specified.
 
 The <code>(<span style="color:magenta">pkgtest default</span>)</code> is the default pkgtest configuration of
@@ -213,7 +238,7 @@ the package manager.  For the most part, this is a good approximation of the lat
 project setup.  There are more advanced configuration options that allow you to add an alias for more controlled package
 manager setups.
 
-#### Test
+#### File Test
 
 <pre>
 <code>
@@ -378,6 +403,8 @@ make the appropriate config options (not part of getting started) and then note 
 
 ## Filtering tests
 
+[Complete Documentation](./User%20Guide/3-filtering-tests.md)
+
 Now that you have a grasp on running and debugging tests, we can talk about test filtering.  Like with other test frameworks,
 running all tests all the time (or even just some until the first failure), can become tedious and a time sink during development.  
 
@@ -432,19 +459,11 @@ Total: 2
 
 #### [--modType]
 
-!!! note
-
-    This does not create new test projects, it only filters the test projects that would be created via that config file.
-
 This will only run the test suites that match the moduleType that you want.
 
 Example: `--modType commonjs` will only run any projects configured as `commonjs`
 
 #### [--pkgManager]
-
-!!! note
-
-    This does not create new test projects, it only filters the test projects that would be created via that config file.
 
 This will only run the test suites that match the packageManager types that you want.
 
@@ -452,19 +471,11 @@ Example: `--modType yarn-v1` will only run any configurations that would use yar
 
 #### [--runWith]
 
-!!! note
-
-    This does not create new test projects, it only filters the test projects that would be created via that config file.
-
 This will only run the test suites that match the type of runWith parameter.
 
 Example: `--runWith tsx node` will only run any configurations that would run test files with `node` or `tsx`
 
 #### [--pkgManagerAlias]
-
-!!! note
-
-    This does not create new test projects, it only filters the test projects that would be created via that config file.
 
 As discussed above, since there are various package manager configurations, you can specify a specific alias for configured package manager.
 This is especially helpful when you are setting up custom configurations (a good example is `yarn-berry` and its different `nodeLinker` fields).
@@ -526,8 +537,214 @@ At the top of the CLI output, you can see all the skipped suites!
 Also,
 
 * Only the pnpm, esm project was created
-* It only ran via tsx
+* It only ran the file test via `tsx`
 * It only ran `testFail.ts`
+
+## Testing bin commands
+
+All of our preceding configuration involved us testing that our package imports and runs within other scripts (just like someone using our package
+as a library).  Now though, let's assume that we've added a `bin` entry to our `package.json` so that people can use our tool via the cli.
+
+In this case, we're counting on the package manager to fire up the binary we provided (under the hood this looks like a node-like call).  Given that the
+package manager is making decisions for us though, we probably want to test the bin script that we're creating under those package manager constraints
+(and any module loading limitations of commonjs vs esm).
+
+Let's go ahead and add a pretend cli command (assuming you have a typescript project set up):
+
+=== "package.json"
+    ```json
+    {
+        "name": "mypkg",
+        "bin": {
+            "hello": "dist/bin/hello.js",
+        }
+        // Other fields and dependencies
+    }
+    ```
+=== "tsconfig.json"
+    ```json
+    {
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "target": "es2020",
+        "outDir": "dist",
+        "rootDir": "src"
+        // Other fields
+    }
+    ```
+=== "src/bin/hello.ts"
+    ```typescript
+    console.log("hello!")
+    ```
+
+To add test the hello script that we build, let's modify our test entry:
+
+=== "commonjs project"
+    ```js title="pkgtest.config.js" hl_lines="4"
+    module.exports = {
+        entries: [
+            {
+                binTests: {},
+                fileTests: {
+                    testMatch: "pkgtests/**/*.ts",
+                    runWith: ["node", "ts-node", "tsx"],
+                    transforms: {
+                        typescript: {
+                            version: '^5.0.0',
+                            tsNode: {
+                                version: '^10.9.2'
+                            },
+                            tsx: {
+                                version: '^4.19.2',
+                            },
+                            nodeTypes: {
+                                version: '^20.0.0',
+                            } 
+                        }
+                    },
+                },
+                packageManagers: [
+                    "yarn-v1",
+                    "yarn-berry",
+                    "npm", 
+                    "pnpm",
+                ],
+                moduleTypes: ["commonjs", "esm"],
+                // No additional files needed
+            },
+        ]
+    }
+    ```
+=== "esm project"
+    ```js title="pkgtest.config.js" hl_lines="4"
+    export default {
+        entries: [
+            {
+                fileTests: {
+                    binTests: {},
+                    testMatch: "pkgtests/**/*.ts",
+                    runWith: ["node", "ts-node", "tsx"],
+                    transforms: {
+                        typescript: {
+                            version: '^5.0.0',
+                            tsNode: {
+                                version: '^10.9.2'
+                            },
+                            tsx: {
+                                version: '^4.19.2',
+                            },
+                            nodeTypes: {
+                                version: '^20.0.0',
+                            } 
+                        }
+                    },
+                },
+                packageManagers: [
+                    "yarn-v1",
+                    "yarn-berry",
+                    "npm", 
+                    "pnpm",
+                ],
+                moduleTypes: ["commonjs", "esm"],
+                // No additional files needed
+            },
+        ]
+    }
+    ```
+
+Let's go ahead and run pkgtest:
+
+```shell
+yarn tsc  # Make sure you've compiled your bin file
+yarn pkgtest
+```
+
+You should now see some new test suites reported:
+
+<pre>
+<code>
+...Additional Tests Tests...
+
+Test Suite for Module esm, Package Manager yarn-berry (yarn node linked), Package Bin Commands
+Test package location: /tmp/pkgTest-XXXXXXhgjVy3
+Test:  corepack yarn@latest hello --help <span style="color:green">Passed</span> 682 ms
+        corepack yarn@latest hello --help:
+Passed: <span style="color:green">1</span>
+Failed: <span style="color:red">0</span>
+Skipped: 0
+Not Run: 0
+Total: 1
+
+[runner] File Test Suites:  <span style="color:green">24 passed</span>, 24 total
+[runner] File Tests:        <span style="color:green">24 passed</span>, 24 total
+[runner] Bin Test Suites:  <span style="color:green">8 passed</span>, 8 total
+[runner] Bin Tests:        <span style="color:green">8 passed</span>, 8 total
+[runner] Setup Time:       11.094 s
+[runner] File Test Time:   40.655 s
+[runner] Bin Test Time:    10.442 s
+</code>
+</pre>
+
+### Understanding the output
+
+<pre>
+<code>
+Test Suite for Module esm, Package Manager yarn-berry (yarn node linked), Package Bin Commands
+Test package location: /tmp/pkgTest-XXXXXXhgjVy3
+Test:  corepack yarn@latest hello --help <span style="color:green">Passed</span> 682 ms
+        corepack yarn@latest hello --help:
+Passed: <span style="color:green">1</span>
+Failed: <span style="color:red">0</span>
+Skipped: 0
+Not Run: 0
+Total: 1
+</code>
+</pre>
+
+#### Bin Test Suite
+
+This is the output for a Bin Test Suite.  As you can see, a bin test suite is the run of all bin commands
+in a given project for `esm + package manager configuration`.  They are denoted by the `Package Bin Commands` string.
+
+!!! tip
+    Try adding another bin entry to your package.json and re-run (`"hello2": "dist/bin/hello.js"`).  You should see 2 tests
+    now in the suite.
+
+#### Bin Test
+
+<pre>
+<code>
+Test:  corepack yarn@latest hello --help <span style="color:green">Passed</span> 682 ms
+        corepack yarn@latest hello --help:
+</code>
+</pre>
+
+You may have also noticed that, even though we provided no arguments to `binTests`, pkgtest went ahead and created a test
+for `hello`.  The hello test is just it's cli call and it uses `--help` as a flag.
+
+By default, pkgtest will scan all `bin` entries in your package.json and create a `--help` cli
+call.  pkgtest will then consider an exit code 0 to be a success on these bin calls.
+
+##### Specific Arguments 
+
+Given how simple our cli call is, `--help` doesn't do anything for us (it doesn't even thrown an unrecognized flag error).  If we wanted
+to be a bit more correct about out test, we can override the arguments that pkgtest uses.
+
+```javascript
+    binTest: {
+        hello: [
+            {
+                args: "",
+            },
+        ],
+    }
+```
+
+Now, pkgtest will only run one test for hello and will call just hello with no args.
+
+!!! tip
+
+    Try adding a second entry with different args.  When you re-run, you should see 2 `hello` tests.
 
 ## Testing yarn berry (node-modules resolution)
 
@@ -550,7 +767,7 @@ importing some third party library with packages incorrectly declared in devDepe
 that, as a package maintainer, we should expect that a large number of people using yarn berry may have switched back to the simpler
 `node-modules` or `pnpm` nodelinker configurations of yarn.
 
-### Adding a new test suite
+### Adding a new package manager config
 
 At this point, we've reached the limits of the simple `packageManager` strings.  We already have a `yarn-berry` entry, and that default is
 yarn plug'n'play (or whatever yarn berry defaults to in the future).  So let's add another entry:
@@ -560,9 +777,26 @@ yarn plug'n'play (or whatever yarn berry defaults to in the future).  So let's a
     ```js title="pkgtest.config.js"
     module.exports = {
         entries: [
-            {
-                testMatch: "pkgtests/**/*.ts",
-                runWith: ["node", "ts-node", "tsx"],
+           {
+                fileTests: {
+                    binTests: {},
+                    testMatch: "pkgtests/**/*.ts",
+                    runWith: ["node", "ts-node", "tsx"],
+                    transforms: {
+                        typescript: {
+                            version: '^5.0.0',
+                            tsNode: {
+                                version: '^10.9.2'
+                            },
+                            tsx: {
+                                version: '^4.19.2',
+                            },
+                            nodeTypes: {
+                                version: '^20.0.0',
+                            } 
+                        }
+                    },
+                },
                 packageManagers: [
                     "yarn-v1",
                     "yarn-berry",
@@ -579,20 +813,6 @@ yarn plug'n'play (or whatever yarn berry defaults to in the future).  So let's a
                     }
                 ],
                 moduleTypes: ["commonjs", "esm"],
-                transforms: {
-                    typescript: {
-                        version: '^5.0.0',
-                        tsNode: {
-                            version: '^10.9.2'
-                        },
-                        tsx: {
-                            version: '^4.19.2',
-                        },
-                        nodeTypes: {
-                            version: '^20.0.0',
-                        } 
-                    }
-                },
                 // No additional files needed
             },
         ]
@@ -603,8 +823,25 @@ yarn plug'n'play (or whatever yarn berry defaults to in the future).  So let's a
     export default {
         entries: [
             {
-                testMatch: "pkgtests/**/*.ts",
-                runWith: ["node", "ts-node", "tsx"],
+                fileTests: {
+                    binTests: {},
+                    testMatch: "pkgtests/**/*.ts",
+                    runWith: ["node", "ts-node", "tsx"],
+                    transforms: {
+                        typescript: {
+                            version: '^5.0.0',
+                            tsNode: {
+                                version: '^10.9.2'
+                            },
+                            tsx: {
+                                version: '^4.19.2',
+                            },
+                            nodeTypes: {
+                                version: '^20.0.0',
+                            } 
+                        }
+                    },
+                },
                 packageManagers: [
                     "yarn-v1",
                     "yarn-berry",
@@ -621,24 +858,10 @@ yarn plug'n'play (or whatever yarn berry defaults to in the future).  So let's a
                     }
                 ],
                 moduleTypes: ["commonjs", "esm"],
-                transforms: {
-                    typescript: {
-                        version: '^5.0.0',
-                        tsNode: {
-                            version: '^10.9.2'
-                        },
-                        tsx: {
-                            version: '^4.19.2',
-                        },
-                        nodeTypes: {
-                            version: '^20.0.0',
-                        } 
-                    }
-                },
                 // No additional files needed
             },
         ]
     }
     ```
 
-That's it!  Now when you run `pkgtest` you can see that there is a set of <code>yarn-berry (<span style="color:magenta">yarn berry node-modules</span>)</code> test suites that ran.  And now we are sure that both yarn 
+That's it!  Now when you run `pkgtest` you can see that there is a set of <code>yarn-berry (<span style="color:magenta">yarn berry node-modules</span>)</code> test suites that ran.  And now we are sure that both yarn and yarn operating under node-modules resolution works!

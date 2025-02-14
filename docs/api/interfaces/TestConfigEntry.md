@@ -21,6 +21,17 @@ or other explicit fields like "typescript.tsx.version".
 
 ***
 
+### binTests?
+
+> `optional` **binTests**: [`BinTestConfig`](BinTestConfig.md)
+
+If this is provided, this will also generate a test per package manager + module type combination
+where each bin command provided is called accordingly
+
+By default, if you provide an empty object, all commands will be run with --help
+
+***
+
 ### moduleTypes
 
 > **moduleTypes**: [`ModuleTypes`](../enumerations/ModuleTypes.md)[]
