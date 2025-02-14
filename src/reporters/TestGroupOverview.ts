@@ -36,6 +36,10 @@ export class TestGroupOverview {
 		this.ensureFinalized();
 		return this._time;
 	}
+	get failedFast() {
+		this.ensureFinalized();
+		return this._failedFast;
+	}
 	private _passed = 0;
 	private _failed = 0;
 	private _notReached = 0;
@@ -44,6 +48,7 @@ export class TestGroupOverview {
 	private _start: Date | undefined;
 	private _time: number = 0;
 	private _finalized = false;
+	private _failedFast = false;
 
 	addToTotal(n: number) {
 		this.ensureNotFinalized();
@@ -105,10 +110,11 @@ export class TestGroupOverview {
 		}
 	}
 
-	finalize() {
+	finalize(failedFast: boolean = false) {
 		if (this._finalized) {
 			return;
 		}
+		this._failedFast = failedFast;
 		if (this._start) {
 			this._time = new Date().getTime() - this._start.getTime();
 		}

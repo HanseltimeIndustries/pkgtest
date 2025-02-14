@@ -154,6 +154,7 @@ If you are writing in raw JS though, you will more than likely need to keep ESM 
 	additionalDependencies,
 	additionalFiles: z.array(AdditionalFilesEntryValidated).optional(),
 	binTests: BinTestsValidated.optional(),
+	timeout: z.number().optional(),
 }) satisfies ZodType<TestConfigEntry>;
 
 const TestConfigValidated = z.object({

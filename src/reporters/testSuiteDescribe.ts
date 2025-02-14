@@ -1,9 +1,8 @@
-import { BinTestRunnerDescribe } from "../BinTestRunner";
-import { FileTestRunnerDescribe } from "../FileTestRunner";
+import { BinTestRunnerDescribe, FileTestRunnerDescribe } from "./types";
 import chalk from "chalk";
 
 export function testSuiteDescribe(
-	opts: FileTestRunnerDescribe | BinTestRunnerDescribe,
+	opts: Omit<FileTestRunnerDescribe | BinTestRunnerDescribe, "projectDir">,
 ) {
 	const postfix = (opts as FileTestRunnerDescribe).runBy
 		? `Run with ${(opts as FileTestRunnerDescribe).runBy}`

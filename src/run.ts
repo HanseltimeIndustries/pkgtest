@@ -8,6 +8,7 @@ import { SimpleReporter } from "./reporters/SimpleReporter";
 import { Logger } from "./Logger";
 import chalk from "chalk";
 import {
+	FailFastError,
 	ModuleTypes,
 	PkgManager,
 	RunWith,
@@ -73,8 +74,6 @@ export interface RunOptions {
 	};
 }
 
-export class FailFastError extends Error {}
-
 interface Overview {
 	passed: number;
 	failed: number;
@@ -90,10 +89,10 @@ export async function run(options: RunOptions) {
 		configPath,
 		debug,
 		failFast,
-		timeout = 2000,
 		preserveResources,
 		filters = {},
 	} = options;
+	const topLevelTimeout = options.timeout || DEFAULT_TIMEOUT
 	const { fileTestNames: testNames = [] } = filters;
 	const logger = new Logger({
 		context: "[runner]",
@@ -134,6 +133,9 @@ export async function run(options: RunOptions) {
 	const fileTestsOverview = new TestGroupOverview();
 	const binTestSuitesOverview = new TestGroupOverview();
 	const binTestsOverview = new TestGroupOverview();
+	const reporter = new SimpleReporter({
+		debug,
+	});
 	const startSetup = new Date();
 	const testRunnerPkgs = await Promise.all(
 		config.entries.reduce(
@@ -264,13 +266,14 @@ export async function run(options: RunOptions) {
 									);
 								}
 							}
-							const entryLevelAdditionalFiles: AdditionalFilesCopy[] = testConfigEntry.additionalFiles
-							? await findAdditionalFilesForCopyOver({
-									additionalFiles: testConfigEntry.additionalFiles,
-									projectDir,
-									rootDir,
-								})
-							: [];
+							const entryLevelAdditionalFiles: AdditionalFilesCopy[] =
+								testConfigEntry.additionalFiles
+									? await findAdditionalFilesForCopyOver({
+											additionalFiles: testConfigEntry.additionalFiles,
+											projectDir,
+											rootDir,
+										})
+									: [];
 							try {
 								const { fileTestRunners, binTestRunner } =
 									await createTestProject(
@@ -297,7 +300,9 @@ export async function run(options: RunOptions) {
 												...topLevelAdditionalFiles,
 												...entryLevelAdditionalFiles,
 											],
-										},
+											reporter,
+											timeout: testConfigEntry.timeout || topLevelTimeout,
+										}
 									);
 
 								// Filter out whole test types (since they can be set up in the same project)
@@ -351,10 +356,6 @@ export async function run(options: RunOptions) {
 	logger.logDebug(`Finished initializing test projects.`);
 	const setupTime = new Date().getTime() - startSetup.getTime();
 
-	const reporter = new SimpleReporter({
-		debug,
-	});
-
 	// TODO: multi-threading pool for better results, although there's not a large amount of tests necessary at the moment
 	try {
 		let pass = true;
@@ -362,9 +363,7 @@ export async function run(options: RunOptions) {
 		for (const testRunnerPkg of testRunnerPkgsFiltered) {
 			for (const runner of testRunnerPkg.fileTestRunners) {
 				const summary = await runner.runTests({
-					timeout,
 					testNames,
-					reporter,
 				});
 				// Do all tests updating
 				if (summary.failed > 0) {
@@ -390,10 +389,7 @@ export async function run(options: RunOptions) {
 		for (const { binTestRunner } of testRunnerPkgsFiltered) {
 			// Since bin Tests are less certain, we filter here
 			if (!binTestRunner) continue;
-			const summary = await binTestRunner.runTests({
-				timeout,
-				reporter,
-			});
+			const summary = await binTestRunner.runTests();
 			// Do all tests updating
 			if (summary.failed > 0) {
 				binTestSuitesOverview.fail(1);

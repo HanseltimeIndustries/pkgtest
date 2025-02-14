@@ -228,6 +228,10 @@ export interface TestConfigEntry {
 	 * If you would like to place additional files within the test projects
 	 */
 	additionalFiles?: AdditionalFilesEntry[];
+	/**
+	 * Number of milliseconds per test to allow before failing
+	 */
+	timeout?: number;
 }
 
 export interface TestConfig {
@@ -264,4 +268,6 @@ export interface TestConfig {
 /**
  * Simple error to indicate controlled failures of a test internally
  */
-export class TestFailError extends Error {};
+export class TestFailError extends Error {}
+
+export class FailFastError extends Error {}

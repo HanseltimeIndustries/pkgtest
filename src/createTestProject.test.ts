@@ -22,6 +22,8 @@ import {
 import { join, resolve } from "path";
 import { TsConfigJson } from "get-tsconfig";
 import { AdditionalFilesCopy } from "./files/types";
+import { SimpleReporter } from "./reporters/SimpleReporter";
+import { TestGroupOverview } from "./reporters";
 
 jest.mock("./createDependencies");
 jest.mock("fs/promises");
@@ -41,6 +43,10 @@ const mockGetPkgManagerSetCommand = jest.mocked(getPkgManagerSetCommand);
 const mockGetTypescriptConfig = jest.mocked(getTypescriptConfig);
 const mockReadFile = jest.mocked(readFile);
 
+const testTimeout = 3500;
+const testReporter = new SimpleReporter({
+	debug: false,
+});
 const testBinCmd = "corepack npx@latest";
 const testPkgManagerCmd = "corepack npm@latest";
 const testPkgManagerSetCmd = "corepack use npm@latest";
@@ -153,6 +159,8 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 							runWith: [RunWith.Node],
 							testMatch: "some**glob",
 						},
+						timeout: testTimeout,
+						reporter: testReporter,
 					},
 				);
 
@@ -183,6 +191,9 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				modType,
 				failFast: false,
 				extraEnv: {},
+				timeout: testTimeout,
+				reporter: testReporter,
+				groupOverview: expect.any(TestGroupOverview),
 			});
 			expect(binTestRunner).toBeUndefined();
 
@@ -235,6 +246,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				JSON.stringify(
 					{
 						name: `@dummy-test-package/test-${modType}`,
+						version: "0.0.0",
 						description: `Compiled tests for ${testPackageJson.name} as ${modType} project import`,
 						...expectedTypeField,
 						// These were populated by the createDependencies method we mocked
@@ -311,6 +323,8 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 								typescript: typescriptOptions,
 							},
 						},
+						timeout: testTimeout,
+						reporter: testReporter,
 					},
 				);
 
@@ -381,6 +395,9 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				modType: modType,
 				failFast: false,
 				extraEnv: {},
+				timeout: testTimeout,
+				reporter: testReporter,
+				groupOverview: expect.any(TestGroupOverview),
 			});
 			expect(binTestRunner).toBeUndefined();
 
@@ -399,6 +416,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				JSON.stringify(
 					{
 						name: `@dummy-test-package/test-${modType}`,
+						version: "0.0.0",
 						description: `Compiled tests for ${testPackageJson.name} as ${modType} project import`,
 						...expectedTypeField,
 						// These were populated by the createDependencies method we mocked
@@ -483,6 +501,8 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 								typescript: typescriptOptions,
 							},
 						},
+						timeout: testTimeout,
+						reporter: testReporter,
 						modType: modType,
 						pkgManager: PkgManager.YarnV1,
 						pkgManagerAlias: "myalias",
@@ -580,6 +600,9 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				modType: modType,
 				failFast: false,
 				extraEnv: {},
+				timeout: testTimeout,
+				reporter: testReporter,
+				groupOverview: expect.any(TestGroupOverview),
 			});
 			expect(binTestRunner).toEqual({
 				runCommand: testBinCmd,
@@ -609,6 +632,9 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						},
 					],
 				},
+				timeout: testTimeout,
+				reporter: testReporter,
+				groupOverview: expect.any(TestGroupOverview),
 			});
 
 			// Confirm correct function calls to mocks
@@ -626,6 +652,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				JSON.stringify(
 					{
 						name: `@dummy-test-package/test-${modType}`,
+						version: "0.0.0",
 						description: `Compiled tests for ${testPackageJson.name} as ${modType} project import`,
 						...expectedTypeField,
 						// These were populated by the createDependencies method we mocked
@@ -718,6 +745,8 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 								typescript: typescriptOptions,
 							},
 						},
+						timeout: testTimeout,
+						reporter: testReporter,
 					},
 				);
 
@@ -789,6 +818,9 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				modType,
 				failFast: false,
 				extraEnv: {},
+				timeout: testTimeout,
+				reporter: testReporter,
+				groupOverview: expect.any(TestGroupOverview),
 			});
 			expect(testRunners).toContainEqual({
 				// Since Ts-node doesn't really work the same with esm, the command changes
@@ -808,6 +840,9 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				pkgManagerAlias: "myalias",
 				modType,
 				failFast: false,
+				timeout: testTimeout,
+				reporter: testReporter,
+				groupOverview: expect.any(TestGroupOverview),
 				extraEnv:
 					modType === ModuleTypes.Commonjs
 						? {}
@@ -830,6 +865,9 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				modType,
 				failFast: false,
 				extraEnv: {},
+				timeout: testTimeout,
+				reporter: testReporter,
+				groupOverview: expect.any(TestGroupOverview),
 			});
 			expect(binTestRunner).toBeUndefined();
 
@@ -849,6 +887,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				JSON.stringify(
 					{
 						name: `@dummy-test-package/test-${modType}`,
+						version: "0.0.0",
 						description: `Compiled tests for ${testPackageJson.name} as ${modType} project import`,
 						...expectedTypeField,
 						// These were populated by the createDependencies method we mocked
@@ -909,6 +948,8 @@ it("throws an error if the projectdir is not absolute", async () => {
 					runWith: [RunWith.Node],
 					testMatch: "some**glob",
 				},
+				timeout: testTimeout,
+				reporter: testReporter,
 			},
 		);
 	}).rejects.toThrow("projectDir must be absolute path!");
@@ -932,6 +973,8 @@ it("throws an error if the testProjectDir is not absolute", async () => {
 					runWith: [RunWith.Node],
 					testMatch: "some**glob",
 				},
+				timeout: testTimeout,
+				reporter: testReporter,
 			},
 		);
 	}).rejects.toThrow("testProjectDir must be absolute path!");

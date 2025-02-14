@@ -1,4 +1,4 @@
-import { Reporter } from "./reporters";
+import { Reporter, TestGroupOverview } from "./reporters";
 import { FileTestRunner } from "./FileTestRunner";
 import { ModuleTypes, PkgManager, RunWith } from "./types";
 import { exec, ExecException } from "child_process";
@@ -85,22 +85,22 @@ it("runs all test files and reports the results", async () => {
 		pkgManager: PkgManager.Npm,
 		pkgManagerAlias: "myalias",
 		modType: ModuleTypes.Commonjs,
-	});
-
-	const { time, ...stableResults } = await runner.runTests({
 		timeout: 5000,
-		testNames: [], // All tests
 		reporter: mockReporter,
 	});
-	expect(stableResults).toEqual({
+
+	const overview = await runner.runTests({
+		testNames: [], // All tests
+	});
+	overviewEqual(overview, {
 		passed: 2,
 		failed: 1,
 		skipped: 0,
-		notReached: [],
+		notReached: 0,
 		total: 3,
 		failedFast: false,
 	});
-	expect(time).toBeGreaterThan(1);
+	expect(overview.time).toBeGreaterThan(1);
 
 	// Ensure the exec options match our expectation
 	for (const testFile of testFiles) {
@@ -151,10 +151,7 @@ it("runs all test files and reports the results", async () => {
 		stderr: "",
 	});
 	expect(mockReporter.skipped).not.toHaveBeenCalled();
-	expect(mockReporter.summary).toHaveBeenCalledWith({
-		time,
-		...stableResults,
-	});
+	expect(mockReporter.summary).toHaveBeenCalledWith(overview);
 });
 
 it("runs test files until first failure and reports the results with failFast", async () => {
@@ -201,27 +198,22 @@ it("runs test files until first failure and reports the results with failFast", 
 		pkgManagerAlias: "myalias",
 		modType: ModuleTypes.Commonjs,
 		failFast: true,
-	});
-
-	const { time, ...stableResults } = await runner.runTests({
 		timeout: 5000,
-		testNames: [], // All tests
 		reporter: mockReporter,
 	});
-	expect(stableResults).toEqual({
+
+	const overview = await runner.runTests({
+		testNames: [], // All tests
+	});
+	overviewEqual(overview, {
 		passed: 1,
 		failed: 1,
 		skipped: 0,
-		notReached: [
-			{
-				orig: "test3",
-				actual: "test3a",
-			},
-		],
+		notReached: 1,
 		total: 3,
 		failedFast: true,
 	});
-	expect(time).toBeGreaterThan(1);
+	expect(overview.time).toBeGreaterThan(1);
 
 	// Ensure the exec options match our expectation
 	for (const testFile of testFiles.slice(0, 2)) {
@@ -263,10 +255,7 @@ it("runs test files until first failure and reports the results with failFast", 
 		timedout: false,
 	});
 	expect(mockReporter.skipped).not.toHaveBeenCalled();
-	expect(mockReporter.summary).toHaveBeenCalledWith({
-		time,
-		...stableResults,
-	});
+	expect(mockReporter.summary).toHaveBeenCalledWith(overview);
 });
 it("runs test files and handles timeouts", async () => {
 	mockExec.mockImplementation((cmd, _opts, cb) => {
@@ -315,22 +304,22 @@ it("runs test files and handles timeouts", async () => {
 		pkgManagerAlias: "myalias",
 		modType: ModuleTypes.Commonjs,
 		failFast: false,
-	});
-
-	const { time, ...stableResults } = await runner.runTests({
 		timeout: 50,
-		testNames: [], // All tests
 		reporter: mockReporter,
 	});
-	expect(stableResults).toEqual({
+
+	const overview = await runner.runTests({
+		testNames: [], // All tests
+	});
+	overviewEqual(overview, {
 		passed: 2,
 		failed: 1,
 		skipped: 0,
-		notReached: [],
+		notReached: 0,
 		total: 3,
 		failedFast: false,
 	});
-	expect(time).toBeGreaterThan(1);
+	expect(overview.time).toBeGreaterThan(1);
 
 	// Ensure the exec options match our expectation
 	for (const testFile of testFiles) {
@@ -383,10 +372,7 @@ it("runs test files and handles timeouts", async () => {
 		timedout: true,
 	});
 	expect(mockReporter.skipped).not.toHaveBeenCalled();
-	expect(mockReporter.summary).toHaveBeenCalledWith({
-		time,
-		...stableResults,
-	});
+	expect(mockReporter.summary).toHaveBeenCalledWith(overview);
 });
 it("runs only designated test files", async () => {
 	mockExec.mockImplementation((cmd, _opts, cb) => {
@@ -432,22 +418,22 @@ it("runs only designated test files", async () => {
 		pkgManagerAlias: "myalias",
 		modType: ModuleTypes.Commonjs,
 		failFast: false,
-	});
-
-	const { time, ...stableResults } = await runner.runTests({
 		timeout: 1000,
-		testNames: ["**/*.ts"], // All tests
 		reporter: mockReporter,
 	});
-	expect(stableResults).toEqual({
+
+	const overview = await runner.runTests({
+		testNames: ["**/*.ts"], // All tests
+	});
+	overviewEqual(overview, {
 		passed: 2,
 		failed: 0,
 		skipped: 1,
-		notReached: [],
+		notReached: 0,
 		total: 3,
 		failedFast: false,
 	});
-	expect(time).toBeGreaterThan(1);
+	expect(overview.time).toBeGreaterThan(1);
 
 	// Ensure the exec options match our expectation
 	for (const testFile of testFiles.filter((tf) => tf.orig.endsWith(".ts"))) {
@@ -497,8 +483,27 @@ it("runs only designated test files", async () => {
 		},
 		time: 0,
 	});
-	expect(mockReporter.summary).toHaveBeenCalledWith({
-		time,
-		...stableResults,
-	});
+	expect(mockReporter.summary).toHaveBeenCalledWith(overview);
 });
+
+function overviewEqual(
+	overview: TestGroupOverview,
+	eq: {
+		passed: number;
+		failed: number;
+		skipped: number;
+		notReached: number;
+		total: number;
+		failedFast: boolean;
+	},
+) {
+	const { passed, failed, skipped, notReached, total, failedFast } = overview;
+	expect({
+		passed,
+		failed,
+		skipped,
+		notReached,
+		total,
+		failedFast,
+	}).toEqual(eq);
+}

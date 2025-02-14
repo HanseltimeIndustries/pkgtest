@@ -1,7 +1,19 @@
-import { program, Command, Argument, Option, InvalidArgumentError } from "commander";
+import {
+	program,
+	Command,
+	Argument,
+	Option,
+	InvalidArgumentError,
+} from "commander";
 import { DEFAULT_CONFIG_FILE_NAME_BASE, LIBRARY_NAME } from "../config";
-import { DEFAULT_TIMEOUT, FailFastError, run } from "../run";
-import { ModuleTypes, PkgManager, RunWith, TestType } from "../types";
+import { DEFAULT_TIMEOUT, run } from "../run";
+import {
+	FailFastError,
+	ModuleTypes,
+	PkgManager,
+	RunWith,
+	TestType,
+} from "../types";
 
 interface Options {
 	config?: string;
@@ -20,10 +32,10 @@ interface Options {
 function parseIntArg(value: string, _prev?: number): number {
 	const parsedValue = parseInt(value, 10);
 	if (isNaN(parsedValue)) {
-	  throw new InvalidArgumentError('Not a number.');
+		throw new InvalidArgumentError("Not a number.");
 	}
 	if (parsedValue <= 0) {
-		throw new InvalidArgumentError('Must be a positive integer.')
+		throw new InvalidArgumentError("Must be a positive integer.");
 	}
 	return parsedValue;
 }
@@ -35,7 +47,9 @@ program
 	.option("--debug", "Adds more logging for each test that runs")
 	.option("--failFast", "Immediately stops test execution on the first failure")
 	.option(
-		'-t, --timeout <ms>', `The max time in milliseconds to wait for a test to run (does not include test package folder set up).  Defaults to: ${DEFAULT_TIMEOUT}`, parseIntArg,
+		"-t, --timeout <ms>",
+		`The max time in milliseconds to wait for a test to run (does not include test package folder set up).  Defaults to: ${DEFAULT_TIMEOUT}`,
+		parseIntArg,
 	)
 	.option(
 		"--preserve",

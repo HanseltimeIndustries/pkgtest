@@ -1,16 +1,52 @@
-import { BinTest, BinTestRunner } from "../BinTestRunner";
-import { FileTest, FileTestRunner, TestFile } from "../FileTestRunner";
+import { BinTestConfig, ModuleTypes, PkgManager, RunWith } from "../types";
+import { TestGroupOverview } from "./TestGroupOverview";
 
-type Test = FileTest | BinTest;
+export interface TestFile {
+	/** The original file name - i.e. the file that was copied, relative to the cwd of the framework */
+	orig: string;
+	/** The actual testFile that we want to run (i.e. copied or compiled) */
+	actual: string;
+}
 
-type NotReachedInfo = TestFile | BinTest;
+export interface BinTest {
+	bin: string;
+	args: string;
+	env?: Record<string, string>;
+}
+
+export interface FileTest extends TestFile {
+	/**
+	 * The actual command run - this is in effect the true test
+	 */
+	command: string;
+}
+
+export type TestDescriptor = FileTest | BinTest;
+
+export type NotReachedInfo = TestFile | BinTest;
+
+export interface FileTestRunnerDescribe {
+	readonly modType: ModuleTypes;
+	readonly pkgManager: PkgManager;
+	readonly pkgManagerAlias: string;
+	readonly runBy: RunWith;
+	readonly projectDir: string;
+}
+
+export interface BinTestRunnerDescribe {
+	readonly pkgManager: PkgManager;
+	readonly pkgManagerAlias: string;
+	readonly modType: ModuleTypes;
+	readonly binTestConfig: BinTestConfig;
+	readonly projectDir: string;
+}
 
 export interface TestResult {
 	/**
 	 * The command that was executed
 	 */
 	testCmd: string;
-	test: Test;
+	test: TestDescriptor;
 	/**
 	 * The time in seconds that is took took to execute
 	 */
@@ -65,7 +101,7 @@ export interface Reporter {
 	 *
 	 * @param runner
 	 */
-	start(runner: FileTestRunner | BinTestRunner): void;
+	start(runner: FileTestRunnerDescribe | BinTestRunnerDescribe): void;
 	passed(res: TestResult): void;
 	failed(res: TestResult): void;
 	skipped(res: TestResult): void;
@@ -73,5 +109,5 @@ export interface Reporter {
 	 * Called at the end of a run.  This gives you the change to write some sort of footer text
 	 * @param result
 	 */
-	summary(result: TestsSummary): void;
+	summary(result: TestGroupOverview): void;
 }

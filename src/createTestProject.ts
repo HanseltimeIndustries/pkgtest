@@ -21,13 +21,13 @@ import {
 	getPkgManagerCommand,
 	getPkgManagerSetCommand,
 } from "./pkgManager";
-import { FileTestRunner, TestFile } from "./FileTestRunner";
+import { FileTestRunner } from "./FileTestRunner";
 import * as yaml from "js-yaml";
 import { Logger } from "./Logger";
 import { BinTestRunner } from "./BinTestRunner";
-import { existsSync, statSync } from "fs";
 import { copyOverAdditionalFiles } from "./files";
 import { AdditionalFilesCopy } from "./files/types";
+import { Reporter, TestFile } from "./reporters";
 
 export const SRC_DIRECTORY = "src";
 export const BUILD_DIRECTORY = "dist";
@@ -38,7 +38,7 @@ export const BUILD_DIRECTORY = "dist";
  * same way.
  *
  * @param context
- * @param options
+ * @param testOptions
  * @returns
  */
 export async function createTestProject<PkgManagerT extends PkgManager>(
@@ -67,7 +67,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		debug?: boolean;
 		failFast?: boolean;
 	},
-	options: {
+	testOptions: {
 		modType: ModuleTypes;
 		pkgManager: PkgManagerT;
 		pkgManagerVersion?: string;
@@ -87,6 +87,12 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		 * Any additional files that we want to copy into the project directory
 		 */
 		additionalFiles: AdditionalFilesCopy[];
+		/**
+		 * The number of ms that any test is allowed to run
+		 */
+		timeout: number;
+
+		reporter: Reporter;
 	},
 ): Promise<{
 	fileTestRunners: FileTestRunner[];
@@ -110,7 +116,9 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		pkgManagerVersion,
 		fileTests,
 		additionalFiles,
-	} = options;
+		timeout,
+		reporter,
+	} = testOptions;
 	const logPrefix = `[${pkgManager}, ${modType}, @${testProjectDir}]`;
 
 	let testFiles: string[] = [];
@@ -168,14 +176,14 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 
 	const pkgJson = {
 		name: `@dummy-test-package/test-${modType}`,
-		version: '0.0.0',
+		version: "0.0.0",
 		description: `Compiled tests for ${packageJson.name} as ${modType} project import`,
 		...typeProps,
 		dependencies: createDependencies(packageJson, relativePath, {
-			pkgManager: options.pkgManager,
+			pkgManager: testOptions.pkgManager,
 			runBy: fileTests?.runWith,
 			typescript: fileTests?.transforms?.typescript,
-			additionalDependencies: options.additionalDependencies,
+			additionalDependencies: testOptions.additionalDependencies,
 		}),
 		private: true,
 	};
@@ -335,6 +343,8 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 						modType,
 						failFast,
 						extraEnv: additionalEnv,
+						timeout,
+						reporter,
 					}),
 				);
 			});
@@ -361,6 +371,8 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 						modType,
 						failFast,
 						extraEnv: {},
+						timeout,
+						reporter,
 					}),
 				);
 			});
@@ -369,14 +381,16 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 
 	let binTestRunner: BinTestRunner | undefined = undefined;
 	// If this runs bintests, set those up as well
-	if (options.binTests) {
+	if (testOptions.binTests) {
 		binTestRunner = new BinTestRunner({
 			runCommand: binRunCmd,
 			projectDir: testProjectDir,
-			binTestConfig: options.binTests,
+			binTestConfig: testOptions.binTests,
 			pkgManager,
 			pkgManagerAlias,
 			modType,
+			timeout,
+			reporter,
 		});
 	}
 

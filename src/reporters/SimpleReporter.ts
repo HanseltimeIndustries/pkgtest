@@ -1,7 +1,12 @@
-import { BinTestRunner } from "../BinTestRunner";
-import { FileTest, FileTestRunner } from "../FileTestRunner";
+import { TestGroupOverview } from "./TestGroupOverview";
 import { testSuiteDescribe } from "./testSuiteDescribe";
-import { Reporter, TestResult, TestsSummary } from "./types";
+import {
+	BinTestRunnerDescribe,
+	FileTest,
+	FileTestRunnerDescribe,
+	Reporter,
+	TestResult,
+} from "./types";
 import chalk from "chalk";
 
 export class SimpleReporter implements Reporter {
@@ -12,7 +17,7 @@ export class SimpleReporter implements Reporter {
 		this.debug = !!options.debug;
 	}
 
-	start(runner: FileTestRunner | BinTestRunner): void {
+	start(runner: FileTestRunnerDescribe | BinTestRunnerDescribe): void {
 		console.log(testSuiteDescribe(runner));
 		console.log(`Test package location: ${runner.projectDir}`);
 	}
@@ -44,13 +49,11 @@ export class SimpleReporter implements Reporter {
 			`${chalk.blue("Test: ")} ${chalk.gray(testName)} ${chalk.yellow("Skipped")} ${chalk.gray(`${res.time} ms`)}\n\t${res.testCmd} `,
 		);
 	}
-	summary(result: TestsSummary): void {
+	summary(result: TestGroupOverview): void {
 		const skippedCount =
 			result.skipped === 0 ? 0 : chalk.yellow(result.skipped);
 		const notReachedCount =
-			result.notReached.length === 0
-				? 0
-				: chalk.yellow(result.notReached.length);
+			result.notReached === 0 ? 0 : chalk.yellow(result.notReached);
 		console.log(
 			`Passed: ${chalk.green(result.passed)}\nFailed: ${chalk.red(result.failed)}\nSkipped: ${skippedCount}\nNot Run: ${notReachedCount}\nTotal: ${result.total}`,
 		);
