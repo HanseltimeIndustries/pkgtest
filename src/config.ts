@@ -31,23 +31,25 @@ const InstalledToolValidated = z.object({
 		),
 }) satisfies ZodType<InstalledTool>;
 
-const TypescriptOptionsValidated = z.object({
-	config: z
-		.any()
-		.describe(
-			"Typescript configuration that is merged with the base typescript that is created",
-		)
-		.optional(),
-	nodeTypes: InstalledToolValidated.describe(
-		"The version of the @types/node",
-	).optional(),
-	tsx: InstalledToolValidated.describe(
-		"Required if Tsx is included in the runBy section",
-	).optional(),
-	tsNode: InstalledToolValidated.describe(
-		"Required if Tsx is included in the runBy section",
-	).optional(),
-}) satisfies ZodType<TypescriptOptions>;
+const TypescriptOptionsValidated =
+	z.object({
+		config: z
+			.any()
+			.describe(
+				"Typescript configuration that is merged with the base typescript that is created",
+			)
+			.optional(),
+		nodeTypes: InstalledToolValidated.describe(
+			"The version of the @types/node",
+		).optional(),
+		tsx: InstalledToolValidated.describe(
+			"Required if Tsx is included in the runBy section",
+		).optional(),
+		tsNode: InstalledToolValidated.describe(
+			"Required if Tsx is included in the runBy section",
+		).optional(),
+		version: z.string().optional(),	
+	}) satisfies ZodType<TypescriptOptions>;
 
 const TransformValidated = z.object({
 	typescript: TypescriptOptionsValidated,
@@ -155,6 +157,7 @@ If you are writing in raw JS though, you will more than likely need to keep ESM 
 	additionalFiles: z.array(AdditionalFilesEntryValidated).optional(),
 	binTests: BinTestsValidated.optional(),
 	timeout: z.number().optional(),
+	packageJson: z.record(z.string(), z.any()).optional(),
 }) satisfies ZodType<TestConfigEntry>;
 
 const TestConfigValidated = z.object({
@@ -167,6 +170,7 @@ const TestConfigValidated = z.object({
 		.describe(
 			"Test Package configurations to setup and run.  Having more than 1 is mainly if you need different files to test different runners or module types.",
 		),
+	packageJson: z.record(z.string(), z.any()).optional(),
 }) satisfies ZodType<TestConfig>;
 
 const allowdScriptExtensions = ["js", "cjs", "mjs", "ts"];
@@ -262,7 +266,7 @@ export async function getConfig(configFile?: string, cwd = process.cwd()) {
 	const binCmds = !bin
 		? []
 		: typeof bin === "string"
-			? [packageJson.name]
+			? [packageJson.name.slice(packageJson.name.indexOf('/') >= 0 ? packageJson.name.indexOf('/') + 1 : 0)]
 			: Object.keys(packageJson.bin);
 
 	rawConfig.entries.forEach((ent, idx) => {

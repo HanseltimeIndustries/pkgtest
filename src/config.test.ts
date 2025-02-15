@@ -18,7 +18,18 @@ const explicitConfig: TestConfig = {
 				testMatch: "something**.ts",
 				runWith: [RunWith.Node],
 				transforms: {
-					typescript: {},
+					typescript: {
+						version: "^5.0.0",
+						tsNode: {
+							version: "^10.9.2",
+						},
+						tsx: {
+							version: "^4.19.2",
+						},
+						nodeTypes: {
+							version: "^20.0.0",
+						},
+					}, // Use the defaults, but we do want typescript transformation
 				},
 			},
 		},
