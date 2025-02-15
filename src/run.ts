@@ -92,7 +92,7 @@ export async function run(options: RunOptions) {
 		preserveResources,
 		filters = {},
 	} = options;
-	const topLevelTimeout = options.timeout || DEFAULT_TIMEOUT
+	const topLevelTimeout = options.timeout || DEFAULT_TIMEOUT;
 	const { fileTestNames: testNames = [] } = filters;
 	const logger = new Logger({
 		context: "[runner]",
@@ -290,10 +290,6 @@ export async function run(options: RunOptions) {
 											pkgManager,
 											pkgManagerOptions,
 											pkgManagerAlias,
-											additionalDependencies: {
-												...config.additionalDependencies,
-												...testConfigEntry.additionalDependencies,
-											},
 											fileTests: testConfigEntry.fileTests,
 											binTests: testConfigEntry.binTests,
 											additionalFiles: [
@@ -302,7 +298,11 @@ export async function run(options: RunOptions) {
 											],
 											reporter,
 											timeout: testConfigEntry.timeout || topLevelTimeout,
-										}
+											packageJson: {
+												...config.packageJson,
+												...testConfigEntry.packageJson,
+											},
+										},
 									);
 
 								// Filter out whole test types (since they can be set up in the same project)

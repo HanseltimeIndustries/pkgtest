@@ -238,6 +238,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				{
 					runBy: [RunWith.Node],
 					pkgManager: PkgManager.YarnV1,
+					additionalDependencies: {},
 					// No typescript options provided
 				},
 			);
@@ -249,11 +250,177 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						version: "0.0.0",
 						description: `Compiled tests for ${testPackageJson.name} as ${modType} project import`,
 						...expectedTypeField,
+						private: true,
 						// These were populated by the createDependencies method we mocked
 						dependencies: {
 							...testDeps,
 						},
+					},
+					null,
+					4,
+				),
+			);
+			expect(mockGetAllMatchingFiles).toHaveBeenCalledWith(
+				resolve(testProjectUnderTestDir, testrootDir),
+				"some**glob",
+				testMatchIgnore,
+			);
+			for (const { copiedTo, from } of expectedCopyOver) {
+				expect(mockCp).toHaveBeenCalledWith(from, copiedTo);
+			}
+			// expect we copied files
+			expect(mockCopyOverAdditionalFiles).toHaveBeenCalledWith(
+				testAdditionalFiles,
+				testProjectDir,
+			);
+		});
+
+		it("creates a project and respects the explicit devDependencies", async () => {
+			const testPackageJson = {
+				name: "testProject",
+			};
+			mockReadFile.mockImplementation(async (file) => {
+				if (typeof file === "string" && file.endsWith("package.json")) {
+					return Buffer.from(JSON.stringify(testPackageJson));
+				}
+				throw new Error("Unimplemented file read mocking " + file);
+			});
+			const testProjectDir = resolve(
+				process.cwd(),
+				"someNesting",
+				"testProjectDir",
+			);
+			const expectedRelativeInstallPath = join(
+				"..",
+				"..",
+				projectUnderTestDirName,
+			); // Since the the package under test dir at cwd + dir
+			const { fileTestRunners: testRunners, binTestRunner } =
+				await createTestProject(
+					{
+						projectDir: testProjectUnderTestDir,
+						testProjectDir,
+						rootDir: testrootDir,
+						matchIgnore: testMatchIgnore,
+					},
+					{
+						modType,
+						pkgManager: PkgManager.YarnV1,
+						additionalFiles: testAdditionalFiles,
+						pkgManagerAlias: "myalias",
+						pkgManagerOptions: testPkgManagerOptions,
+						pkgManagerVersion: testPkgManagerVersion,
+						fileTests: {
+							runWith: [RunWith.Node],
+							testMatch: "some**glob",
+						},
+						timeout: testTimeout,
+						reporter: testReporter,
+						packageJson: {
+							// This should stay in dev dependencies
+							devDependencies: {
+								tsx: "2.0.0",
+							},
+							anotherField: "someValue",
+						},
+					},
+				);
+
+			const expectedCopyOver = testMatchingTests.map((t) => {
+				return {
+					copiedTo: t.replace(
+						testProjectUnderTestDir,
+						join(testProjectDir, SRC_DIRECTORY),
+					),
+					from: t,
+					// The normalized from for pattern matching
+					fromNorm: t.replace(testProjectUnderTestDir + "/", ""),
+				};
+			});
+			expect(testRunners).toHaveLength(1);
+			expect(testRunners[0]).toEqual({
+				runCommand: `${testBinCmd} ${RunWith.Node}`,
+				runBy: RunWith.Node,
+				testFiles: expectedCopyOver.map((e) => {
+					return {
+						orig: e.fromNorm,
+						actual: e.copiedTo,
+					};
+				}),
+				projectDir: testProjectDir,
+				pkgManager: PkgManager.YarnV1,
+				pkgManagerAlias: "myalias",
+				modType,
+				failFast: false,
+				extraEnv: {},
+				timeout: testTimeout,
+				reporter: testReporter,
+				groupOverview: expect.any(TestGroupOverview),
+			});
+			expect(binTestRunner).toBeUndefined();
+
+			// confirm corepack use called
+			expect(mockExec).toHaveBeenCalledWith(
+				testPkgManagerSetCmd,
+				{
+					cwd: testProjectDir,
+					env: process.env,
+				},
+				expect.anything(),
+			);
+
+			// confirm pkg install command called
+			expect(mockExec).toHaveBeenCalledWith(
+				`${testPkgManagerCmd} install ${testPkgManagerOptions.installCliArgs}`,
+				{
+					cwd: testProjectDir,
+					env: process.env,
+				},
+				expect.anything(),
+			);
+
+			// Confirm command retrieval functions called with versions
+			expect(mockGetPkgBinaryRunnerCommand).toHaveBeenCalledWith(
+				PkgManager.YarnV1,
+				testPkgManagerVersion,
+			);
+			expect(mockGetPkgManagerCommand).toHaveBeenCalledWith(
+				PkgManager.YarnV1,
+				testPkgManagerVersion,
+			);
+			expect(mockGetPkgManagerSetCommand).toHaveBeenCalledWith(
+				PkgManager.YarnV1,
+				testPkgManagerVersion,
+			);
+
+			// Confirm correct function calls to mocks
+			expect(mockCreateDependencies).toHaveBeenCalledWith(
+				testPackageJson,
+				expectedRelativeInstallPath,
+				{
+					runBy: [RunWith.Node],
+					pkgManager: PkgManager.YarnV1,
+					additionalDependencies: {},
+					// No typescript options provided
+				},
+			);
+			expect(mockWriteFile).toHaveBeenCalledWith(
+				join(testProjectDir, "package.json"),
+				JSON.stringify(
+					{
+						name: `@dummy-test-package/test-${modType}`,
+						version: "0.0.0",
+						description: `Compiled tests for ${testPackageJson.name} as ${modType} project import`,
+						...expectedTypeField,
 						private: true,
+						devDependencies: {
+							tsx: "2.0.0",
+						},
+						anotherField: "someValue",
+						// These were populated by the createDependencies method we mocked
+						dependencies: {
+							...testDeps,
+						},
 					},
 					null,
 					4,
@@ -409,6 +576,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					runBy: [RunWith.Node],
 					pkgManager: PkgManager.YarnV1,
 					typescript: typescriptOptions,
+					additionalDependencies: {},
 				},
 			);
 			expect(mockWriteFile).toHaveBeenCalledWith(
@@ -419,11 +587,11 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						version: "0.0.0",
 						description: `Compiled tests for ${testPackageJson.name} as ${modType} project import`,
 						...expectedTypeField,
+						private: true,
 						// These were populated by the createDependencies method we mocked
 						dependencies: {
 							...testDeps,
 						},
-						private: true,
 					},
 					null,
 					4,
@@ -645,6 +813,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					runBy: [RunWith.Node],
 					pkgManager: PkgManager.YarnV1,
 					typescript: typescriptOptions,
+					additionalDependencies: {},
 				},
 			);
 			expect(mockWriteFile).toHaveBeenCalledWith(
@@ -655,11 +824,11 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						version: "0.0.0",
 						description: `Compiled tests for ${testPackageJson.name} as ${modType} project import`,
 						...expectedTypeField,
+						private: true,
 						// These were populated by the createDependencies method we mocked
 						dependencies: {
 							...testDeps,
 						},
-						private: true,
 					},
 					null,
 					4,
@@ -736,7 +905,9 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						pkgManagerOptions: testPkgManagerOptions,
 						pkgManagerVersion: testPkgManagerVersion,
 						// Just providing typescript object will do
-						additionalDependencies: testAdditionalDeps,
+						packageJson: {
+							dependencies: testAdditionalDeps,
+						},
 						additionalFiles: testAdditionalFiles,
 						fileTests: {
 							runWith: allRunBy,
@@ -890,11 +1061,11 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						version: "0.0.0",
 						description: `Compiled tests for ${testPackageJson.name} as ${modType} project import`,
 						...expectedTypeField,
+						private: true,
 						// These were populated by the createDependencies method we mocked
 						dependencies: {
 							...testDeps,
 						},
-						private: true,
 					},
 					null,
 					4,

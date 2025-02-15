@@ -14,7 +14,6 @@ import {
 import { getTypescriptConfig } from "./getTypescriptConfig";
 import {
 	createDependencies,
-	CreateDependenciesOptions,
 } from "./createDependencies";
 import {
 	getPkgBinaryRunnerCommand,
@@ -28,6 +27,7 @@ import { BinTestRunner } from "./BinTestRunner";
 import { copyOverAdditionalFiles } from "./files";
 import { AdditionalFilesCopy } from "./files/types";
 import { Reporter, TestFile } from "./reporters";
+import { PackageJson } from "type-fest";
 
 export const SRC_DIRECTORY = "src";
 export const BUILD_DIRECTORY = "dist";
@@ -80,7 +80,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		 * (set up before installing)
 		 */
 		pkgManagerOptions?: PkgManagerOptions<PkgManagerT>;
-		additionalDependencies?: CreateDependenciesOptions["additionalDependencies"];
+		packageJson?: PackageJson;
 		binTests?: BinTestConfig;
 		fileTests?: FileTestConfig;
 		/**
@@ -118,6 +118,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		additionalFiles,
 		timeout,
 		reporter,
+		packageJson: packageJsonOverrides,
 	} = testOptions;
 	const logPrefix = `[${pkgManager}, ${modType}, @${testProjectDir}]`;
 
@@ -174,18 +175,39 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 			throw new Error("Unimplemented module type: " + modType);
 	}
 
+	// Forbid some package json fields
+	if (packageJsonOverrides) {
+		if (packageJsonOverrides.type) {
+			throw new Error(
+				`Pacakge.json overrides shoudl not include 'module' type as that is set by pkgtest`,
+			);
+		}
+	}
+	// We want to infer installs but also respect any devDeps explicitly added,
+	// Since maybe the script scans for devDeps, etc.
+	const explictDevDeps = packageJsonOverrides?.devDependencies ?? {};
+	const dependencies = createDependencies(packageJson, relativePath, {
+		pkgManager: testOptions.pkgManager,
+		runBy: fileTests?.runWith,
+		typescript: fileTests?.transforms?.typescript,
+		additionalDependencies: {
+			...((packageJsonOverrides?.dependencies ?? {}) as {
+				[k: string]: string;
+			}),
+		},
+	});
+	Object.keys(explictDevDeps).forEach((dep) => {
+		delete dependencies[dep];
+	});
+
 	const pkgJson = {
 		name: `@dummy-test-package/test-${modType}`,
 		version: "0.0.0",
 		description: `Compiled tests for ${packageJson.name} as ${modType} project import`,
 		...typeProps,
-		dependencies: createDependencies(packageJson, relativePath, {
-			pkgManager: testOptions.pkgManager,
-			runBy: fileTests?.runWith,
-			typescript: fileTests?.transforms?.typescript,
-			additionalDependencies: testOptions.additionalDependencies,
-		}),
 		private: true,
+		...packageJsonOverrides,
+		dependencies,
 	};
 	// Write the package.json to the directory
 	await writeFile(

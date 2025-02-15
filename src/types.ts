@@ -1,5 +1,6 @@
 import { TsConfigJson } from "get-tsconfig";
 import { CreateDependenciesOptions } from "./createDependencies";
+import { PackageJson } from "type-fest";
 
 /**
  * The type of module that the testing package will be created as:
@@ -232,6 +233,10 @@ export interface TestConfigEntry {
 	 * Number of milliseconds per test to allow before failing
 	 */
 	timeout?: number;
+	/**
+	 * This will override the test Project PackageJson with the specific values
+	 */
+	packageJson?: Omit<PackageJson, "name">;
 }
 
 export interface TestConfig {
@@ -254,6 +259,10 @@ export interface TestConfig {
 	 * Logical unit separating out what test files should be run and under what conditions.
 	 */
 	entries: TestConfigEntry[];
+	/**
+	 * This will override the test Project PackageJson with the specific values
+	 */
+	packageJson?: Omit<PackageJson, "name">;
 	/**
 	 * Additional dependencies that can't be inferred from the project's package.json
 	 * or other explicit fields like "typescript.tsx.version".
