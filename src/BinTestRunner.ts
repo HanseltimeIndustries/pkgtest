@@ -27,6 +27,9 @@ export class BinTestRunner
 		failFast?: boolean;
 		timeout: number;
 		reporter: Reporter;
+		baseEnv: {
+			[e: string]: string | undefined;
+		};
 	}) {
 		super(options);
 		this.binTestConfig = options.binTestConfig;
@@ -64,10 +67,7 @@ export class BinTestRunner
 					env,
 				},
 				{
-					env: {
-						...process.env,
-						...env,
-					},
+					env: env ?? {},
 				},
 			);
 			if (!cont) {

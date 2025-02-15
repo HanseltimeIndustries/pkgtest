@@ -30,6 +30,9 @@ export class FileTestRunner
 		pkgManager: PkgManager;
 		pkgManagerAlias: string;
 		modType: ModuleTypes;
+		baseEnv: {
+			[e: string]: string | undefined;
+		},
 		extraEnv?: {
 			[env: string]: string;
 		};
@@ -82,10 +85,7 @@ export class FileTestRunner
 					command: cmd,
 				},
 				{
-					env: {
-						...process.env,
-						...this.extraEnv,
-					},
+					env: this.extraEnv,
 				},
 			);
 			if (!cont) {

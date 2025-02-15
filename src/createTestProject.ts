@@ -231,11 +231,16 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 			);
 		}
 	}
+	// Since yarn plug'n'play pollutes node options with its loader
+	const sanitizedEnv = {
+		...process.env,
+		NODE_OPTIONS: '',
+	}
 	await controlledExec(
 		getPkgManagerSetCommand(pkgManager, pkgManagerVersion),
 		{
 			cwd: testProjectDir,
-			env: process.env,
+			env: sanitizedEnv,
 		},
 		logger,
 	);
@@ -243,7 +248,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		`${pkgManagerCommand} install ${installCLiArgs}`,
 		{
 			cwd: testProjectDir,
-			env: process.env,
+			env: sanitizedEnv,
 		},
 		logger,
 	);
@@ -301,7 +306,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 				`${binRunCmd} tsc -p ${configFilePath}`,
 				{
 					cwd: testProjectDir,
-					env: process.env,
+					env: sanitizedEnv,
 				},
 				logger,
 			);
@@ -367,6 +372,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 						extraEnv: additionalEnv,
 						timeout,
 						reporter,
+						baseEnv: sanitizedEnv,
 					}),
 				);
 			});
@@ -395,6 +401,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 						extraEnv: {},
 						timeout,
 						reporter,
+						baseEnv: sanitizedEnv,
 					}),
 				);
 			});
@@ -412,7 +419,9 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 			pkgManagerAlias,
 			modType,
 			timeout,
+			failFast,
 			reporter,
+			baseEnv: sanitizedEnv,
 		});
 	}
 

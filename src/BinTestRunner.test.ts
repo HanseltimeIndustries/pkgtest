@@ -90,6 +90,7 @@ it("runs all test bins and reports the results", async () => {
 		binTestConfig,
 		timeout: 5000,
 		reporter: mockReporter,
+		baseEnv: process.env,
 	});
 
 	const overview = await runner.runTests();
@@ -201,6 +202,7 @@ it("runs test files until first failure and reports the results with failFast", 
 		failFast: true,
 		timeout: 5000,
 		reporter: mockReporter,
+		baseEnv: process.env,
 	});
 
 	const overview = await runner.runTests();
@@ -322,6 +324,7 @@ it("runs test files and handles timeouts", async () => {
 		failFast: false,
 		timeout: 50,
 		reporter: mockReporter,
+		baseEnv: process.env,
 	});
 
 	const overview = await runner.runTests();

@@ -8,17 +8,24 @@ export class BaseTestRunner {
 	readonly groupOverview = new TestGroupOverview();
 	readonly failFast: boolean;
 	protected readonly reporter: Reporter;
+	readonly baseEnv: {
+		[e: string]: string | undefined,
+	}
 
 	constructor(options: {
 		projectDir: string;
 		failFast?: boolean;
 		timeout: number;
 		reporter: Reporter;
+		baseEnv: {
+			[e: string]: string | undefined,
+		}
 	}) {
 		this.projectDir = options.projectDir;
 		this.failFast = !!options.failFast;
 		this.timeout = options.timeout;
 		this.reporter = options.reporter;
+		this.baseEnv = options.baseEnv;
 	}
 
 	/**
@@ -42,7 +49,10 @@ export class BaseTestRunner {
 				exec(
 					binCmd,
 					{
-						env: opts.env,
+						env: {
+							...this.baseEnv,
+							...opts.env,
+						},
 						cwd: this.projectDir,
 						timeout: this.timeout,
 					},
