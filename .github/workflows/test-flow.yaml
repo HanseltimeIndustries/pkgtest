@@ -25,6 +25,7 @@ jobs:
       # TODO: caching this action would accelerate the run
       - name: corepack
         run: |
+          npm install -g corepack@>=0.31.0
           corepack enable
       - uses: actions/setup-node@v4
         with:
@@ -60,14 +61,33 @@ jobs:
       - name: testing
         run: |
           yarn test
-      # Uncomment this if you are setting up binary scripts
-      # - name: Make sure binary is accessible
-      #   run: |
-      #     packageDir=${PWD##*/}
-      #     cd ../
-      #     npm install -g ./${packageDir} --ignore-scripts
-      #     echo "Running script to ensure valid help dispaly"
-      #     aws-cfn-console-import --help
+  pkg-test:
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+        os: ['ubuntu-latest', 'windows-latest', 'macos-latest']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      # TODO: caching this action would accelerate the run
+      - name: corepack
+        run: |
+          corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'yarn'
+          cache-dependency-path: yarn.lock
+      - name: install
+        run: |
+          yarn install --immutable
+      - name: build
+        run: |
+          yarn build
+      - name: pkgtest
+        run: |
+          npm install -g corepack@>=0.31.0
+          yarn pkgtest
   ensure-docs:
     runs-on: ubuntu-latest
     steps:
@@ -109,6 +129,7 @@ jobs:
     needs:
       - ensure-docs
       - ci-checks
+      - pkg-test
     runs-on: ubuntu-latest
     name: Done
     steps:
