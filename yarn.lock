@@ -973,6 +973,8 @@ __metadata:
     typescript: "npm:^5.7.3"
     zod: "npm:^3.24.1"
     zod-validation-error: "npm:^3.4.0"
+  bin:
+    pkgtest: dist/esm/bin/pkgtest.mjs
   languageName: unknown
   linkType: soft
 
