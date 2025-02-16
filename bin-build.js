@@ -30,8 +30,11 @@ if (!pkgJson.bin) {
 		}
 	}
 	if (typeof pkgJson.bin === "string") {
-		const splitIdx = pkgJson.name.indexOf('/')
-		addHashBang(pkgJson.name.slice(splitIdx >= 0 ? splitIdx + 1 : 0), pkgJson.bin)
+		const splitIdx = pkgJson.name.indexOf("/");
+		addHashBang(
+			pkgJson.name.slice(splitIdx >= 0 ? splitIdx + 1 : 0),
+			pkgJson.bin,
+		);
 	} else {
 		Object.keys(pkgJson.bin).forEach((cmd) => {
 			const compiledPath = pkgJson.bin[cmd];

@@ -12,9 +12,7 @@ import {
 	FileTestConfig,
 } from "./types";
 import { getTypescriptConfig } from "./getTypescriptConfig";
-import {
-	createDependencies,
-} from "./createDependencies";
+import { createDependencies } from "./createDependencies";
 import {
 	getPkgBinaryRunnerCommand,
 	getPkgManagerCommand,
@@ -234,8 +232,8 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 	// Since yarn plug'n'play pollutes node options with its loader
 	const sanitizedEnv = {
 		...process.env,
-		NODE_OPTIONS: '',
-	}
+		NODE_OPTIONS: "",
+	};
 	await controlledExec(
 		getPkgManagerSetCommand(pkgManager, pkgManagerVersion),
 		{

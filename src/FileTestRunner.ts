@@ -32,7 +32,7 @@ export class FileTestRunner
 		modType: ModuleTypes;
 		baseEnv: {
 			[e: string]: string | undefined;
-		},
+		};
 		extraEnv?: {
 			[env: string]: string;
 		};

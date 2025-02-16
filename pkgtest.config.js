@@ -1,6 +1,6 @@
 const { join } = require("path");
 
-const nodeLinkedYarnBerry = 		{
+const nodeLinkedYarnBerry = {
 	alias: "yarn node linked",
 	packageManager: "yarn-berry",
 	options: {
@@ -8,7 +8,7 @@ const nodeLinkedYarnBerry = 		{
 			nodeLinker: "node-modules",
 		},
 	},
-}
+};
 
 const simpleFileTests = {
 	fileTests: {
@@ -48,7 +48,7 @@ const cjsBinTests = {
 		"pnpm",
 		"yarn-v1",
 		"yarn-berry",
-		nodeLinkedYarnBerry
+		nodeLinkedYarnBerry,
 	],
 	moduleTypes: ["commonjs"],
 	timeout: 100000, // Make it about 2 minutes since we're literally running another pkgtest
@@ -69,7 +69,7 @@ const esmBinTests = {
 		"pnpm",
 		"yarn-v1",
 		"yarn-berry",
-		nodeLinkedYarnBerry
+		nodeLinkedYarnBerry,
 	],
 	moduleTypes: ["esm"],
 	timeout: 100000, // Make it about 2 minutes since we're literally running another pkgtest
@@ -78,9 +78,5 @@ const esmBinTests = {
 module.exports = {
 	rootDir: "pkgtest",
 	matchIgnore: ["fixtures/**"],
-	entries: [
-		simpleFileTests,
-		cjsBinTests,
-		esmBinTests,
-	],
+	entries: [simpleFileTests, cjsBinTests, esmBinTests],
 };

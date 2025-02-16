@@ -31,25 +31,24 @@ const InstalledToolValidated = z.object({
 		),
 }) satisfies ZodType<InstalledTool>;
 
-const TypescriptOptionsValidated =
-	z.object({
-		config: z
-			.any()
-			.describe(
-				"Typescript configuration that is merged with the base typescript that is created",
-			)
-			.optional(),
-		nodeTypes: InstalledToolValidated.describe(
-			"The version of the @types/node",
-		).optional(),
-		tsx: InstalledToolValidated.describe(
-			"Required if Tsx is included in the runBy section",
-		).optional(),
-		tsNode: InstalledToolValidated.describe(
-			"Required if Tsx is included in the runBy section",
-		).optional(),
-		version: z.string().optional(),	
-	}) satisfies ZodType<TypescriptOptions>;
+const TypescriptOptionsValidated = z.object({
+	config: z
+		.any()
+		.describe(
+			"Typescript configuration that is merged with the base typescript that is created",
+		)
+		.optional(),
+	nodeTypes: InstalledToolValidated.describe(
+		"The version of the @types/node",
+	).optional(),
+	tsx: InstalledToolValidated.describe(
+		"Required if Tsx is included in the runBy section",
+	).optional(),
+	tsNode: InstalledToolValidated.describe(
+		"Required if Tsx is included in the runBy section",
+	).optional(),
+	version: z.string().optional(),
+}) satisfies ZodType<TypescriptOptions>;
 
 const TransformValidated = z.object({
 	typescript: TypescriptOptionsValidated,
@@ -266,7 +265,13 @@ export async function getConfig(configFile?: string, cwd = process.cwd()) {
 	const binCmds = !bin
 		? []
 		: typeof bin === "string"
-			? [packageJson.name.slice(packageJson.name.indexOf('/') >= 0 ? packageJson.name.indexOf('/') + 1 : 0)]
+			? [
+					packageJson.name.slice(
+						packageJson.name.indexOf("/") >= 0
+							? packageJson.name.indexOf("/") + 1
+							: 0,
+					),
+				]
 			: Object.keys(packageJson.bin);
 
 	rawConfig.entries.forEach((ent, idx) => {

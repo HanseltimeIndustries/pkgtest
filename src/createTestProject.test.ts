@@ -93,8 +93,8 @@ const testPkgManagerVersion = "3.8.2";
 // Since yarn plug'n'play pollutes NODE_OPTIONS, we invalidate it in our exec scripts
 const expectedSanitizedEnv = {
 	...process.env,
-	NODE_OPTIONS: '',
-}
+	NODE_OPTIONS: "",
+};
 
 describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 	"For module type %s",
@@ -209,7 +209,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				testPkgManagerSetCmd,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv
+					env: expectedSanitizedEnv,
 				},
 				expect.anything(),
 			);
@@ -219,7 +219,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				`${testPkgManagerCmd} install ${testPkgManagerOptions.installCliArgs}`,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv
+					env: expectedSanitizedEnv,
 				},
 				expect.anything(),
 			);
@@ -372,7 +372,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				testPkgManagerSetCmd,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv
+					env: expectedSanitizedEnv,
 				},
 				expect.anything(),
 			);
@@ -382,7 +382,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				`${testPkgManagerCmd} install ${testPkgManagerOptions.installCliArgs}`,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv
+					env: expectedSanitizedEnv,
 				},
 				expect.anything(),
 			);
@@ -508,7 +508,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				testPkgManagerSetCmd,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv
+					env: expectedSanitizedEnv,
 				},
 				expect.anything(),
 			);
@@ -518,7 +518,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				`${testPkgManagerCmd} install ${testPkgManagerOptions.installCliArgs}`,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv
+					env: expectedSanitizedEnv,
 				},
 				expect.anything(),
 			);
@@ -624,7 +624,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				`${testBinCmd} tsc -p ${expectedConfigFile}`,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv
+					env: expectedSanitizedEnv,
 				},
 				expect.anything(), // callback
 			);
@@ -715,7 +715,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				testPkgManagerSetCmd,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv
+					env: expectedSanitizedEnv,
 				},
 				expect.anything(),
 			);
@@ -725,7 +725,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				`${testPkgManagerCmd} install ${testPkgManagerOptions.installCliArgs}`,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv
+					env: expectedSanitizedEnv,
 				},
 				expect.anything(),
 			);
@@ -863,7 +863,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				`${testBinCmd} tsc -p ${expectedConfigFile}`,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv
+					env: expectedSanitizedEnv,
 				},
 				expect.anything(), // callback
 			);
@@ -937,7 +937,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				testPkgManagerSetCmd,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv
+					env: expectedSanitizedEnv,
 				},
 				expect.anything(),
 			);
@@ -947,7 +947,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				`${testPkgManagerCmd} install ${testPkgManagerOptions.installCliArgs}`,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv
+					env: expectedSanitizedEnv,
 				},
 				expect.anything(),
 			);
@@ -1102,7 +1102,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				`${testBinCmd} tsc -p ${expectedConfigFile}`,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv
+					env: expectedSanitizedEnv,
 				},
 				expect.anything(), // callback
 			);

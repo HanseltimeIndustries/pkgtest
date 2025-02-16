@@ -9,8 +9,8 @@ export class BaseTestRunner {
 	readonly failFast: boolean;
 	protected readonly reporter: Reporter;
 	readonly baseEnv: {
-		[e: string]: string | undefined,
-	}
+		[e: string]: string | undefined;
+	};
 
 	constructor(options: {
 		projectDir: string;
@@ -18,8 +18,8 @@ export class BaseTestRunner {
 		timeout: number;
 		reporter: Reporter;
 		baseEnv: {
-			[e: string]: string | undefined,
-		}
+			[e: string]: string | undefined;
+		};
 	}) {
 		this.projectDir = options.projectDir;
 		this.failFast = !!options.failFast;

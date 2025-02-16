@@ -18,7 +18,7 @@ const baseEntry = {
 		},
 	},
 	moduleTypes: ["commonjs", "esm"],
-}
+};
 
 export default {
 	rootDir: "pkgtest",
@@ -32,7 +32,7 @@ export default {
 			packageManagers: ["yarn-v1"],
 			packageJson: {
 				resolutions: {
-					"@hanseltime/pkgtest": 'file:/home/justin.hanselman/test-yarn'
+					"@hanseltime/pkgtest": "file:/home/justin.hanselman/test-yarn",
 				},
 			},
 		},
@@ -41,9 +41,9 @@ export default {
 			packageManagers: ["yarn-berry"],
 			packageJson: {
 				resolutions: {
-					"@hanseltime/pkgtest": 'portal:/home/justin.hanselman/test-yarn'
+					"@hanseltime/pkgtest": "portal:/home/justin.hanselman/test-yarn",
 				},
 			},
-		}
+		},
 	],
 };
