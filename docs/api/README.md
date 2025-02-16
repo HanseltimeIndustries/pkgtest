@@ -14,6 +14,7 @@
 ## Classes
 
 - [FailFastError](classes/FailFastError.md)
+- [TestFailError](classes/TestFailError.md)
 
 ## Interfaces
 
@@ -33,7 +34,11 @@
 
 ## Type Aliases
 
+- [AddFileCopyTo](type-aliases/AddFileCopyTo.md)
+- [AddFileMatch](type-aliases/AddFileMatch.md)
+- [AdditionalFilesEntry](type-aliases/AdditionalFilesEntry.md)
 - [PkgManagerOptions](type-aliases/PkgManagerOptions.md)
+- [ToDir](type-aliases/ToDir.md)
 
 ## Variables
 

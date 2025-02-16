@@ -21,6 +21,14 @@ or other explicit fields like "typescript.tsx.version".
 
 ***
 
+### additionalFiles?
+
+> `optional` **additionalFiles**: [`AdditionalFilesEntry`](../type-aliases/AdditionalFilesEntry.md)[]
+
+If you would like to place additional files within the test projects
+
+***
+
 ### binTests?
 
 > `optional` **binTests**: [`BinTestConfig`](BinTestConfig.md)
@@ -52,6 +60,14 @@ you can change the testMatch to pick the correct files.
 
 ***
 
+### packageJson?
+
+> `optional` **packageJson**: `Omit`\<`PackageJson`, `"name"`\>
+
+This will override the test Project PackageJson with the specific values
+
+***
+
 ### packageManagers
 
 > **packageManagers**: ([`PkgManager`](../enumerations/PkgManager.md) \| [`PkgManagerOptionsConfig`](PkgManagerOptionsConfig.md)\<[`PkgManager`](../enumerations/PkgManager.md)\>)[]
@@ -60,3 +76,11 @@ Which package managed we will use to install dependencies and run the various te
 
 Important - to preserve integrity during testing, each module type will get a brand new project per package
 manager to avoid dependency install and access issues.
+
+***
+
+### timeout?
+
+> `optional` **timeout**: `number`
+
+Number of milliseconds per test to allow before failing

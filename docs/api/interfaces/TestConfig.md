@@ -21,6 +21,14 @@ or other explicit fields like "typescript.tsx.version".
 
 ***
 
+### additionalFiles?
+
+> `optional` **additionalFiles**: [`AdditionalFilesEntry`](../type-aliases/AdditionalFilesEntry.md)[]
+
+If you would like to place additional files within the test projects
+
+***
+
 ### entries
 
 > **entries**: [`TestConfigEntry`](TestConfigEntry.md)[]
@@ -39,6 +47,14 @@ directories like node_modules.
 Keep in mind that this glob is relative to rootDir.
 
 (As a matter of performance, we don't scan node_modules, .yarn, or .git)
+
+***
+
+### packageJson?
+
+> `optional` **packageJson**: `Omit`\<`PackageJson`, `"name"`\>
+
+This will override the test Project PackageJson with the specific values
 
 ***
 

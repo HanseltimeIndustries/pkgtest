@@ -499,7 +499,7 @@ either esm or commonjs for node based tests as well.
 
 ##### typescript
 
-The typescript object can be completely empty of fields if desired.  In that case, it will follow the [dependency lookup](./3-dependency-lookup.md) for
+The typescript object can be completely empty of fields if desired.  In that case, it will follow the [dependency lookup](./4-dependency-lookup.md) for
 any typescript related libraries.  Just like with the default package manager settings, this type of configuration may result in having a shifting target
 for tooling that runs transforms (in regards to different version fields) but might be desirable from a shifting target standpoint.
 

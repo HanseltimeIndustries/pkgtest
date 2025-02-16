@@ -227,7 +227,7 @@ Total: 1
 #### File Test Suite
 
 In pkgtest, a Test Suite is a collection of same style tests in a given environment.
-So far we've been working with [file tests](./User%20Guide/1-test-types.md#file_tests), which are ways of testing your programmatic
+So far we've been working with [file tests](./User%20Guide/1-test-types.md#file-tests), which are ways of testing your programmatic
 APIs on import.
 For a file test, a test suite is all files run under `module type` + `package manager`  + `pkg manager config alias` + `runWith`.  
 The suite's test project is located in your os's temporary directory and, after all installation and compiling, it consists of
