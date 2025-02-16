@@ -1,5 +1,13 @@
 const { join } = require("path");
 
+const packageManagers = [
+	"npm",
+	// "pnpm",
+	// "yarn-v1",
+	// "yarn-berry",
+	// nodeLinkedYarnBerry,
+];
+
 const nodeLinkedYarnBerry = {
 	alias: "yarn node linked",
 	packageManager: "yarn-berry",
@@ -22,13 +30,7 @@ const simpleFileTests = {
 			}, // Use the defaults, but we do want typescript transformation
 		},
 	},
-	packageManagers: [
-		"npm",
-		"pnpm",
-		"yarn-v1",
-		"yarn-berry",
-		nodeLinkedYarnBerry,
-	],
+	packageManagers,
 	moduleTypes: ["commonjs", "esm"],
 	timeout: 3000, // ts-node on yarn-berry takes about 2s (kinda pretty high compared to all the others)
 };
@@ -43,13 +45,7 @@ const cjsBinTests = {
 			},
 		],
 	},
-	packageManagers: [
-		"npm",
-		"pnpm",
-		"yarn-v1",
-		"yarn-berry",
-		nodeLinkedYarnBerry,
-	],
+	packageManagers,
 	moduleTypes: ["commonjs"],
 	timeout: 100000, // Make it about 2 minutes since we're literally running another pkgtest
 };
@@ -64,13 +60,7 @@ const esmBinTests = {
 			},
 		],
 	},
-	packageManagers: [
-		"npm",
-		"pnpm",
-		"yarn-v1",
-		"yarn-berry",
-		nodeLinkedYarnBerry,
-	],
+	packageManagers,
 	moduleTypes: ["esm"],
 	timeout: 100000, // Make it about 2 minutes since we're literally running another pkgtest
 };

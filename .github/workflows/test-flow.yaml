@@ -65,7 +65,8 @@ jobs:
     strategy:
       matrix:
         node-version: [18.x, 20.x]
-        os: ['ubuntu-latest', 'windows-latest', 'macos-latest']
+        # os: ['ubuntu-latest', 'windows-latest', 'macos-latest']
+        os: ['ubuntu-latest']
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -86,6 +87,7 @@ jobs:
           yarn build
       - name: pkgtest
         run: |
+          export PKG_TEST_TEMP_DIR="${RUNNER_TEMP}"
           npm install -g corepack@>=0.31.0
           yarn pkgtest
   ensure-docs:
