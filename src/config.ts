@@ -377,11 +377,11 @@ export async function getConfig(configFile?: string, cwd = process.cwd()) {
 	return {
 		...restOfConfig,
 		entries: stdEntries,
-	} as StandardizedConfig;
+	} as StandardizedTestConfig;
 }
 
 // A more rigid config entry that we use programmatically
-interface StandardizedTestConfigEntry
+export interface StandardizedTestConfigEntry
 	extends Omit<TestConfigEntry, "packageManagers"> {
 	// An alias for the entry, used when saving lock files and otherwise denoting which entry something happened in
 	alias: string;
@@ -389,6 +389,6 @@ interface StandardizedTestConfigEntry
 	packageManagers: PkgManagerOptionsConfig<PkgManager>[];
 }
 
-interface StandardizedConfig extends Omit<TestConfig, "entries"> {
+export interface StandardizedTestConfig extends Omit<TestConfig, "entries"> {
 	entries: StandardizedTestConfigEntry[];
 }

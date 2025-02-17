@@ -22,6 +22,7 @@ import { skipSuiteDescribe } from "./reporters/skipSuitesNotice";
 import { TestGroupOverview } from "./reporters";
 import { findAdditionalFilesForCopyOver } from "./files";
 import { AdditionalFilesCopy } from "./files/types";
+import { applyFiltersToEntries } from "./applyFiltersToEntries";
 
 export const DEFAULT_TIMEOUT = 2000;
 
@@ -156,8 +157,17 @@ export async function run(options: RunOptions) {
 		debug,
 	});
 	const startSetup = new Date();
+	const filteredEntries = applyFiltersToEntries(
+		config.entries,
+		{
+			fileTestSuitesOverview,
+			binTestSuitesOverview,
+			logger,
+		},
+		filters,
+	);
 	const testRunnerPkgs = await Promise.all(
-		config.entries.reduce(
+		filteredEntries.reduce(
 			(runners, testConfigEntry, entryIdx) => {
 				testConfigEntry.moduleTypes.forEach((modType) => {
 					runners.push(
@@ -168,116 +178,6 @@ export async function run(options: RunOptions) {
 								options: pkgManagerOptions,
 							} = _pkgManager;
 
-							// Apply filters early in case the testType needs no set up
-							if (filters.testTypes) {
-								if (
-									!filters.testTypes.includes(TestType.File) &&
-									!testConfigEntry.binTests
-								) {
-									testEntryProjectLevelSkip(
-										logger,
-										{
-											modType,
-											pkgManager,
-											pkgManagerAlias,
-										},
-										testConfigEntry,
-										fileTestSuitesOverview,
-										binTestSuitesOverview,
-									);
-									return;
-								}
-								if (
-									!filters.testTypes.includes(TestType.Bin) &&
-									!testConfigEntry.fileTests
-								) {
-									testEntryProjectLevelSkip(
-										logger,
-										{
-											modType,
-											pkgManager,
-											pkgManagerAlias,
-										},
-										testConfigEntry,
-										fileTestSuitesOverview,
-										binTestSuitesOverview,
-									);
-									return;
-								}
-							}
-
-							if (
-								filters.moduleTypes &&
-								!filters.moduleTypes.includes(modType)
-							) {
-								testEntryProjectLevelSkip(
-									logger,
-									{
-										modType,
-										pkgManager,
-										pkgManagerAlias,
-									},
-									testConfigEntry,
-									fileTestSuitesOverview,
-									binTestSuitesOverview,
-								);
-								return;
-							}
-							if (
-								filters.packageManagers &&
-								!filters.packageManagers.includes(pkgManager)
-							) {
-								testEntryProjectLevelSkip(
-									logger,
-									{
-										modType,
-										pkgManager,
-										pkgManagerAlias,
-									},
-									testConfigEntry,
-									fileTestSuitesOverview,
-									binTestSuitesOverview,
-								);
-								return;
-							}
-							if (
-								filters.pkgManagerAlias &&
-								!filters.pkgManagerAlias.includes(pkgManagerAlias)
-							) {
-								testEntryProjectLevelSkip(
-									logger,
-									{
-										modType,
-										pkgManager,
-										pkgManagerAlias,
-									},
-									testConfigEntry,
-									fileTestSuitesOverview,
-									binTestSuitesOverview,
-								);
-								return;
-							}
-							if (testConfigEntry.fileTests) {
-								if (filters.runWith) {
-									// Reset - todo this doesn't preserve idempotency of the config...
-									testConfigEntry.fileTests.runWith =
-										testConfigEntry.fileTests.runWith.reduce((rWith, runBy) => {
-											if (!filters.runWith!.includes(runBy)) {
-												fileTestSuitesOverview.addSkippedToTotal(
-													skipFileSuitesNotice(logger, {
-														runWith: [runBy],
-														modType,
-														pkgManager,
-														pkgManagerAlias,
-													}),
-												);
-											} else {
-												rWith.push(runBy);
-											}
-											return rWith;
-										}, [] as RunWith[]);
-								}
-							}
 							// End filters
 							const testProjectDir = await mkdtemp(
 								join(tmpDir, `${LIBRARY_NAME}-`),
@@ -342,33 +242,13 @@ export async function run(options: RunOptions) {
 											},
 										},
 									);
-
-								// Filter out whole test types (since they can be set up in the same project)
-								let filteredFileTestRunners: FileTestRunner[];
-								if (skipFileTests) {
-									fileTestRunners.forEach((ftr) => {
-										fileTestSuitesOverview.addSkippedToTotal(1);
-										logger.log(skipSuiteDescribe(ftr));
-									});
-									filteredFileTestRunners = [];
-								} else {
-									fileTestSuitesOverview.addToTotal(fileTestRunners.length);
-									filteredFileTestRunners = fileTestRunners;
-								}
-								let filteredBinTestRunner: BinTestRunner | undefined;
 								if (binTestRunner) {
-									if (skipBinTests) {
-										binTestSuitesOverview.addSkippedToTotal(1);
-										logger.log(skipSuiteDescribe(binTestRunner));
-										filteredBinTestRunner = undefined;
-									} else {
-										filteredBinTestRunner = binTestRunner;
-										binTestSuitesOverview.addToTotal(1);
-									}
+									binTestSuitesOverview.addToTotal(1);
 								}
+								fileTestSuitesOverview.addToTotal(fileTestRunners.length);
 								return {
-									fileTestRunners: filteredFileTestRunners,
-									binTestRunner: filteredBinTestRunner,
+									fileTestRunners,
+									binTestRunner,
 									cleanup,
 								};
 							} catch (err) {

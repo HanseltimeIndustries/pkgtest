@@ -44,15 +44,17 @@ const expExplicitStdConfig = {
 			...e,
 			alias: `entry${idx}`,
 			packageManagers: e.packageManagers.map((pm) => {
-				return typeof pm === "string" ? {
-					packageManager: pm,
-					alias: DEFAULT_PKG_MANAGER_ALIAS,
-					options: {}
-				} : pm
+				return typeof pm === "string"
+					? {
+							packageManager: pm,
+							alias: DEFAULT_PKG_MANAGER_ALIAS,
+							options: {},
+						}
+					: pm;
 			}),
-		}
-	})
-}
+		};
+	}),
+};
 const defaultDetectedConfig: TestConfig = {
 	entries: [
 		{
@@ -76,15 +78,17 @@ const expDefaultDetectedStdConfig = {
 			...e,
 			alias: `entry${idx}`,
 			packageManagers: e.packageManagers.map((pm) => {
-				return typeof pm === "string" ? {
-					packageManager: pm,
-					alias: DEFAULT_PKG_MANAGER_ALIAS,
-					options: {}
-				} : pm
+				return typeof pm === "string"
+					? {
+							packageManager: pm,
+							alias: DEFAULT_PKG_MANAGER_ALIAS,
+							options: {},
+						}
+					: pm;
 			}),
-		}
-	})
-}
+		};
+	}),
+};
 const explictConfigJs = `
 module.exports = ${JSON.stringify(explicitConfig, null, 4)};
 `;
@@ -325,14 +329,18 @@ it("adds default commands for missing bin fields", async () => {
 		entries: [
 			{
 				...defaultDetectedConfig.entries[0],
-				alias: 'entry0',
-				packageManagers: defaultDetectedConfig.entries[0].packageManagers.map((pm) => {
-					return typeof pm === "string" ? {
-						packageManager: pm,
-						alias: DEFAULT_PKG_MANAGER_ALIAS,
-						options: {}
-					} : pm
-				}),
+				alias: "entry0",
+				packageManagers: defaultDetectedConfig.entries[0].packageManagers.map(
+					(pm) => {
+						return typeof pm === "string"
+							? {
+									packageManager: pm,
+									alias: DEFAULT_PKG_MANAGER_ALIAS,
+									options: {},
+								}
+							: pm;
+					},
+				),
 				binTests: {
 					cmd1: [
 						{
@@ -382,19 +390,22 @@ it("handles binTests only", async () => {
 			},
 		}),
 	);
-	const { fileTests, packageManagers, ...expEntry } = defaultDetectedConfig.entries[0];
+	const { fileTests, packageManagers, ...expEntry } =
+		defaultDetectedConfig.entries[0];
 	expect(await getConfig(file, testDir)).toEqual({
 		...defaultDetectedConfig,
 		entries: [
 			{
-				alias: 'entry0',
+				alias: "entry0",
 				...expEntry,
 				packageManagers: packageManagers.map((pm) => {
-					return typeof pm === "string" ? {
-						packageManager: pm,
-						alias: DEFAULT_PKG_MANAGER_ALIAS,
-						options: {}
-					} : pm
+					return typeof pm === "string"
+						? {
+								packageManager: pm,
+								alias: DEFAULT_PKG_MANAGER_ALIAS,
+								options: {},
+							}
+						: pm;
 				}),
 				binTests: {
 					cmd1: [
