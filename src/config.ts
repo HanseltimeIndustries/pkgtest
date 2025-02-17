@@ -170,6 +170,12 @@ const TestConfigValidated = z.object({
 			"Test Package configurations to setup and run.  Having more than 1 is mainly if you need different files to test different runners or module types.",
 		),
 	packageJson: z.record(z.string(), z.any()).optional(),
+	locks: z.union([
+		z.boolean(),
+		z.object({
+			folder: z.string(),
+		}),
+	]),
 }) satisfies ZodType<TestConfig>;
 
 const allowdScriptExtensions = ["js", "cjs", "mjs", "ts"];

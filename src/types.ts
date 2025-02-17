@@ -272,6 +272,14 @@ export interface TestConfig {
 	 * If you would like to place additional files within the test projects
 	 */
 	additionalFiles?: AdditionalFilesEntry[];
+	/**
+	 * Behavior for package locks
+	 */
+	locks:
+		| {
+				folder: string;
+		  }
+		| boolean;
 }
 
 /**

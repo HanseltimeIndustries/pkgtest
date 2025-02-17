@@ -21,6 +21,7 @@ interface Options {
 	failFast?: boolean;
 	timeout?: number;
 	preserve?: boolean;
+	updateLockfiles?: boolean;
 	// Filter options
 	modType?: ModuleTypes[];
 	pkgManager?: PkgManager[];
@@ -54,6 +55,10 @@ program
 	.option(
 		"--preserve",
 		"Preserves all test project directories that were created (use for debugging, but keep in mind this leaves large resources on your hard disk that you have to clean up)",
+	)
+	.option(
+		"--updateLockfiles",
+		"Will update any changes to the lock files for the different test projects in your locks.folder (default: <rootdir>/lockfiles)",
 	)
 	// filters
 	.addOption(
@@ -102,6 +107,8 @@ program
 				timeout: options.timeout,
 				configPath: options.config,
 				preserveResources: options.preserve,
+				updateLocks: !!options.updateLockfiles,
+				isCI: false, // TODO: change
 				filters: {
 					fileTestNames: testMatch ?? [],
 					moduleTypes: options.modType,

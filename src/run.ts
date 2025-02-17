@@ -35,6 +35,15 @@ export interface RunOptions {
 	 */
 	failFast?: boolean;
 	/**
+	 * If set to true, and locks: false is not set in the config, this will update any changes to the lock files in test
+	 * projects to the lockfiles folder
+	 */
+	updateLocks?: boolean;
+	/**
+	 * If true, we've detected a ci environment - used for some determinations around yarn install
+	 */
+	isCI: boolean;
+	/**
 	 * If set to true, this will not clean up the test project directories that were created
 	 *
 	 * Important! Only use this for debugging pkgtests or in containers that will have their volumes cleaned up
@@ -121,6 +130,18 @@ export async function run(options: RunOptions) {
 			})
 		: [];
 
+	// Coerce the lockfile object to default true
+	const lock:
+		| false
+		| {
+				folder: string;
+		  } =
+		config.locks === true
+			? {
+					folder: "lockfiles",
+				}
+			: config.locks;
+
 	// filter abstractions
 	const skipFileTests =
 		filters.testTypes && !filters.testTypes.includes(TestType.File);
@@ -139,7 +160,7 @@ export async function run(options: RunOptions) {
 	const startSetup = new Date();
 	const testRunnerPkgs = await Promise.all(
 		config.entries.reduce(
-			(runners, testConfigEntry) => {
+			(runners, testConfigEntry, entryIdx) => {
 				testConfigEntry.moduleTypes.forEach((modType) => {
 					// Ensure we don't have duplicate aliases
 					const usedPkgManagerAliasMap = Object.values(PkgManager).reduce(
@@ -171,12 +192,43 @@ export async function run(options: RunOptions) {
 							}
 							usedAliases?.add(pkgManagerAlias);
 
-							// Apply filters
+							// Apply filters early in case the testType needs no set up
+							if (filters.testTypes) {
+								if (!filters.testTypes.includes(TestType.File) && !testConfigEntry.binTests) {
+									testEntryProjectLevelSkip(
+										logger,
+										{
+											modType,
+											pkgManager,
+											pkgManagerAlias,
+										},
+										testConfigEntry,
+										fileTestSuitesOverview,
+										binTestSuitesOverview,
+									);
+									return;
+								}
+								if (!filters.testTypes.includes(TestType.Bin) && !testConfigEntry.fileTests) {
+									testEntryProjectLevelSkip(
+										logger,
+										{
+											modType,
+											pkgManager,
+											pkgManagerAlias,
+										},
+										testConfigEntry,
+										fileTestSuitesOverview,
+										binTestSuitesOverview,
+									);
+									return;
+								}
+							}
+
 							if (
 								filters.moduleTypes &&
 								!filters.moduleTypes.includes(modType)
 							) {
-								testEntryLevelSkip(
+								testEntryProjectLevelSkip(
 									logger,
 									{
 										modType,
@@ -193,7 +245,7 @@ export async function run(options: RunOptions) {
 								filters.packageManagers &&
 								!filters.packageManagers.includes(pkgManager)
 							) {
-								testEntryLevelSkip(
+								testEntryProjectLevelSkip(
 									logger,
 									{
 										modType,
@@ -210,7 +262,7 @@ export async function run(options: RunOptions) {
 								filters.pkgManagerAlias &&
 								!filters.pkgManagerAlias.includes(pkgManagerAlias)
 							) {
-								testEntryLevelSkip(
+								testEntryProjectLevelSkip(
 									logger,
 									{
 										modType,
@@ -284,6 +336,10 @@ export async function run(options: RunOptions) {
 											failFast,
 											matchIgnore,
 											rootDir,
+											updateLock: !!options.updateLocks,
+											isCI: options.isCI,
+											lock,
+											entryAlias: `entry${entryIdx}`,
 										},
 										{
 											modType,
@@ -492,7 +548,7 @@ function overviewNotice(logger: Logger, prefix: string, overview: Overview) {
 /**
  * Used to indicate that we're skipping all tests related to a single project that would be created
  */
-function testEntryLevelSkip(
+function testEntryProjectLevelSkip(
 	logger: Logger,
 	context: {
 		modType: ModuleTypes;

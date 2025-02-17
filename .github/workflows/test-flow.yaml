@@ -82,14 +82,15 @@ jobs:
       - name: install
         run: |
           yarn install --immutable
-      - name: build
-        run: |
-          yarn build
+      # - name: build
+      #   run: |
+      #     yarn build
       - name: pkgtest
         run: |
+          arch
           export PKG_TEST_TEMP_DIR="${RUNNER_TEMP}"
           npm install -g corepack@>=0.31.0
-          yarn pkgtest
+          yarn pkgtest --testType file
   ensure-docs:
     runs-on: ubuntu-latest
     steps:

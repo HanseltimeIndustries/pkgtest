@@ -29,13 +29,15 @@ export default {
 		},
 		{
 			...baseEntry,
-			packageManagers: [{
-				alias: 'nolockv1',
-				packageManager: "yarn-v1",
-				options: {
-					installCliArgs: "--no-lockfile",
-					}
-			}],
+			packageManagers: [
+				{
+					alias: "nolockv1",
+					packageManager: "yarn-v1",
+					options: {
+						installCliArgs: "--no-lockfile",
+					},
+				},
+			],
 			packageJson: {
 				resolutions: {
 					"@hanseltime/pkgtest": "file:/home/justin.hanselman/test-yarn",
@@ -44,13 +46,15 @@ export default {
 		},
 		{
 			...baseEntry,
-			packageManagers: [{
-				alias: 'nolockberry',
-				packageManager: "yarn-berry",
-				options: {
-					installCliArgs: "--no-immutable",
-				}
-			}],
+			packageManagers: [
+				{
+					alias: "nolockberry",
+					packageManager: "yarn-berry",
+					options: {
+						installCliArgs: "--no-immutable",
+					},
+				},
+			],
 			packageJson: {
 				resolutions: {
 					"@hanseltime/pkgtest": "portal:/home/justin.hanselman/test-yarn",

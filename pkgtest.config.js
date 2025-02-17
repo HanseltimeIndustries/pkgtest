@@ -1,13 +1,5 @@
 const { join } = require("path");
 
-const packageManagers = [
-	"npm",
-	// "pnpm",
-	// "yarn-v1",
-	// "yarn-berry",
-	// nodeLinkedYarnBerry,
-];
-
 const nodeLinkedYarnBerry = {
 	alias: "yarn node linked",
 	packageManager: "yarn-berry",
@@ -17,6 +9,14 @@ const nodeLinkedYarnBerry = {
 		},
 	},
 };
+
+const packageManagers = [
+	// "npm",
+	// "pnpm",
+	"yarn-v1",
+	// "yarn-berry",
+	// nodeLinkedYarnBerry,
+];
 
 const simpleFileTests = {
 	fileTests: {
@@ -67,6 +67,7 @@ const esmBinTests = {
 
 module.exports = {
 	rootDir: "pkgtest",
+	locks: true,
 	matchIgnore: ["fixtures/**"],
 	entries: [simpleFileTests, cjsBinTests, esmBinTests],
 };

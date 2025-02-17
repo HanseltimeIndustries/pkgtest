@@ -1,7 +1,6 @@
 import { cp, readFile, writeFile } from "fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "path";
 import { getAllMatchingFiles } from "./files";
-import { exec, ExecOptions } from "child_process";
 import {
 	ModuleTypes,
 	PkgManager,
@@ -26,6 +25,8 @@ import { copyOverAdditionalFiles } from "./files";
 import { AdditionalFilesCopy } from "./files/types";
 import { Reporter, TestFile } from "./reporters";
 import { PackageJson } from "type-fest";
+import { controlledExec } from "./controlledExec";
+import { performInstall } from "./performInstall";
 
 export const SRC_DIRECTORY = "src";
 export const BUILD_DIRECTORY = "dist";
@@ -51,6 +52,20 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		 * This defaults to ./
 		 */
 		rootDir: string;
+		/**
+		 * An alias string to track which entry is calling this (used for installation lock storage)
+		 */
+		entryAlias: string;
+		isCI: boolean;
+		/**
+		 * Whether or not there is a context that we want to load lockfiles to
+		 */
+		lock:
+			| false
+			| {
+					folder: string;
+			  };
+		updateLock: boolean;
 		/**
 		 * For each glob pattern, this will not even bother looking for tests inside of it.
 		 *
@@ -96,8 +111,16 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 	fileTestRunners: FileTestRunner[];
 	binTestRunner?: BinTestRunner;
 }> {
-	const { projectDir, testProjectDir, debug, failFast, rootDir, matchIgnore } =
-		context;
+	const {
+		projectDir,
+		testProjectDir,
+		debug,
+		failFast,
+		rootDir,
+		matchIgnore,
+		lock,
+		updateLock,
+	} = context;
 
 	if (!isAbsolute(projectDir)) {
 		throw new Error("projectDir must be absolute path!");
@@ -118,7 +141,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		reporter,
 		packageJson: packageJsonOverrides,
 	} = testOptions;
-	const logPrefix = `[${pkgManager}, ${modType}, @${testProjectDir}]`;
+	const logPrefix = `[${context.entryAlias}, ${pkgManager}, ${pkgManagerAlias}, ${modType}, @${testProjectDir}]`;
 
 	let testFiles: string[] = [];
 	if (fileTests) {
@@ -242,13 +265,26 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		},
 		logger,
 	);
-	await controlledExec(
-		`${pkgManagerCommand} install ${installCLiArgs}`,
+	await performInstall(
 		{
-			cwd: testProjectDir,
+			isCI: context.isCI,
+			logger,
+			projectDir: context.projectDir,
+			testProjectDir: context.testProjectDir,
+			relPathToProject: relativePath,
+			rootDir: context.rootDir,
+			updateLock: context.updateLock,
 			env: sanitizedEnv,
+			entryAlias: context.entryAlias,
 		},
-		logger,
+		{
+			pkgManager,
+			pkgManagerAlias,
+			pkgManagerVersion,
+			modType,
+			installCLiArgs,
+			lock,
+		},
 	);
 	logger.logDebug(`Finished installation (${pkgManager}) at ${testProjectDir}`);
 
@@ -432,28 +468,4 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		binTestRunner,
 		fileTestRunners,
 	};
-}
-
-async function controlledExec(
-	cmd: string,
-	options: ExecOptions,
-	logger: Logger,
-) {
-	await new Promise<void>((res, rej) => {
-		exec(cmd, options, (error, stdout, stderr) => {
-			if (error) {
-				logger.log(stdout);
-				logger.error(stderr);
-				rej(error);
-			} else {
-				if (stdout) {
-					logger.logDebug(stdout);
-				}
-				if (stderr) {
-					logger.logDebug(stderr);
-				}
-				res();
-			}
-		});
-	});
 }

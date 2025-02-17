@@ -949,6 +949,7 @@ __metadata:
     "@types/babel__core": "npm:^7"
     "@types/jest": "npm:^29.5.11"
     "@types/js-yaml": "npm:^4"
+    "@types/lodash.camelcase": "npm:^4"
     "@types/micromatch": "npm:^4.0.9"
     "@types/node": "npm:^18.11.18"
     "@types/semver": "npm:^7"
@@ -961,6 +962,7 @@ __metadata:
     jest: "npm:^29.7.0"
     jest-chain-transform: "npm:^0.0.8"
     js-yaml: "npm:^4.1.0"
+    lodash.camelcase: "npm:^4.3.0"
     micromatch: "npm:^4.0.8"
     pinst: "npm:^3.0.0"
     semantic-release: "npm:^22.0.12"
@@ -2872,6 +2874,22 @@ __metadata:
   version: 7.0.15
   resolution: "@types/json-schema@npm:7.0.15"
   checksum: 10/1a3c3e06236e4c4aab89499c428d585527ce50c24fe8259e8b3926d3df4cfbbbcf306cfc73ddfb66cbafc973116efd15967020b0f738f63e09e64c7d260519e7
+  languageName: node
+  linkType: hard
+
+"@types/lodash.camelcase@npm:^4":
+  version: 4.3.9
+  resolution: "@types/lodash.camelcase@npm:4.3.9"
+  dependencies:
+    "@types/lodash": "npm:*"
+  checksum: 10/f54132d38ffa72b25bce2111e4d28f339599f6d4fcfc1248a89d1d96445512d7a431f0b0e74f6e6c8d6bc09fe53cf94d9426e188d8feacb3ffe04cd9c3a602e7
+  languageName: node
+  linkType: hard
+
+"@types/lodash@npm:*":
+  version: 4.17.15
+  resolution: "@types/lodash@npm:4.17.15"
+  checksum: 10/27b348b5971b9c670215331b52448a13d7d65bf1fbd320a7049c9c153c1186ff5d116ba75f05f07d32d7ece8a992b26a30c7bdc9be22a3d1e4e3e6068aa04603
   languageName: node
   linkType: hard
 
