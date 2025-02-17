@@ -1,4 +1,4 @@
-import { cp, readFile, writeFile } from "fs/promises";
+import { cp, mkdir, readFile, writeFile } from "fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "path";
 import { getAllMatchingFiles } from "./files";
 import {
@@ -256,7 +256,14 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 	const sanitizedEnv = {
 		...process.env,
 		NODE_OPTIONS: "",
+		npm_package_json: resolve(testProjectDir, 'package.json'),
 	};
+	// For yarn-v1, multiple installs at once explode things.  So we build a cache folder a piece.
+	if (pkgManager === PkgManager.YarnV1) {
+		const localYarn = join(testProjectDir, '.yarnv1')
+		await mkdir(localYarn);
+		(sanitizedEnv as any).YARN_CACHE_FOLDER = localYarn
+	} 
 	await controlledExec(
 		getPkgManagerSetCommand(pkgManager, pkgManagerVersion),
 		{

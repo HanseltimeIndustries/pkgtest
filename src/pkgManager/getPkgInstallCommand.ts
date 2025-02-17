@@ -44,7 +44,9 @@ export function getPkgInstallCommand(
 			} else if (lockFile === LockFileMode.Frozen) {
 				lockArgs = " --frozen-lockfile";
 			}
-			return `${cmd} cache clean && ${cmd} install${lockArgs}${additionalArgs} --network-concurrency 1`;
+			// TODO - we isolate yarn v1 caches locally to avoid global cache install issues
+			//  However, if this rears its ugly head, we should set network-concurrency to 1
+			return `${cmd} install${lockArgs}${additionalArgs}`;
 		}
 		default:
 			throw new Error(

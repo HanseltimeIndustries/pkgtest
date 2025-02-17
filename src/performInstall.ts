@@ -1,4 +1,4 @@
-import { join, relative, resolve } from "path";
+import { join, resolve } from "path";
 import camelCase from "lodash.camelcase";
 import { getPkgInstallCommand, LockFileMode, lockFiles } from "./pkgManager";
 import { ModuleTypes, PkgManager } from "./types";
@@ -94,7 +94,6 @@ export async function performInstall(
 					.toString()
 					.replaceAll(`\${${PATH_TO_PROJECT_KEY}}`, relPathToProject),
 			);
-            console.log(readFileSync(resolve(testProjectDir, lockFileName)).toString())
 			lockFileMode = updateLock ? LockFileMode.Update : LockFileMode.Frozen;
 		}
 	}
@@ -132,14 +131,12 @@ export async function performInstall(
 		if (wereChanges) {
 			logger.log(`Updating ${lockFilePath}`);
 			// Write the new file with substituted local values we know
-            const fileToWrite = nextFile
-            .toString()
-            .replaceAll(relPathToProject, `\${${PATH_TO_PROJECT_KEY}}`)
 			await writeFile(
 				lockFilePath,
-                fileToWrite,
+                nextFile
+            .toString()
+            .replaceAll(relPathToProject, `\${${PATH_TO_PROJECT_KEY}}`),
 			);
-            console.log(fileToWrite)
 		}
 	}
 }

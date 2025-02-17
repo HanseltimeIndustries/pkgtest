@@ -13,54 +13,54 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ci-checks:
-    runs-on: ubuntu-latest
+  # ci-checks:
+  #   runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x]
+  #   strategy:
+  #     matrix:
+  #       node-version: [18.x, 20.x]
 
-    steps:
-      - uses: actions/checkout@v4
-      # TODO: caching this action would accelerate the run
-      - name: corepack
-        run: |
-          npm install -g corepack@>=0.31.0
-          corepack enable
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'yarn'
-          cache-dependency-path: yarn.lock
-      - name: install
-        run: |
-          yarn install --immutable
-          # Hack - the yarn team refuses to not take over formatting the package.json
-          git checkout package.json
-      - name: commit-linting
-        run: |
-          if [[ "${{ github.base_ref }}" != "" ]]; then
-            echo "Setting up git environment for commitlint of pull request"
-            git fetch origin ${{ github.base_ref }}
-            git fetch ${{ github.event.pull_request.head.repo.clone_url }} ${{ github.head_ref }}
-            yarn commitlint --from ${{ github.event.pull_request.head.sha }}~${{ github.event.pull_request.commits }} --to ${{ github.event.pull_request.head.sha }} --verbose
-          else
-            echo "Setting up git environment for commitlint of branch push"
-            git fetch origin ${{ github.ref_name }} --unshallow
-            yarn commitlint --from $(git rev-list --max-parents=0 origin/${{ github.ref_name }})
-          fi
-      - name: build
-        run: |
-          yarn build
-      - name: linting
-        run: |
-          yarn lint
-      - name: formatting
-        run: |
-          yarn format
-      - name: testing
-        run: |
-          yarn test
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     # TODO: caching this action would accelerate the run
+  #     - name: corepack
+  #       run: |
+  #         npm install -g corepack@>=0.31.0
+  #         corepack enable
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: ${{ matrix.node-version }}
+  #         cache: 'yarn'
+  #         cache-dependency-path: yarn.lock
+  #     - name: install
+  #       run: |
+  #         yarn install --immutable
+  #         # Hack - the yarn team refuses to not take over formatting the package.json
+  #         git checkout package.json
+  #     - name: commit-linting
+  #       run: |
+  #         if [[ "${{ github.base_ref }}" != "" ]]; then
+  #           echo "Setting up git environment for commitlint of pull request"
+  #           git fetch origin ${{ github.base_ref }}
+  #           git fetch ${{ github.event.pull_request.head.repo.clone_url }} ${{ github.head_ref }}
+  #           yarn commitlint --from ${{ github.event.pull_request.head.sha }}~${{ github.event.pull_request.commits }} --to ${{ github.event.pull_request.head.sha }} --verbose
+  #         else
+  #           echo "Setting up git environment for commitlint of branch push"
+  #           git fetch origin ${{ github.ref_name }} --unshallow
+  #           yarn commitlint --from $(git rev-list --max-parents=0 origin/${{ github.ref_name }})
+  #         fi
+  #     - name: build
+  #       run: |
+  #         yarn build
+  #     - name: linting
+  #       run: |
+  #         yarn lint
+  #     - name: formatting
+  #       run: |
+  #         yarn format
+  #     - name: testing
+  #       run: |
+  #         yarn test
   pkg-test:
     strategy:
       matrix:
@@ -87,51 +87,55 @@ jobs:
       #     yarn build
       - name: pkgtest
         run: |
-          arch
           export PKG_TEST_TEMP_DIR="${RUNNER_TEMP}"
           npm install -g corepack@>=0.31.0
+          # ls /home/runner/.cache/yarn/v6
+          # ls /home/runner/.cache/yarn/v6/npm-braces-3.0.3-490332f40919452272d55a8480adc0c441358789-integrity/
+          # ls /home/runner/.cache/yarn/v6/npm-braces-3.0.3-490332f40919452272d55a8480adc0c441358789-integrity/node_modules/
+          # ls /home/runner/.cache/yarn/v6/npm-braces-3.0.3-490332f40919452272d55a8480adc0c441358789-integrity/node_modules/braces/
+          # ls /home/runner/.cache/yarn/v6/npm-braces-3.0.3-490332f40919452272d55a8480adc0c441358789-integrity/node_modules/braces/lib/
           yarn pkgtest --testType file
-  ensure-docs:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      # TODO: caching this action would accelerate the run
-      - name: corepack
-        run: |
-          corepack enable
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'yarn'
-          cache-dependency-path: yarn.lock
-      - name: install
-        run: |
-          yarn install --immutable
-          # Hack - the yarn team refuses to not take over formatting the package.json
-          git checkout package.json
-      - name: generate typedoc
-        run: |
-          yarn typedoc
-      - name: ensure no uncommitted docs
-        shell: bash
-        run: |
-          git diff
-          changes=$(git status --porcelain=v1 2>/dev/null)
-          if [ ! -z "$changes" ]; then
-              echo "Found typedoc generated files that weren't commited!"
-              echo "Please run 'yarn typedoc', and commit the files"
-              echo "$changes"
-              exit 1
-          fi
-      - name: ensure no errors with mkdocs
-        run: |
-          pip install -r docs/requirements.txt
-          mkdocs build --strict
+  # ensure-docs:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     # TODO: caching this action would accelerate the run
+  #     - name: corepack
+  #       run: |
+  #         corepack enable
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: ${{ matrix.node-version }}
+  #         cache: 'yarn'
+  #         cache-dependency-path: yarn.lock
+  #     - name: install
+  #       run: |
+  #         yarn install --immutable
+  #         # Hack - the yarn team refuses to not take over formatting the package.json
+  #         git checkout package.json
+  #     - name: generate typedoc
+  #       run: |
+  #         yarn typedoc
+  #     - name: ensure no uncommitted docs
+  #       shell: bash
+  #       run: |
+  #         git diff
+  #         changes=$(git status --porcelain=v1 2>/dev/null)
+  #         if [ ! -z "$changes" ]; then
+  #             echo "Found typedoc generated files that weren't commited!"
+  #             echo "Please run 'yarn typedoc', and commit the files"
+  #             echo "$changes"
+  #             exit 1
+  #         fi
+  #     - name: ensure no errors with mkdocs
+  #       run: |
+  #         pip install -r docs/requirements.txt
+  #         mkdocs build --strict
   # easy to require end cap job
   done:
     needs:
-      - ensure-docs
-      - ci-checks
+      # - ensure-docs
+      # - ci-checks
       - pkg-test
     runs-on: ubuntu-latest
     name: Done

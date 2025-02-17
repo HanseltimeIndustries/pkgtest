@@ -11,11 +11,11 @@ const nodeLinkedYarnBerry = {
 };
 
 const packageManagers = [
-	// "npm",
-	// "pnpm",
+	"npm",
+	"pnpm",
 	"yarn-v1",
-	// "yarn-berry",
-	// nodeLinkedYarnBerry,
+	"yarn-berry",
+	nodeLinkedYarnBerry,
 ];
 
 const simpleFileTests = {
