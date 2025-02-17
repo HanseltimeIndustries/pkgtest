@@ -1,4 +1,4 @@
-import { cp, mkdir, readFile, writeFile } from "fs/promises";
+import { cp, readFile, writeFile } from "fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "path";
 import { getAllMatchingFiles } from "./files";
 import {
@@ -14,7 +14,6 @@ import { getTypescriptConfig } from "./getTypescriptConfig";
 import { createDependencies } from "./createDependencies";
 import {
 	getPkgBinaryRunnerCommand,
-	getPkgManagerCommand,
 	getPkgManagerSetCommand,
 } from "./pkgManager";
 import { FileTestRunner } from "./FileTestRunner";
@@ -119,7 +118,6 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		rootDir,
 		matchIgnore,
 		lock,
-		updateLock,
 	} = context;
 
 	if (!isAbsolute(projectDir)) {
@@ -240,7 +238,6 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 	logger.logDebug(`Running package installation at ${testProjectDir}`);
 	// depending on the type of package manager - perform installs
 	const installCLiArgs = pkgManagerOptions?.installCliArgs ?? "";
-	const pkgManagerCommand = getPkgManagerCommand(pkgManager, pkgManagerVersion);
 	// Pre-install setup
 	if (pkgManager === PkgManager.YarnBerry) {
 		const cast = pkgManagerOptions as YarnV4Options;
@@ -258,12 +255,6 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		NODE_OPTIONS: "",
 		npm_package_json: resolve(testProjectDir, "package.json"),
 	};
-	// For yarn-v1, multiple installs at once explode things.  So we build a cache folder a piece.
-	// if (pkgManager === PkgManager.YarnV1) {
-	// 	const localYarn = join(testProjectDir, ".yarnv1");
-	// 	await mkdir(localYarn);
-	// 	(sanitizedEnv as any).YARN_CACHE_FOLDER = localYarn;
-	// }
 	await controlledExec(
 		getPkgManagerSetCommand(pkgManager, pkgManagerVersion),
 		{

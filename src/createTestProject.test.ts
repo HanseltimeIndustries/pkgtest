@@ -4,6 +4,8 @@ import {
 	getPkgBinaryRunnerCommand,
 	getPkgManagerCommand,
 	getPkgManagerSetCommand,
+	getPkgInstallCommand,
+	LockFileMode,
 } from "./pkgManager";
 import { getTypescriptConfig } from "./getTypescriptConfig";
 import { cp, readFile, writeFile } from "fs/promises";
@@ -40,6 +42,7 @@ const mockCopyOverAdditionalFiles = jest.mocked(copyOverAdditionalFiles);
 const mockGetPkgManagerCommand = jest.mocked(getPkgManagerCommand);
 const mockGetPkgBinaryRunnerCommand = jest.mocked(getPkgBinaryRunnerCommand);
 const mockGetPkgManagerSetCommand = jest.mocked(getPkgManagerSetCommand);
+const mockGetPkgInstallCommand = jest.mocked(getPkgInstallCommand);
 const mockGetTypescriptConfig = jest.mocked(getTypescriptConfig);
 const mockReadFile = jest.mocked(readFile);
 
@@ -50,12 +53,14 @@ const testReporter = new SimpleReporter({
 const testBinCmd = "corepack npx@latest";
 const testPkgManagerCmd = "corepack npm@latest";
 const testPkgManagerSetCmd = "corepack use npm@latest";
+const testPkgInstallCmd = "corepack use npm@latest install conditional";
 const testDeps = {
 	dep1: "1.0.1",
 	dep2: "^2.0.1",
 };
 const projectUnderTestDirName = "packageUnderTest";
 const testProjectUnderTestDir = resolve(process.cwd(), projectUnderTestDirName);
+const testProjectDir = resolve(process.cwd(), "someNesting", "testProjectDir");
 const test1FileName = "test1.pkgtest.ts";
 const test2FileName = "test2.pkgtest.ts";
 const testMatchingTests = [
@@ -69,6 +74,7 @@ const testTsConfig: TsConfigJson = {
 		outDir: BUILD_DIRECTORY, // This is the way it's actually created
 	},
 };
+const testEntryAlias = "entrySomething";
 const testAdditionalDeps = {
 	addDep: "3.0.0",
 };
@@ -94,6 +100,7 @@ const testPkgManagerVersion = "3.8.2";
 const expectedSanitizedEnv = {
 	...process.env,
 	NODE_OPTIONS: "",
+	npm_package_json: join(testProjectDir, "package.json"),
 };
 
 describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
@@ -108,6 +115,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			mockGetPkgManagerCommand.mockReturnValue(testPkgManagerCmd);
 			mockGetPkgManagerSetCommand.mockReturnValue(testPkgManagerSetCmd);
 			mockGetTypescriptConfig.mockReturnValue(testTsConfig as any);
+			mockGetPkgInstallCommand.mockReturnValue(testPkgInstallCmd);
 			mockCp.mockResolvedValue();
 			mockWriteFile.mockResolvedValue();
 			mockExec.mockImplementation((command, _options, cb) => {
@@ -136,11 +144,6 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				}
 				throw new Error("Unimplemented file read mocking " + file);
 			});
-			const testProjectDir = resolve(
-				process.cwd(),
-				"someNesting",
-				"testProjectDir",
-			);
 			const expectedRelativeInstallPath = join(
 				"..",
 				"..",
@@ -153,6 +156,10 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						testProjectDir,
 						rootDir: testrootDir,
 						matchIgnore: testMatchIgnore,
+						lock: false,
+						entryAlias: testEntryAlias,
+						isCI: false,
+						updateLock: false,
 					},
 					{
 						modType,
@@ -216,7 +223,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 
 			// confirm pkg install command called
 			expect(mockExec).toHaveBeenCalledWith(
-				`${testPkgManagerCmd} install ${testPkgManagerOptions.installCliArgs}`,
+				testPkgInstallCmd,
 				{
 					cwd: testProjectDir,
 					env: expectedSanitizedEnv,
@@ -235,6 +242,12 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			);
 			expect(mockGetPkgManagerSetCommand).toHaveBeenCalledWith(
 				PkgManager.YarnV1,
+				testPkgManagerVersion,
+			);
+			expect(mockGetPkgInstallCommand).toHaveBeenCalledWith(
+				PkgManager.YarnV1,
+				LockFileMode.None,
+				testPkgManagerOptions.installCliArgs,
 				testPkgManagerVersion,
 			);
 
@@ -292,11 +305,6 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				}
 				throw new Error("Unimplemented file read mocking " + file);
 			});
-			const testProjectDir = resolve(
-				process.cwd(),
-				"someNesting",
-				"testProjectDir",
-			);
 			const expectedRelativeInstallPath = join(
 				"..",
 				"..",
@@ -309,6 +317,10 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						testProjectDir,
 						rootDir: testrootDir,
 						matchIgnore: testMatchIgnore,
+						lock: false,
+						entryAlias: testEntryAlias,
+						isCI: false,
+						updateLock: false,
 					},
 					{
 						modType,
@@ -379,7 +391,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 
 			// confirm pkg install command called
 			expect(mockExec).toHaveBeenCalledWith(
-				`${testPkgManagerCmd} install ${testPkgManagerOptions.installCliArgs}`,
+				testPkgInstallCmd,
 				{
 					cwd: testProjectDir,
 					env: expectedSanitizedEnv,
@@ -398,6 +410,12 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			);
 			expect(mockGetPkgManagerSetCommand).toHaveBeenCalledWith(
 				PkgManager.YarnV1,
+				testPkgManagerVersion,
+			);
+			expect(mockGetPkgInstallCommand).toHaveBeenCalledWith(
+				PkgManager.YarnV1,
+				LockFileMode.None,
+				testPkgManagerOptions.installCliArgs,
 				testPkgManagerVersion,
 			);
 
@@ -459,11 +477,6 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				}
 				throw new Error("Unimplemented file read mocking " + file);
 			});
-			const testProjectDir = resolve(
-				process.cwd(),
-				"someNesting",
-				"testProjectDir",
-			);
 			const expectedRelativeInstallPath = join(
 				"..",
 				"..",
@@ -482,6 +495,10 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						testProjectDir,
 						rootDir: testrootDir,
 						matchIgnore: testMatchIgnore,
+						lock: false,
+						entryAlias: testEntryAlias,
+						isCI: false,
+						updateLock: false,
 					},
 					{
 						modType: modType,
@@ -515,7 +532,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 
 			// confirm pkg install command called
 			expect(mockExec).toHaveBeenCalledWith(
-				`${testPkgManagerCmd} install ${testPkgManagerOptions.installCliArgs}`,
+				testPkgInstallCmd,
 				{
 					cwd: testProjectDir,
 					env: expectedSanitizedEnv,
@@ -534,6 +551,12 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			);
 			expect(mockGetPkgManagerSetCommand).toHaveBeenCalledWith(
 				PkgManager.YarnV1,
+				testPkgManagerVersion,
+			);
+			expect(mockGetPkgInstallCommand).toHaveBeenCalledWith(
+				PkgManager.YarnV1,
+				LockFileMode.None,
+				testPkgManagerOptions.installCliArgs,
 				testPkgManagerVersion,
 			);
 
@@ -645,11 +668,6 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				}
 				throw new Error("Unimplemented file read mocking " + file);
 			});
-			const testProjectDir = resolve(
-				process.cwd(),
-				"someNesting",
-				"testProjectDir",
-			);
 			const expectedRelativeInstallPath = join(
 				"..",
 				"..",
@@ -668,6 +686,10 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						testProjectDir,
 						rootDir: testrootDir,
 						matchIgnore: testMatchIgnore,
+						lock: false,
+						entryAlias: testEntryAlias,
+						isCI: false,
+						updateLock: false,
 					},
 					{
 						fileTests: {
@@ -722,7 +744,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 
 			// confirm pkg install command called
 			expect(mockExec).toHaveBeenCalledWith(
-				`${testPkgManagerCmd} install ${testPkgManagerOptions.installCliArgs}`,
+				testPkgInstallCmd,
 				{
 					cwd: testProjectDir,
 					env: expectedSanitizedEnv,
@@ -741,6 +763,12 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			);
 			expect(mockGetPkgManagerSetCommand).toHaveBeenCalledWith(
 				PkgManager.YarnV1,
+				testPkgManagerVersion,
+			);
+			expect(mockGetPkgInstallCommand).toHaveBeenCalledWith(
+				PkgManager.YarnV1,
+				LockFileMode.None,
+				testPkgManagerOptions.installCliArgs,
 				testPkgManagerVersion,
 			);
 
@@ -885,11 +913,6 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				}
 				throw new Error("Unimplemented file read mocking " + file);
 			});
-			const testProjectDir = resolve(
-				process.cwd(),
-				"someNesting",
-				"testProjectDir",
-			);
 			const expectedRelativeInstallPath = join(
 				"..",
 				"..",
@@ -908,6 +931,10 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						testProjectDir,
 						rootDir: testrootDir,
 						matchIgnore: testMatchIgnore,
+						lock: false,
+						entryAlias: testEntryAlias,
+						isCI: false,
+						updateLock: false,
 					},
 					{
 						modType,
@@ -944,7 +971,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 
 			// confirm pkg install command called
 			expect(mockExec).toHaveBeenCalledWith(
-				`${testPkgManagerCmd} install ${testPkgManagerOptions.installCliArgs}`,
+				testPkgInstallCmd,
 				{
 					cwd: testProjectDir,
 					env: expectedSanitizedEnv,
@@ -963,6 +990,12 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			);
 			expect(mockGetPkgManagerSetCommand).toHaveBeenCalledWith(
 				PkgManager.YarnV1,
+				testPkgManagerVersion,
+			);
+			expect(mockGetPkgInstallCommand).toHaveBeenCalledWith(
+				PkgManager.YarnV1,
+				LockFileMode.None,
+				testPkgManagerOptions.installCliArgs,
 				testPkgManagerVersion,
 			);
 
@@ -1123,6 +1156,10 @@ it("throws an error if the projectdir is not absolute", async () => {
 				testProjectDir: join(process.cwd(), "testProjectDir"),
 				rootDir: testrootDir,
 				matchIgnore: testMatchIgnore,
+				lock: false,
+				entryAlias: testEntryAlias,
+				isCI: false,
+				updateLock: false,
 			},
 			{
 				modType: ModuleTypes.Commonjs,
@@ -1148,6 +1185,10 @@ it("throws an error if the testProjectDir is not absolute", async () => {
 				testProjectDir: "testProjectDir",
 				rootDir: testrootDir,
 				matchIgnore: testMatchIgnore,
+				lock: false,
+				entryAlias: testEntryAlias,
+				isCI: false,
+				updateLock: false,
 			},
 			{
 				modType: ModuleTypes.Commonjs,

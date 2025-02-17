@@ -22,44 +22,46 @@ const baseEntry = {
 
 module.exports = {
 	rootDir: "pkgtest",
+	// Since we use locks in the upper context, we are just gonna skip that because it's painful to do lock updates
+	locks: false,
 	entries: [
 		{
 			...baseEntry,
 			packageManagers: ["npm", "pnpm"],
 		},
-		{
-			...baseEntry,
-			packageManagers: [
-				{
-					alias: "nolockv1",
-					packageManager: "yarn-v1",
-					options: {
-						installCliArgs: "--no-lockfile",
-					},
-				},
-			],
-			packageJson: {
-				resolutions: {
-					"@hanseltime/pkgtest": "file:/home/justin.hanselman/test-yarn",
-				},
-			},
-		},
-		{
-			...baseEntry,
-			packageManagers: [
-				{
-					alias: "nolockberry",
-					packageManager: "yarn-berry",
-					options: {
-						installCliArgs: "--no-immutable",
-					},
-				},
-			],
-			packageJson: {
-				resolutions: {
-					"@hanseltime/pkgtest": "portal:/home/justin.hanselman/test-yarn",
-				},
-			},
-		},
+		// {
+		// 	...baseEntry,
+		// 	packageManagers: [
+		// 		{
+		// 			alias: "nolockv1",
+		// 			packageManager: "yarn-v1",
+		// 			options: {
+		// 				installCliArgs: "--no-lockfile",
+		// 			},
+		// 		},
+		// 	],
+		// 	packageJson: {
+		// 		resolutions: {
+		// 			"@hanseltime/pkgtest": "file:/home/justin.hanselman/test-yarn",
+		// 		},
+		// 	},
+		// },
+		// {
+		// 	...baseEntry,
+		// 	packageManagers: [
+		// 		{
+		// 			alias: "nolockberry",
+		// 			packageManager: "yarn-berry",
+		// 			options: {
+		// 				installCliArgs: "--no-immutable",
+		// 			},
+		// 		},
+		// 	],
+		// 	packageJson: {
+		// 		resolutions: {
+		// 			"@hanseltime/pkgtest": "portal:/home/justin.hanselman/test-yarn",
+		// 		},
+		// 	},
+		// },
 	],
 };

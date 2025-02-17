@@ -12,13 +12,11 @@ import {
 	ModuleTypes,
 	PkgManager,
 	RunWith,
-	TestConfigEntry,
 	TestType,
 } from "./types";
 import { getMatchIgnore } from "./getMatchIgnore";
 import { ensureMinimumCorepack } from "./pkgManager";
 import { BinTestRunner } from "./BinTestRunner";
-import { skipSuiteDescribe } from "./reporters/skipSuitesNotice";
 import { TestGroupOverview } from "./reporters";
 import { findAdditionalFilesForCopyOver } from "./files";
 import { AdditionalFilesCopy } from "./files/types";
@@ -141,12 +139,6 @@ export async function run(options: RunOptions) {
 					folder: "lockfiles",
 				}
 			: config.locks;
-
-	// filter abstractions
-	const skipFileTests =
-		filters.testTypes && !filters.testTypes.includes(TestType.File);
-	const skipBinTests =
-		filters.testTypes && !filters.testTypes.includes(TestType.Bin);
 
 	// Set up the runner contexts
 	logger.logDebug(`Initializing test projects...`);
@@ -413,27 +405,6 @@ export async function run(options: RunOptions) {
 	}
 }
 
-function skipFileSuitesNotice(
-	logger: Logger,
-	opts: {
-		runWith: RunWith[];
-		modType: ModuleTypes;
-		pkgManager: PkgManager;
-		pkgManagerAlias: string;
-	},
-): number {
-	const { runWith, ...rest } = opts;
-	runWith.forEach((runBy) => {
-		logger.log(
-			skipSuiteDescribe({
-				...rest,
-				runBy,
-			}),
-		);
-	});
-	return runWith.length;
-}
-
 function overviewNotice(logger: Logger, prefix: string, overview: Overview) {
 	logger.log(
 		`${prefix}${
@@ -446,37 +417,4 @@ function overviewNotice(logger: Logger, prefix: string, overview: Overview) {
 				: ""
 		}${chalk.green(overview.passed + " passed,")} ${overview.total} total`,
 	);
-}
-
-/**
- * Used to indicate that we're skipping all tests related to a single project that would be created
- */
-function testEntryProjectLevelSkip(
-	logger: Logger,
-	context: {
-		modType: ModuleTypes;
-		pkgManager: PkgManager;
-		pkgManagerAlias: string;
-	},
-	config: TestConfigEntry,
-	fileTestsSuiteOverview: TestGroupOverview,
-	binTestsSuiteOverview: TestGroupOverview,
-) {
-	if (config.fileTests) {
-		fileTestsSuiteOverview.addSkippedToTotal(
-			skipFileSuitesNotice(logger, {
-				runWith: config.fileTests.runWith,
-				...context,
-			}),
-		);
-	}
-	if (config.binTests) {
-		binTestsSuiteOverview.addSkippedToTotal(1);
-		logger.log(
-			skipSuiteDescribe({
-				...context,
-				binTestConfig: config.binTests,
-			}),
-		);
-	}
 }

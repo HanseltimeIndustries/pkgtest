@@ -19,7 +19,7 @@ export async function performInstall(
 		env: {
 			[e: string]: string | undefined;
 		};
-        /**
+		/**
 		 * An alias string to track which entry is calling this (used for installation lock storage)
 		 */
 		entryAlias: string;
@@ -48,7 +48,7 @@ export async function performInstall(
 		testProjectDir,
 		updateLock,
 		relPathToProject,
-        entryAlias,
+		entryAlias,
 	} = context;
 	const {
 		lock,
@@ -64,7 +64,7 @@ export async function performInstall(
 		projectDir,
 		rootDir,
 		lock === false ? "shouldnotbehere" : lock.folder,
-        camelCase(entryAlias),
+		camelCase(entryAlias),
 		modType,
 		pkgManager,
 		camelCase(pkgManagerAlias),
@@ -133,9 +133,9 @@ export async function performInstall(
 			// Write the new file with substituted local values we know
 			await writeFile(
 				lockFilePath,
-                nextFile
-            .toString()
-            .replaceAll(relPathToProject, `\${${PATH_TO_PROJECT_KEY}}`),
+				nextFile
+					.toString()
+					.replaceAll(relPathToProject, `\${${PATH_TO_PROJECT_KEY}}`),
 			);
 		}
 	}

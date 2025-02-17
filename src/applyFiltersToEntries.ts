@@ -295,26 +295,3 @@ function testEntryProjectLevelSkip(
 		binTestsSkip(logger, context, config, binTestsSuiteOverview);
 	}
 }
-
-function testEntryLevelSkip(
-	logger: Logger,
-	entry: StandardizedTestConfigEntry,
-	fileTestsSuiteOverview: TestGroupOverview,
-	binTestsSuiteOverview: TestGroupOverview,
-) {
-	entry.moduleTypes.forEach((modType) => {
-		entry.packageManagers.forEach((_pkgManager) => {
-			testEntryProjectLevelSkip(
-				logger,
-				{
-					modType,
-					pkgManager: _pkgManager.packageManager,
-					pkgManagerAlias: _pkgManager.alias,
-				},
-				entry,
-				fileTestsSuiteOverview,
-				binTestsSuiteOverview,
-			);
-		});
-	});
-}

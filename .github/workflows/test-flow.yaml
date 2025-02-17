@@ -82,9 +82,9 @@ jobs:
       - name: install
         run: |
           yarn install --immutable
-      # - name: build
-      #   run: |
-      #     yarn build
+      - name: build
+        run: |
+          yarn build
       - name: pkgtest
         run: |
           export PKG_TEST_TEMP_DIR="${RUNNER_TEMP}"
@@ -94,7 +94,7 @@ jobs:
           # ls /home/runner/.cache/yarn/v6/npm-braces-3.0.3-490332f40919452272d55a8480adc0c441358789-integrity/node_modules/
           # ls /home/runner/.cache/yarn/v6/npm-braces-3.0.3-490332f40919452272d55a8480adc0c441358789-integrity/node_modules/braces/
           # ls /home/runner/.cache/yarn/v6/npm-braces-3.0.3-490332f40919452272d55a8480adc0c441358789-integrity/node_modules/braces/lib/
-          yarn pkgtest --testType file
+          yarn pkgtest
   # ensure-docs:
   #   runs-on: ubuntu-latest
   #   steps:
