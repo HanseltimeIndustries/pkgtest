@@ -7,9 +7,11 @@ import {
 import { tmpdir } from "os";
 import { join, resolve } from "path";
 import { ModuleTypes, PkgManager, RunWith, TestConfig } from "./types";
+import { DEFAULT_PKG_MANAGER_ALIAS } from "./constants";
 
 const explicitConfigFileName = "someCustomConfig";
 const explicitConfig: TestConfig = {
+	locks: false,
 	entries: [
 		{
 			packageManagers: [PkgManager.YarnV1],
@@ -35,6 +37,22 @@ const explicitConfig: TestConfig = {
 		},
 	],
 };
+const expExplicitStdConfig = {
+	...explicitConfig,
+	entries: explicitConfig.entries.map((e, idx) => {
+		return {
+			...e,
+			alias: `entry${idx}`,
+			packageManagers: e.packageManagers.map((pm) => {
+				return typeof pm === "string" ? {
+					packageManager: pm,
+					alias: DEFAULT_PKG_MANAGER_ALIAS,
+					options: {}
+				} : pm
+			}),
+		}
+	})
+}
 const defaultDetectedConfig: TestConfig = {
 	entries: [
 		{
@@ -49,7 +67,24 @@ const defaultDetectedConfig: TestConfig = {
 			},
 		},
 	],
+	locks: false,
 };
+const expDefaultDetectedStdConfig = {
+	...defaultDetectedConfig,
+	entries: defaultDetectedConfig.entries.map((e, idx) => {
+		return {
+			...e,
+			alias: `entry${idx}`,
+			packageManagers: e.packageManagers.map((pm) => {
+				return typeof pm === "string" ? {
+					packageManager: pm,
+					alias: DEFAULT_PKG_MANAGER_ALIAS,
+					options: {}
+				} : pm
+			}),
+		}
+	})
+}
 const explictConfigJs = `
 module.exports = ${JSON.stringify(explicitConfig, null, 4)};
 `;
@@ -91,7 +126,7 @@ for (const ext of ["json", "js", "cjs", "mjs", "ts"]) {
 			ext === "json" ? JSON.stringify(explicitConfig) : explictConfigJs,
 		);
 		// Use a different directory to make sure we use the absolute
-		expect(await getConfig(file)).toEqual(explicitConfig);
+		expect(await getConfig(file)).toEqual(expExplicitStdConfig);
 	});
 
 	it(`gets explicit file paths in the cwd (${ext})`, async () => {
@@ -106,7 +141,7 @@ for (const ext of ["json", "js", "cjs", "mjs", "ts"]) {
 		// Use a different directory to make sure we use the absolute
 		expect(
 			await getConfig(`${explicitConfigFileName}.${ext}`, testDir),
-		).toEqual(explicitConfig);
+		).toEqual(expExplicitStdConfig);
 	});
 
 	it(`gets config by default name in the cwd (${ext})`, async () => {
@@ -125,7 +160,7 @@ for (const ext of ["json", "js", "cjs", "mjs", "ts"]) {
 			"something that should break parsing",
 		);
 		writeFileSync(join(testDir, "package.json"), JSON.stringify(packageJson));
-		expect(await getConfig(file, testDir)).toEqual(defaultDetectedConfig);
+		expect(await getConfig(file, testDir)).toEqual(expDefaultDetectedStdConfig);
 	});
 }
 
@@ -290,6 +325,14 @@ it("adds default commands for missing bin fields", async () => {
 		entries: [
 			{
 				...defaultDetectedConfig.entries[0],
+				alias: 'entry0',
+				packageManagers: defaultDetectedConfig.entries[0].packageManagers.map((pm) => {
+					return typeof pm === "string" ? {
+						packageManager: pm,
+						alias: DEFAULT_PKG_MANAGER_ALIAS,
+						options: {}
+					} : pm
+				}),
 				binTests: {
 					cmd1: [
 						{
@@ -339,12 +382,20 @@ it("handles binTests only", async () => {
 			},
 		}),
 	);
-	const { fileTests, ...expEntry } = defaultDetectedConfig.entries[0];
+	const { fileTests, packageManagers, ...expEntry } = defaultDetectedConfig.entries[0];
 	expect(await getConfig(file, testDir)).toEqual({
 		...defaultDetectedConfig,
 		entries: [
 			{
+				alias: 'entry0',
 				...expEntry,
+				packageManagers: packageManagers.map((pm) => {
+					return typeof pm === "string" ? {
+						packageManager: pm,
+						alias: DEFAULT_PKG_MANAGER_ALIAS,
+						options: {}
+					} : pm
+				}),
 				binTests: {
 					cmd1: [
 						{

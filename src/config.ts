@@ -18,6 +18,7 @@ import {
 import { z, ZodError, ZodType } from "zod";
 import { fromError } from "zod-validation-error";
 import { readFile } from "fs/promises";
+import { DEFAULT_PKG_MANAGER_ALIAS } from "./constants";
 
 export const LIBRARY_NAME = "pkgTest";
 export const DEFAULT_CONFIG_FILE_NAME_BASE = `pkgtest.config`;
@@ -280,47 +281,114 @@ export async function getConfig(configFile?: string, cwd = process.cwd()) {
 				]
 			: Object.keys(packageJson.bin);
 
-	rawConfig.entries.forEach((ent, idx) => {
-		const entryLocation = `entries[${idx}]`;
-		if (!ent.fileTests && !ent.binTests) {
-			throw new Error(
-				`${entryLocation} must supply at least one binTests or fileTests config!`,
-			);
-		}
-		// Coerce bin tests to a default config
-		if (ent.binTests) {
-			// By default create a bin help configuration
-			if (!packageJson.bin) {
+	const { entries: rawEntries, ...restOfConfig } = rawConfig;
+
+	const stdEntries: StandardizedTestConfigEntry[] = rawEntries.map(
+		(ent, idx) => {
+			const entryLocation = `entries[${idx}]`;
+			const entryAlias = `entry${idx}`;
+
+			if (!ent.fileTests && !ent.binTests) {
 				throw new Error(
-					`${entryLocation} binTests are configured but there is no "bin" property in the package.json!`,
+					`${entryLocation} must supply at least one binTests or fileTests config!`,
+				);
+			}
+			// Coerce bin tests to a default config
+			let stdBinTests: StandardizedTestConfigEntry["binTests"] | undefined;
+			if (ent.binTests) {
+				// By default create a bin help configuration
+				if (!packageJson.bin) {
+					throw new Error(
+						`${entryLocation} binTests are configured but there is no "bin" property in the package.json!`,
+					);
+				}
+
+				// Validate the entry
+				Object.keys(ent.binTests).forEach((binCmd) => {
+					if (!binCmds.includes(binCmd)) {
+						throw new Error(
+							`${entryLocation} ${binCmd} in binTests configuration does not have a matching bin entry in the package.json`,
+						);
+					}
+				});
+
+				stdBinTests = binCmds.reduce(
+					(fconfig, binCmd) => {
+						if (!fconfig[binCmd]) {
+							fconfig[binCmd] = [
+								{
+									args: "--help",
+								},
+							];
+						}
+						return fconfig;
+					},
+					{ ...ent.binTests },
 				);
 			}
 
-			// Validate the entry
-			Object.keys(ent.binTests).forEach((binCmd) => {
-				if (!binCmds.includes(binCmd)) {
-					throw new Error(
-						`${entryLocation} ${binCmd} in binTests configuration does not have a matching bin entry in the package.json`,
-					);
-				}
-			});
-
-			ent.binTests = binCmds.reduce(
-				(fconfig, binCmd) => {
-					if (!fconfig[binCmd]) {
-						fconfig[binCmd] = [
-							{
-								args: "--help",
-							},
-						];
-					}
-					return fconfig;
+			// Verify that we don't have overlapping pkg aliases in the same entry
+			// And coerce to default standard object
+			const usedPkgManagerAliasMap = Object.values(PkgManager).reduce(
+				(used, pkgm) => {
+					used.set(pkgm, new Set<string>());
+					return used;
 				},
-				{ ...ent.binTests },
+				new Map<string, Set<string>>(),
 			);
-		}
-	});
 
-	// return the config after validation and some normalizing
-	return rawConfig;
+			const stdPackageManagers: StandardizedTestConfigEntry["packageManagers"] =
+				ent.packageManagers.map((_pkgManager, idx) => {
+					let pkgManagerObject: PkgManagerOptionsConfig<PkgManager>;
+					if (typeof _pkgManager === "string") {
+						// Override with a full object for standard look up
+						pkgManagerObject = {
+							packageManager: _pkgManager,
+							alias: DEFAULT_PKG_MANAGER_ALIAS,
+							options: {},
+						};
+						ent.packageManagers[idx] = pkgManagerObject;
+					} else {
+						pkgManagerObject = _pkgManager;
+					}
+					// Ensure the alias is unique to the entry
+					const usedAliases = usedPkgManagerAliasMap.get(
+						pkgManagerObject.packageManager,
+					);
+					if (usedAliases?.has(pkgManagerObject.alias!)) {
+						throw new Error(
+							`Cannot provide the same pkgManager alias for ${pkgManagerObject.packageManager} configuration! ${pkgManagerObject.alias}`,
+						);
+					}
+					usedAliases?.add(pkgManagerObject.alias);
+
+					return pkgManagerObject;
+				});
+
+			return {
+				...ent,
+				alias: entryAlias,
+				packageManagers: stdPackageManagers,
+				binTests: stdBinTests,
+			};
+		},
+	);
+
+	return {
+		...restOfConfig,
+		entries: stdEntries,
+	} as StandardizedConfig;
+}
+
+// A more rigid config entry that we use programmatically
+interface StandardizedTestConfigEntry
+	extends Omit<TestConfigEntry, "packageManagers"> {
+	// An alias for the entry, used when saving lock files and otherwise denoting which entry something happened in
+	alias: string;
+	// We provide a default resolved config here
+	packageManagers: PkgManagerOptionsConfig<PkgManager>[];
+}
+
+interface StandardizedConfig extends Omit<TestConfig, "entries"> {
+	entries: StandardizedTestConfigEntry[];
 }

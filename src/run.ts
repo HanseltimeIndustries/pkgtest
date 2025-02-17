@@ -91,8 +91,6 @@ interface Overview {
 	total: number;
 }
 
-const DEFAULT_PKG_MANAGER_ALIAS = "pkgtest default";
-
 export async function run(options: RunOptions) {
 	const {
 		configPath,
@@ -162,39 +160,20 @@ export async function run(options: RunOptions) {
 		config.entries.reduce(
 			(runners, testConfigEntry, entryIdx) => {
 				testConfigEntry.moduleTypes.forEach((modType) => {
-					// Ensure we don't have duplicate aliases
-					const usedPkgManagerAliasMap = Object.values(PkgManager).reduce(
-						(used, pkgm) => {
-							used.set(pkgm, new Set<string>());
-							return used;
-						},
-						new Map<string, Set<string>>(),
-					);
 					runners.push(
 						...testConfigEntry.packageManagers.map(async (_pkgManager) => {
-							const simpleOptions = typeof _pkgManager === "string";
-							const pkgManager = simpleOptions
-								? _pkgManager
-								: _pkgManager.packageManager;
-							const pkgManagerOptions = simpleOptions
-								? undefined
-								: _pkgManager.options;
-							const pkgManagerAlias = simpleOptions
-								? DEFAULT_PKG_MANAGER_ALIAS
-								: _pkgManager.alias;
-
-							// Ensure the alias is unique to the entry
-							const usedAliases = usedPkgManagerAliasMap.get(pkgManager);
-							if (usedAliases?.has(pkgManagerAlias!)) {
-								throw new Error(
-									`Cannot provide the same pkgManager alias for ${pkgManager} configuration! ${pkgManagerAlias}`,
-								);
-							}
-							usedAliases?.add(pkgManagerAlias);
+							const {
+								packageManager: pkgManager,
+								alias: pkgManagerAlias,
+								options: pkgManagerOptions,
+							} = _pkgManager;
 
 							// Apply filters early in case the testType needs no set up
 							if (filters.testTypes) {
-								if (!filters.testTypes.includes(TestType.File) && !testConfigEntry.binTests) {
+								if (
+									!filters.testTypes.includes(TestType.File) &&
+									!testConfigEntry.binTests
+								) {
 									testEntryProjectLevelSkip(
 										logger,
 										{
@@ -208,7 +187,10 @@ export async function run(options: RunOptions) {
 									);
 									return;
 								}
-								if (!filters.testTypes.includes(TestType.Bin) && !testConfigEntry.fileTests) {
+								if (
+									!filters.testTypes.includes(TestType.Bin) &&
+									!testConfigEntry.fileTests
+								) {
 									testEntryProjectLevelSkip(
 										logger,
 										{
