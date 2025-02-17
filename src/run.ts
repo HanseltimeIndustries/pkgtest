@@ -341,6 +341,7 @@ export async function run(options: RunOptions) {
 				}
 			}
 		}
+		fileTestSuitesOverview.finalize();
 		// Run bin tests as well
 		binTestSuitesOverview.startTime();
 		for (const { binTestRunner } of testRunnerPkgs) {
@@ -365,6 +366,7 @@ export async function run(options: RunOptions) {
 				throw new FailFastError("Tests failed fast");
 			}
 		}
+		binTestSuitesOverview.finalize();
 		return pass;
 	} finally {
 		// Do a final report
