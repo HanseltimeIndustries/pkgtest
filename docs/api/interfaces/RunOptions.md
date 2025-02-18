@@ -81,6 +81,14 @@ If true, we've detected a ci environment - used for some determinations around y
 
 ***
 
+### parallel
+
+> **parallel**: `number`
+
+The number of test suites to run in parallel
+
+***
+
 ### preserveResources?
 
 > `optional` **preserveResources**: `boolean`

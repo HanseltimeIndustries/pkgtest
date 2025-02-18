@@ -89,7 +89,10 @@ jobs:
         run: |
           export PKG_TEST_TEMP_DIR="${RUNNER_TEMP}"
           npm install -g corepack@>=0.31.0
-          yarn pkgtest
+          # Dangit- we run into the yarn-v1 problem if we parallelize because yarn-v1 can't do concurrent installs globally
+          # Local cache blows up storage too
+          # TODO - We could add a "render dependencies" function that allows us to install all yarn packages early
+          yarn pkgtest -p 1
   ensure-docs:
     runs-on: ubuntu-latest
     steps:

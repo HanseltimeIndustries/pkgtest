@@ -20,6 +20,7 @@ interface Options {
 	debug?: boolean;
 	failFast?: boolean;
 	timeout?: number;
+	parallel: number;
 	preserve?: boolean;
 	updateLockfiles?: boolean;
 	// Filter options
@@ -51,6 +52,12 @@ program
 		"-t, --timeout <ms>",
 		`The max time in milliseconds to wait for a test to run (does not include test package folder set up).  Defaults to: ${DEFAULT_TIMEOUT}`,
 		parseIntArg,
+	)
+	.option(
+		"-p, --parallel <parallel>",
+		"The max number of suites to run at once",
+		parseIntArg,
+		4,
 	)
 	.option(
 		"--preserve",
@@ -117,6 +124,7 @@ program
 					pkgManagerAlias: options.pkgManagerAlias,
 					testTypes: options.testType,
 				},
+				parallel: options.parallel,
 			});
 			if (!passed) {
 				process.exit(44);

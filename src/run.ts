@@ -61,6 +61,10 @@ export interface RunOptions {
 	 */
 	timeout?: number;
 	/**
+	 * The number of test suites to run in parallel
+	 */
+	parallel: number;
+	/**
 	 * The path of the config file to use - if not supplied obeys default search rules
 	 */
 	configPath?: string;
@@ -335,55 +339,63 @@ export async function run(options: RunOptions) {
 	try {
 		let pass = true;
 		fileTestSuitesOverview.startTime();
+		const fileTestPromises: (() => Promise<void>)[] = [];
 		for (const testRunnerPkg of testRunnerPkgs) {
 			for (const runner of testRunnerPkg.fileTestRunners) {
-				const summary = await runner.runTests({
-					testNames,
+				fileTestPromises.push(async () => {
+					const summary = await runner.runTests({
+						testNames,
+					});
+					// Do all tests updating
+					if (summary.failed > 0) {
+						fileTestSuitesOverview.fail(1);
+						pass = false;
+					} else {
+						fileTestSuitesOverview.pass(1);
+					}
+					fileTestsOverview.addToTotal(summary.total);
+					fileTestsOverview.fail(summary.failed);
+					fileTestsOverview.pass(summary.passed);
+					fileTestsOverview.skip(summary.skipped);
+
+					if (summary.failedFast) {
+						// Fail normally instead of letting an error make it to the top
+						logger.log("Tests failed fast");
+						throw new FailFastError("Tests failed fast");
+					}
 				});
+			}
+		}
+		await pool(fileTestPromises, options.parallel);
+		fileTestSuitesOverview.finalize();
+		// Run bin tests as well
+		const binTestPromises: (() => Promise<void>)[] = [];
+		binTestSuitesOverview.startTime();
+		for (const { binTestRunner } of testRunnerPkgs) {
+			// Since bin Tests are less certain, we filter here
+			if (!binTestRunner) continue;
+			binTestPromises.push(async () => {
+				const summary = await binTestRunner.runTests();
 				// Do all tests updating
 				if (summary.failed > 0) {
-					fileTestSuitesOverview.fail(1);
+					binTestSuitesOverview.fail(1);
 					pass = false;
 				} else {
-					fileTestSuitesOverview.pass(1);
+					binTestSuitesOverview.pass(1);
 				}
-				fileTestsOverview.addToTotal(summary.total);
-				fileTestsOverview.fail(summary.failed);
-				fileTestsOverview.pass(summary.passed);
-				fileTestsOverview.skip(summary.skipped);
+				binTestsOverview.addToTotal(summary.total);
+				binTestsOverview.fail(summary.failed);
+				binTestsOverview.pass(summary.passed);
+				binTestsOverview.skip(summary.skipped);
 
 				if (summary.failedFast) {
 					// Fail normally instead of letting an error make it to the top
 					logger.log("Tests failed fast");
 					throw new FailFastError("Tests failed fast");
 				}
-			}
+			});
 		}
-		fileTestSuitesOverview.finalize();
-		// Run bin tests as well
-		binTestSuitesOverview.startTime();
-		for (const { binTestRunner } of testRunnerPkgs) {
-			// Since bin Tests are less certain, we filter here
-			if (!binTestRunner) continue;
-			const summary = await binTestRunner.runTests();
-			// Do all tests updating
-			if (summary.failed > 0) {
-				binTestSuitesOverview.fail(1);
-				pass = false;
-			} else {
-				binTestSuitesOverview.pass(1);
-			}
-			binTestsOverview.addToTotal(summary.total);
-			binTestsOverview.fail(summary.failed);
-			binTestsOverview.pass(summary.passed);
-			binTestsOverview.skip(summary.skipped);
-
-			if (summary.failedFast) {
-				// Fail normally instead of letting an error make it to the top
-				logger.log("Tests failed fast");
-				throw new FailFastError("Tests failed fast");
-			}
-		}
+		await pool(binTestPromises, options.parallel);
 		binTestSuitesOverview.finalize();
 		return pass;
 	} finally {
@@ -443,4 +455,25 @@ function overviewNotice(logger: Logger, prefix: string, overview: Overview) {
 				: ""
 		}${chalk.green(overview.passed + " passed,")} ${overview.total} total`,
 	);
+}
+
+async function pool(lambdas: (() => Promise<void>)[], maxNumber: number) {
+	const promiseMap: {
+		[k: string]: Promise<void>;
+	} = {};
+
+	try {
+		for (let idx = 0; idx < lambdas.length; idx++) {
+			const lambda = lambdas[idx];
+			promiseMap[idx] = (async () => {
+				await lambda();
+				delete promiseMap[idx];
+			})();
+			if (Object.keys(promiseMap).length === maxNumber) {
+				await Promise.any(Object.values(promiseMap));
+			}
+		}
+	} finally {
+		await Promise.all(Object.values(promiseMap));
+	}
 }

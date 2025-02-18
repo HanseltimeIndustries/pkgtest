@@ -62,7 +62,7 @@ The locks configuration, designates how pkgtest handles lock files.  The goal of
 of them can be found [here](https://www.arahansen.com/the-ultimate-guide-to-yarn-lock-lockfiles/).  In a more complete setup, you would actually
 want to make sure that every test project you create uses a committed lock file so that it can make sure it runs the same way in CI.
 
-If you can handle the additional process, pkgtest recommends using lockfiles.  You can see the process in [](./4-ci.md#configuring-lockfiles).
+If you can handle the additional process, pkgtest recommends using lockfiles.  You can see the process in [Configuring lockfiles](./5-ci.md#configuring-lockfiles).
 
 ## additionalFiles
 
@@ -510,7 +510,7 @@ either esm or commonjs for node based tests as well.
 
 ##### typescript
 
-The typescript object can be completely empty of fields if desired.  In that case, it will follow the [dependency lookup](./4-dependency-lookup.md) for
+The typescript object can be completely empty of fields if desired.  In that case, it will follow the [dependency lookup](./6-dependency-lookup.md) for
 any typescript related libraries.  Just like with the default package manager settings, this type of configuration may result in having a shifting target
 for tooling that runs transforms (in regards to different version fields) but might be desirable from a shifting target standpoint.
 

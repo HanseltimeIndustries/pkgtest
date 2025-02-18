@@ -16,7 +16,7 @@ The general steps in any CI are:
 
 1. install your version of node
 2. `npm install -g corepack@latest`
-   1. This isn't strictly necessary but pkgtest requires a very [recent version of corepack](./5-corepack.md)
+   1. This isn't strictly necessary but pkgtest requires a very [recent version of corepack](./7-corepack.md)
 3. If your CI environment locks down its normal temp dir,
    1. `export PKG_TEST_TEMP_DIR=<whatever dir you make that should be "temp">`
    2. In github actions, this can look like: `export PKG_TEST_TEMP_DIR="${RUNNER_TEMP}"`
