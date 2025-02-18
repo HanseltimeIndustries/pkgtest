@@ -124,7 +124,7 @@ export interface PkgManagerOptionsConfig<T extends PkgManager> {
 	 * Defaults to latest if not supplied
 	 */
 	version?: string;
-	options: PkgManagerOptions<T>;
+	options?: PkgManagerOptions<T>;
 }
 
 /**
@@ -133,6 +133,37 @@ export interface PkgManagerOptionsConfig<T extends PkgManager> {
  * Directories will be copied recursively
  */
 export type AddFileMatch = string;
+interface CreateTestProjectInfo {
+	/**
+	 * The path of the current test project that is being created
+	 */
+	testProjectDir: string;
+	/**
+	 * The path of the project under test
+	 */
+	projectDir: string;
+	packageManager: PkgManager;
+	packageManagerAlias: string;
+	moduleType: ModuleTypes;
+	fileTests?: FileTestConfig;
+	binTests?: BinTestConfig;
+}
+
+/**
+ * In the event that you need to do some more programmatic generation of files, you can provide a function
+ * that will be invoked at the end of setting up the project.  This will provide file contents and the
+ * relative file name that will be placed in the test project.
+ *
+ * @param {TestConfig} config - This is the entire test config object that this function is found in
+ * @param {TestConfigEntry} projectInfo - If this is part of a test entry, then project info describing the current
+ * 			test project that is being created will be provided
+ * @returns {[string, string]} returns the file contents in the first spot and then the name of the file relative
+ *          to the test project directory.
+ */
+export type AddFilePerTestProjectCreate = (
+	config: TestConfig,
+	entry: CreateTestProjectInfo,
+) => Promise<[string, string]> | [string, string];
 /**
  * A path that is set up relative to the test project directory where this file will be copied (same name)
  */
@@ -228,7 +259,7 @@ export interface TestConfigEntry {
 	/**
 	 * If you would like to place additional files within the test projects
 	 */
-	additionalFiles?: AdditionalFilesEntry[];
+	additionalFiles?: (AdditionalFilesEntry | AddFilePerTestProjectCreate)[];
 	/**
 	 * Number of milliseconds per test to allow before failing
 	 */

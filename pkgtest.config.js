@@ -1,5 +1,75 @@
 const { join } = require("path");
 
+// Create a pkgtest.config.js file so we can test our binary and solve yarn local resolution in dependencies
+const createConfigFile = (_config, { moduleType, packageManager, projectDir }) => {
+	const exportPart = moduleType === 'commonjs' ? 'module.exports = ' : 'export default '
+	const pkgtestPath = projectDir;
+
+	const content = `const baseEntry = {
+	fileTests: {
+		testMatch: "**/*.ts",
+		runWith: ["node", "tsx", "ts-node"],
+		transforms: {
+			typescript: {
+				version: "^5.0.0",
+				tsNode: {
+					version: "^10.9.2",
+				},
+				tsx: {
+					version: "^4.19.2",
+				},
+				nodeTypes: {
+					version: "^20.0.0",
+				},
+			}, // Use the defaults, but we do want typescript transformation
+		},
+	},
+	moduleTypes: ["commonjs", "esm"],
+};
+
+${exportPart}{
+	rootDir: "pkgtest",
+	// Since we use locks in the upper context, we are just gonna skip that because it's painful to do lock updates
+	locks: false,
+	entries: [
+		{
+			...baseEntry,
+			packageManagers: ["npm", "pnpm"],
+		},
+		{
+			...baseEntry,
+			packageManagers: [
+				{
+					alias: "nolockv1",
+					packageManager: "yarn-v1",
+				},
+			],
+			packageJson: {
+				resolutions: {
+					"@hanseltime/pkgtest": "file:${pkgtestPath}",
+				},
+			},
+		},
+		{
+			...baseEntry,
+			packageManagers: [
+				{
+					alias: "nolockberry",
+					packageManager: "yarn-berry",
+				},
+			],
+			packageJson: {
+				resolutions: {
+					"@hanseltime/pkgtest": "portal:${pkgtestPath}",
+				},
+			},
+		},
+	],
+};`
+
+	return [ content, 'pkgtest.config.js']
+}
+
 const nodeLinkedYarnBerry = {
 	alias: "yarn node linked",
 	packageManager: "yarn-berry",
@@ -36,7 +106,10 @@ const simpleFileTests = {
 };
 
 const cjsBinTests = {
-	additionalFiles: [[join("fixtures", "fakepkgtest-cjs"), "./"]],
+	additionalFiles: [
+		[join("fixtures", "fakepkgtest-cjs"), "./"],
+		createConfigFile
+	],
 	binTests: {
 		pkgtest: [
 			{
@@ -51,7 +124,10 @@ const cjsBinTests = {
 };
 
 const esmBinTests = {
-	additionalFiles: [[join("fixtures", "fakepkgtest-esm"), "./"]],
+	additionalFiles: [
+		[join("fixtures", "fakepkgtest-esm"), "./"],
+		createConfigFile,
+	],
 	binTests: {
 		pkgtest: [
 			{

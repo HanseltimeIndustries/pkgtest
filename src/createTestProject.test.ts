@@ -2,7 +2,6 @@ import { createDependencies } from "./createDependencies";
 import { getAllMatchingFiles, copyOverAdditionalFiles } from "./files";
 import {
 	getPkgBinaryRunnerCommand,
-	getPkgManagerCommand,
 	getPkgManagerSetCommand,
 	getPkgInstallCommand,
 	LockFileMode,
@@ -26,6 +25,7 @@ import { TsConfigJson } from "get-tsconfig";
 import { AdditionalFilesCopy } from "./files/types";
 import { SimpleReporter } from "./reporters/SimpleReporter";
 import { TestGroupOverview } from "./reporters";
+import { StandardizedTestConfig } from "./config";
 
 jest.mock("./createDependencies");
 jest.mock("fs/promises");
@@ -39,7 +39,6 @@ const mockCp = jest.mocked(cp);
 const mockExec = jest.mocked(exec);
 const mockGetAllMatchingFiles = jest.mocked(getAllMatchingFiles);
 const mockCopyOverAdditionalFiles = jest.mocked(copyOverAdditionalFiles);
-const mockGetPkgManagerCommand = jest.mocked(getPkgManagerCommand);
 const mockGetPkgBinaryRunnerCommand = jest.mocked(getPkgBinaryRunnerCommand);
 const mockGetPkgManagerSetCommand = jest.mocked(getPkgManagerSetCommand);
 const mockGetPkgInstallCommand = jest.mocked(getPkgInstallCommand);
@@ -58,6 +57,7 @@ const testDeps = {
 	dep1: "1.0.1",
 	dep2: "^2.0.1",
 };
+const testConfig = {} as StandardizedTestConfig
 const projectUnderTestDirName = "packageUnderTest";
 const testProjectUnderTestDir = resolve(process.cwd(), projectUnderTestDirName);
 const testProjectDir = resolve(process.cwd(), "someNesting", "testProjectDir");
@@ -88,6 +88,12 @@ const testAdditionalFiles: AdditionalFilesCopy[] = [
 		toDir: "./",
 	},
 ];
+const mockCreateAddPromise = jest.fn()
+const mockCreateAddSync = jest.fn()
+const testCreateAdditionalFiles = [
+	mockCreateAddPromise,
+	mockCreateAddSync,
+]
 const testrootDir = "./pkgtests";
 const testMatchIgnore = ["someglob"];
 
@@ -112,12 +118,13 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			mockCreateDependencies.mockReturnValue(testDeps);
 			mockGetAllMatchingFiles.mockResolvedValue(testMatchingTests);
 			mockGetPkgBinaryRunnerCommand.mockReturnValue(testBinCmd);
-			mockGetPkgManagerCommand.mockReturnValue(testPkgManagerCmd);
 			mockGetPkgManagerSetCommand.mockReturnValue(testPkgManagerSetCmd);
 			mockGetTypescriptConfig.mockReturnValue(testTsConfig as any);
 			mockGetPkgInstallCommand.mockReturnValue(testPkgInstallCmd);
 			mockCp.mockResolvedValue();
 			mockWriteFile.mockResolvedValue();
+			mockCreateAddPromise.mockResolvedValue(['contents1', 'file1.txt'])
+			mockCreateAddSync.mockResolvedValue(['contents2', 'file2.txt'])
 			mockExec.mockImplementation((command, _options, cb) => {
 				if (!cb) {
 					throw new Error(`Not expecting no callback exec methods! ${command}`);
@@ -160,11 +167,13 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						entryAlias: testEntryAlias,
 						isCI: false,
 						updateLock: false,
+						config: testConfig,
 					},
 					{
 						modType,
 						pkgManager: PkgManager.YarnV1,
 						additionalFiles: testAdditionalFiles,
+						createAdditionalFiles: testCreateAdditionalFiles,
 						pkgManagerAlias: "myalias",
 						pkgManagerOptions: testPkgManagerOptions,
 						pkgManagerVersion: testPkgManagerVersion,
@@ -221,6 +230,19 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				expect.anything(),
 			);
 
+			expect(mockCreateAddPromise).toHaveBeenCalledWith(testConfig, {
+				projectDir: testProjectUnderTestDir,
+				testProjectDir,
+				packageManager: PkgManager.YarnV1,
+				packageManagerAlias: "myalias",
+				moduleType: modType,
+				binTests: undefined,
+				fileTests: {
+					runWith: [RunWith.Node],
+					testMatch: "some**glob",
+				},
+			})
+
 			// confirm pkg install command called
 			expect(mockExec).toHaveBeenCalledWith(
 				testPkgInstallCmd,
@@ -233,10 +255,6 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 
 			// Confirm command retrieval functions called with versions
 			expect(mockGetPkgBinaryRunnerCommand).toHaveBeenCalledWith(
-				PkgManager.YarnV1,
-				testPkgManagerVersion,
-			);
-			expect(mockGetPkgManagerCommand).toHaveBeenCalledWith(
 				PkgManager.YarnV1,
 				testPkgManagerVersion,
 			);
@@ -321,11 +339,13 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						entryAlias: testEntryAlias,
 						isCI: false,
 						updateLock: false,
+						config: testConfig,
 					},
 					{
 						modType,
 						pkgManager: PkgManager.YarnV1,
 						additionalFiles: testAdditionalFiles,
+						createAdditionalFiles: [],
 						pkgManagerAlias: "myalias",
 						pkgManagerOptions: testPkgManagerOptions,
 						pkgManagerVersion: testPkgManagerVersion,
@@ -401,10 +421,6 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 
 			// Confirm command retrieval functions called with versions
 			expect(mockGetPkgBinaryRunnerCommand).toHaveBeenCalledWith(
-				PkgManager.YarnV1,
-				testPkgManagerVersion,
-			);
-			expect(mockGetPkgManagerCommand).toHaveBeenCalledWith(
 				PkgManager.YarnV1,
 				testPkgManagerVersion,
 			);
@@ -499,6 +515,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						entryAlias: testEntryAlias,
 						isCI: false,
 						updateLock: false,
+						config: testConfig,
 					},
 					{
 						modType: modType,
@@ -507,6 +524,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						pkgManagerOptions: testPkgManagerOptions,
 						pkgManagerVersion: testPkgManagerVersion,
 						additionalFiles: testAdditionalFiles,
+						createAdditionalFiles: [],
 						fileTests: {
 							runWith: [RunWith.Node],
 							testMatch: "some**glob",
@@ -542,10 +560,6 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 
 			// Confirm command retrieval functions called with versions
 			expect(mockGetPkgBinaryRunnerCommand).toHaveBeenCalledWith(
-				PkgManager.YarnV1,
-				testPkgManagerVersion,
-			);
-			expect(mockGetPkgManagerCommand).toHaveBeenCalledWith(
 				PkgManager.YarnV1,
 				testPkgManagerVersion,
 			);
@@ -690,6 +704,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						entryAlias: testEntryAlias,
 						isCI: false,
 						updateLock: false,
+						config: testConfig,
 					},
 					{
 						fileTests: {
@@ -708,6 +723,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						pkgManagerOptions: testPkgManagerOptions,
 						pkgManagerVersion: testPkgManagerVersion,
 						additionalFiles: testAdditionalFiles,
+						createAdditionalFiles: [],
 						binTests: {
 							bin1: [
 								{
@@ -754,10 +770,6 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 
 			// Confirm command retrieval functions called with versions
 			expect(mockGetPkgBinaryRunnerCommand).toHaveBeenCalledWith(
-				PkgManager.YarnV1,
-				testPkgManagerVersion,
-			);
-			expect(mockGetPkgManagerCommand).toHaveBeenCalledWith(
 				PkgManager.YarnV1,
 				testPkgManagerVersion,
 			);
@@ -935,6 +947,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						entryAlias: testEntryAlias,
 						isCI: false,
 						updateLock: false,
+						config: testConfig,
 					},
 					{
 						modType,
@@ -947,6 +960,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 							dependencies: testAdditionalDeps,
 						},
 						additionalFiles: testAdditionalFiles,
+						createAdditionalFiles: [],
 						fileTests: {
 							runWith: allRunBy,
 							testMatch: "some**glob",
@@ -981,10 +995,6 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 
 			// Confirm command retrieval functions called with versions
 			expect(mockGetPkgBinaryRunnerCommand).toHaveBeenCalledWith(
-				PkgManager.YarnV1,
-				testPkgManagerVersion,
-			);
-			expect(mockGetPkgManagerCommand).toHaveBeenCalledWith(
 				PkgManager.YarnV1,
 				testPkgManagerVersion,
 			);
@@ -1160,12 +1170,14 @@ it("throws an error if the projectdir is not absolute", async () => {
 				entryAlias: testEntryAlias,
 				isCI: false,
 				updateLock: false,
+				config: testConfig,
 			},
 			{
 				modType: ModuleTypes.Commonjs,
 				pkgManager: PkgManager.YarnV1,
 				pkgManagerAlias: "myalias",
 				additionalFiles: [],
+				createAdditionalFiles: [],
 				fileTests: {
 					runWith: [RunWith.Node],
 					testMatch: "some**glob",
@@ -1189,12 +1201,14 @@ it("throws an error if the testProjectDir is not absolute", async () => {
 				entryAlias: testEntryAlias,
 				isCI: false,
 				updateLock: false,
+				config: testConfig,
 			},
 			{
 				modType: ModuleTypes.Commonjs,
 				pkgManager: PkgManager.YarnV1,
 				pkgManagerAlias: "myalias",
 				additionalFiles: [],
+				createAdditionalFiles: [],
 				fileTests: {
 					runWith: [RunWith.Node],
 					testMatch: "some**glob",

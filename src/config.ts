@@ -14,6 +14,7 @@ import {
 	BinTestConfig,
 	AdditionalFilesEntry,
 	AddFileCopyTo,
+	AddFilePerTestProjectCreate,
 } from "./types";
 import { z, ZodError, ZodType } from "zod";
 import { fromError } from "zod-validation-error";
@@ -72,25 +73,25 @@ const AdvancedPackageManagerOptionsValidated = z.discriminatedUnion(
 			packageManager: z.literal(PkgManager.YarnBerry),
 			alias: z.string(),
 			version: z.string().optional(),
-			options: YarnV4OptionsValidated,
+			options: YarnV4OptionsValidated.optional(),
 		}),
 		z.object({
 			packageManager: z.literal(PkgManager.YarnV1),
 			alias: z.string(),
 			version: z.string().optional(),
-			options: PkgManagerBaseOptionsValidated,
+			options: PkgManagerBaseOptionsValidated.optional(),
 		}),
 		z.object({
 			packageManager: z.literal(PkgManager.Npm),
 			alias: z.string(),
 			version: z.string().optional(),
-			options: PkgManagerBaseOptionsValidated,
+			options: PkgManagerBaseOptionsValidated.optional(),
 		}),
 		z.object({
 			packageManager: z.literal(PkgManager.Pnpm),
 			alias: z.string(),
 			version: z.string().optional(),
-			options: PkgManagerBaseOptionsValidated,
+			options: PkgManagerBaseOptionsValidated.optional(),
 		}),
 	],
 ) satisfies ZodType<PkgManagerOptionsConfig<PkgManager>>;
@@ -138,6 +139,9 @@ Note, we will run each way per package manager + module project that is created.
 	transforms: TransformValidated,
 });
 
+// TODO: we could make this more descriptive but the lambda is more of an escape hatch than standard
+const AddFilePerTestProjectCreateValidated = z.function().args(z.any(), z.any()).returns(z.any()) satisfies ZodType<AddFilePerTestProjectCreate>
+
 const TestConfigEntryValidated = z.object({
 	fileTests: FileTestsValidated.optional(),
 	packageManagers: z
@@ -154,7 +158,7 @@ Important - to preserve integrity during testing, each module type will get a br
 		.describe(`A list of module types that we will import the package under test with.  If you are using typescript, you will probably want the same configuration for both moduleTypes and will only need one TetsConfigEntry for both.
 If you are writing in raw JS though, you will more than likely need to keep ESM and CommonJS equivalent versions of each package test and therefore will need to have an entry with ["commonjs"] and ["esm"] separately so that you can change the testMatch to pick the correct files.`),
 	additionalDependencies,
-	additionalFiles: z.array(AdditionalFilesEntryValidated).optional(),
+	additionalFiles: z.array(z.union([AdditionalFilesEntryValidated, AddFilePerTestProjectCreateValidated])).optional(),
 	binTests: BinTestsValidated.optional(),
 	timeout: z.number().optional(),
 	packageJson: z.record(z.string(), z.any()).optional(),

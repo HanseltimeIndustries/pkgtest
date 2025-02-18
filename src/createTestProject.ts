@@ -9,6 +9,7 @@ import {
 	YarnV4Options,
 	BinTestConfig,
 	FileTestConfig,
+	AddFilePerTestProjectCreate,
 } from "./types";
 import { getTypescriptConfig } from "./getTypescriptConfig";
 import { createDependencies } from "./createDependencies";
@@ -26,6 +27,7 @@ import { Reporter, TestFile } from "./reporters";
 import { PackageJson } from "type-fest";
 import { controlledExec } from "./controlledExec";
 import { performInstall } from "./performInstall";
+import { StandardizedTestConfig } from "./config";
 
 export const SRC_DIRECTORY = "src";
 export const BUILD_DIRECTORY = "dist";
@@ -78,6 +80,10 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		testProjectDir: string;
 		debug?: boolean;
 		failFast?: boolean;
+		/**
+		 * JUST USED FOR LAMBDA CALLS
+		 */
+		config: StandardizedTestConfig;
 	},
 	testOptions: {
 		modType: ModuleTypes;
@@ -99,6 +105,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		 * Any additional files that we want to copy into the project directory
 		 */
 		additionalFiles: AdditionalFilesCopy[];
+		createAdditionalFiles: AddFilePerTestProjectCreate[];
 		/**
 		 * The number of ms that any test is allowed to run
 		 */
@@ -135,6 +142,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		pkgManagerVersion,
 		fileTests,
 		additionalFiles,
+		createAdditionalFiles,
 		timeout,
 		reporter,
 		packageJson: packageJsonOverrides,
@@ -460,6 +468,25 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 	// Copy over files at the end
 	if (additionalFiles) {
 		await copyOverAdditionalFiles(additionalFiles, testProjectDir);
+	}
+
+	if (createAdditionalFiles) {
+		await Promise.all(
+			createAdditionalFiles.map(async (caf) => {
+				const [contents, path] = await Promise.resolve(
+					caf(context.config, {
+						projectDir,
+						testProjectDir,
+						binTests: testOptions.binTests,
+						fileTests,
+						packageManager: pkgManager,
+						packageManagerAlias: pkgManagerAlias,
+						moduleType: modType,
+					}),
+				);
+				await writeFile(resolve(testProjectDir, path), contents);
+			}),
+		);
 	}
 
 	return {

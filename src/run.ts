@@ -8,6 +8,8 @@ import { SimpleReporter } from "./reporters/SimpleReporter";
 import { Logger } from "./Logger";
 import chalk from "chalk";
 import {
+	AddFilePerTestProjectCreate,
+	AdditionalFilesEntry,
 	FailFastError,
 	ModuleTypes,
 	PkgManager,
@@ -188,14 +190,36 @@ export async function run(options: RunOptions) {
 				logger.log(chalk.yellow(`Skipping deletion of ${testProjectDir}`));
 			}
 		}
-		const entryLevelAdditionalFiles: AdditionalFilesCopy[] =
-			testConfigEntry.additionalFiles
-				? await findAdditionalFilesForCopyOver({
-						additionalFiles: testConfigEntry.additionalFiles,
-						projectDir,
-						rootDir,
-					})
-				: [];
+		const entryLevelAdditionalFiles: AdditionalFilesCopy[] = [];
+		let entryLevelCreateAdditionalFiles: AddFilePerTestProjectCreate[] = [];
+		if (testConfigEntry.additionalFiles) {
+			const { copyAdditionalFiles, createAdditionalFiles } =
+				testConfigEntry.additionalFiles.reduce(
+					(fileTypees, af) => {
+						if (typeof af === "function") {
+							fileTypees.createAdditionalFiles.push(
+								af as AddFilePerTestProjectCreate,
+							);
+						} else {
+							fileTypees.copyAdditionalFiles.push(af);
+						}
+						return fileTypees;
+					},
+					{
+						copyAdditionalFiles: [] as AdditionalFilesEntry[],
+						createAdditionalFiles: [] as AddFilePerTestProjectCreate[],
+					},
+				);
+			entryLevelCreateAdditionalFiles.push(...createAdditionalFiles);
+			entryLevelAdditionalFiles.push(
+				...(await findAdditionalFilesForCopyOver({
+					additionalFiles: copyAdditionalFiles,
+					projectDir,
+					rootDir,
+				})),
+			);
+		}
+
 		try {
 			const { fileTestRunners, binTestRunner } = await createTestProject(
 				{
@@ -209,6 +233,7 @@ export async function run(options: RunOptions) {
 					isCI: options.isCI,
 					lock,
 					entryAlias: testConfigEntry.alias,
+					config,
 				},
 				{
 					modType,
@@ -221,6 +246,7 @@ export async function run(options: RunOptions) {
 						...topLevelAdditionalFiles,
 						...entryLevelAdditionalFiles,
 					],
+					createAdditionalFiles: entryLevelCreateAdditionalFiles,
 					reporter,
 					timeout: testConfigEntry.timeout || topLevelTimeout,
 					packageJson: {
