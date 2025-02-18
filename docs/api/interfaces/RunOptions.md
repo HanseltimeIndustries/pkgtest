@@ -73,6 +73,14 @@ A glob filter of file names to run (relative to the cwd root)
 
 ***
 
+### isCI
+
+> **isCI**: `boolean`
+
+If true, we've detected a ci environment - used for some determinations around yarn install
+
+***
+
 ### preserveResources?
 
 > `optional` **preserveResources**: `boolean`
@@ -93,3 +101,12 @@ The max amount of time for a test to run (keep in mind, this is just the call to
 and not installation)
 
 Defaults to 2000
+
+***
+
+### updateLocks?
+
+> `optional` **updateLocks**: `boolean`
+
+If set to true, and locks: false is not set in the config, this will update any changes to the lock files in test
+projects to the lockfiles folder

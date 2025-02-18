@@ -20,6 +20,7 @@
 
 - [BinTestConfig](interfaces/BinTestConfig.md)
 - [BinTestEntry](interfaces/BinTestEntry.md)
+- [CreateTestProjectInfo](interfaces/CreateTestProjectInfo.md)
 - [FileTestConfig](interfaces/FileTestConfig.md)
 - [InstalledTool](interfaces/InstalledTool.md)
 - [PkgManagerBaseOptions](interfaces/PkgManagerBaseOptions.md)
@@ -36,6 +37,7 @@
 
 - [AddFileCopyTo](type-aliases/AddFileCopyTo.md)
 - [AddFileMatch](type-aliases/AddFileMatch.md)
+- [AddFilePerTestProjectCreate](type-aliases/AddFilePerTestProjectCreate.md)
 - [AdditionalFilesEntry](type-aliases/AdditionalFilesEntry.md)
 - [PkgManagerOptions](type-aliases/PkgManagerOptions.md)
 - [ToDir](type-aliases/ToDir.md)

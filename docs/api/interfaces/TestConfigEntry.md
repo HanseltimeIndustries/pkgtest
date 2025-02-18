@@ -23,7 +23,7 @@ or other explicit fields like "typescript.tsx.version".
 
 ### additionalFiles?
 
-> `optional` **additionalFiles**: [`AdditionalFilesEntry`](../type-aliases/AdditionalFilesEntry.md)[]
+> `optional` **additionalFiles**: ([`AdditionalFilesEntry`](../type-aliases/AdditionalFilesEntry.md) \| [`AddFilePerTestProjectCreate`](../type-aliases/AddFilePerTestProjectCreate.md))[]
 
 If you would like to place additional files within the test projects
 

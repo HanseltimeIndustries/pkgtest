@@ -53,6 +53,17 @@ In that case, we would add:
     Remember for typescript files to add the `@types/` dependency if the library doesn't export its own types.  You will run into typescript compilation
     errors about not being able to find declarations if not!
 
+## locks
+
+The examples in [Getting started](../1-getting-started.md) use `locks: false` since that is a simpler configuration and is sufficient for running
+on your own machine.
+
+The locks configuration, designates how pkgtest handles lock files.  The goal of lock files is for security and repeatability and a good overview
+of them can be found [here](https://www.arahansen.com/the-ultimate-guide-to-yarn-lock-lockfiles/).  In a more complete setup, you would actually
+want to make sure that every test project you create uses a committed lock file so that it can make sure it runs the same way in CI.
+
+If you can handle the additional process, pkgtest recommends using lockfiles.  You can see the process in [](./4-ci.md#configuring-lockfiles).
+
 ## additionalFiles
 
 You can provide a list of additional files that you want installed in the test project.  This is especially useful if you are testing something like

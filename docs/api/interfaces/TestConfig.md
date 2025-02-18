@@ -37,6 +37,14 @@ Logical unit separating out what test files should be run and under what conditi
 
 ***
 
+### locks
+
+> **locks**: `boolean` \| \{ `folder`: `string`; \}
+
+Behavior for package locks
+
+***
+
 ### matchIgnore?
 
 > `optional` **matchIgnore**: `string`[]

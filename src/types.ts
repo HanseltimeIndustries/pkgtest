@@ -133,7 +133,10 @@ export interface PkgManagerOptionsConfig<T extends PkgManager> {
  * Directories will be copied recursively
  */
 export type AddFileMatch = string;
-interface CreateTestProjectInfo {
+/**
+ * A context object for create additional file lambdas
+ */
+export interface CreateTestProjectInfo {
 	/**
 	 * The path of the current test project that is being created
 	 */
@@ -162,7 +165,7 @@ interface CreateTestProjectInfo {
  */
 export type AddFilePerTestProjectCreate = (
 	config: TestConfig,
-	entry: CreateTestProjectInfo,
+	projectInfo: CreateTestProjectInfo,
 ) => Promise<[string, string]> | [string, string];
 /**
  * A path that is set up relative to the test project directory where this file will be copied (same name)

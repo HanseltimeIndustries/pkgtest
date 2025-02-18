@@ -81,7 +81,8 @@ Let's go ahead and create a `pkgtest.config.js`:
                 moduleTypes: ["commonjs", "esm"],
                 // No additional files needed
             },
-        ]
+        ],
+        locks: false,
     }
     ```
 === "esm project"
@@ -118,6 +119,7 @@ Let's go ahead and create a `pkgtest.config.js`:
                 // No additional files needed
             },
         ]
+        locks: false,
     }
     ```
 
@@ -612,7 +614,8 @@ To add test the hello script that we build, let's modify our test entry:
                 moduleTypes: ["commonjs", "esm"],
                 // No additional files needed
             },
-        ]
+        ],
+        locks: false,
     }
     ```
 === "esm project"
@@ -648,7 +651,8 @@ To add test the hello script that we build, let's modify our test entry:
                 moduleTypes: ["commonjs", "esm"],
                 // No additional files needed
             },
-        ]
+        ],
+        locks: false,
     }
     ```
 
@@ -815,7 +819,8 @@ yarn plug'n'play (or whatever yarn berry defaults to in the future).  So let's a
                 moduleTypes: ["commonjs", "esm"],
                 // No additional files needed
             },
-        ]
+        ],
+        locks: false,
     }
     ```
 === "esm project"
@@ -860,7 +865,8 @@ yarn plug'n'play (or whatever yarn berry defaults to in the future).  So let's a
                 moduleTypes: ["commonjs", "esm"],
                 // No additional files needed
             },
-        ]
+        ],
+        locks: false,
     }
     ```
 
