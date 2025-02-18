@@ -1,8 +1,9 @@
 const { join } = require("path");
 
 // Create a pkgtest.config.js file so we can test our binary and solve yarn local resolution in dependencies
-const createConfigFile = (_config, { moduleType, packageManager, projectDir }) => {
-	const exportPart = moduleType === 'commonjs' ? 'module.exports = ' : 'export default '
+const createConfigFile = (_config, { moduleType, projectDir }) => {
+	const exportPart =
+		moduleType === "commonjs" ? "module.exports = " : "export default ";
 	const pkgtestPath = projectDir;
 
 	const content = `const baseEntry = {
@@ -25,6 +26,7 @@ const createConfigFile = (_config, { moduleType, packageManager, projectDir }) =
 		},
 	},
 	moduleTypes: ["commonjs", "esm"],
+	timeout: 5000,
 };
 
 ${exportPart}{
@@ -65,10 +67,10 @@ ${exportPart}{
 			},
 		},
 	],
-};`
+};`;
 
-	return [ content, 'pkgtest.config.js']
-}
+	return [content, "pkgtest.config.js"];
+};
 
 const nodeLinkedYarnBerry = {
 	alias: "yarn node linked",
@@ -108,7 +110,7 @@ const simpleFileTests = {
 const cjsBinTests = {
 	additionalFiles: [
 		[join("fixtures", "fakepkgtest-cjs"), "./"],
-		createConfigFile
+		createConfigFile,
 	],
 	binTests: {
 		pkgtest: [

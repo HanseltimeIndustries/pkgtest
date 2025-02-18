@@ -50,14 +50,13 @@ const testReporter = new SimpleReporter({
 	debug: false,
 });
 const testBinCmd = "corepack npx@latest";
-const testPkgManagerCmd = "corepack npm@latest";
 const testPkgManagerSetCmd = "corepack use npm@latest";
 const testPkgInstallCmd = "corepack use npm@latest install conditional";
 const testDeps = {
 	dep1: "1.0.1",
 	dep2: "^2.0.1",
 };
-const testConfig = {} as StandardizedTestConfig
+const testConfig = {} as StandardizedTestConfig;
 const projectUnderTestDirName = "packageUnderTest";
 const testProjectUnderTestDir = resolve(process.cwd(), projectUnderTestDirName);
 const testProjectDir = resolve(process.cwd(), "someNesting", "testProjectDir");
@@ -88,12 +87,9 @@ const testAdditionalFiles: AdditionalFilesCopy[] = [
 		toDir: "./",
 	},
 ];
-const mockCreateAddPromise = jest.fn()
-const mockCreateAddSync = jest.fn()
-const testCreateAdditionalFiles = [
-	mockCreateAddPromise,
-	mockCreateAddSync,
-]
+const mockCreateAddPromise = jest.fn();
+const mockCreateAddSync = jest.fn();
+const testCreateAdditionalFiles = [mockCreateAddPromise, mockCreateAddSync];
 const testrootDir = "./pkgtests";
 const testMatchIgnore = ["someglob"];
 
@@ -123,8 +119,8 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			mockGetPkgInstallCommand.mockReturnValue(testPkgInstallCmd);
 			mockCp.mockResolvedValue();
 			mockWriteFile.mockResolvedValue();
-			mockCreateAddPromise.mockResolvedValue(['contents1', 'file1.txt'])
-			mockCreateAddSync.mockResolvedValue(['contents2', 'file2.txt'])
+			mockCreateAddPromise.mockResolvedValue(["contents1", "file1.txt"]);
+			mockCreateAddSync.mockResolvedValue(["contents2", "file2.txt"]);
 			mockExec.mockImplementation((command, _options, cb) => {
 				if (!cb) {
 					throw new Error(`Not expecting no callback exec methods! ${command}`);
@@ -241,7 +237,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					runWith: [RunWith.Node],
 					testMatch: "some**glob",
 				},
-			})
+			});
 
 			// confirm pkg install command called
 			expect(mockExec).toHaveBeenCalledWith(
