@@ -92,6 +92,13 @@ This option allows you to only run a specific [type of test](./1-test-types.md).
 
 Example: `--testType bin` will only run bin tests
 
+### [--no filter options]
+
+All of the filter options above have a `--no` option as well.  Instead of performing an `only` operation, these will run all tests that
+don't match the no filter.
+
+`--noTestType`, `--noModType`, `--noRunWith`, `--noPkgManager`, `--noPkgManagerAlias`
+
 ## Running just one suite and test
 
 Using the CLI options, we can now constrain pkgtest to run just 1 suite and 1 test for us to better debug.

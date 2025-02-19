@@ -26,10 +26,15 @@ interface Options {
 	installOnly?: boolean;
 	// Filter options
 	modType?: ModuleTypes[];
+	noModType?: ModuleTypes[];
 	pkgManager?: PkgManager[];
+	noPkgManager?: PkgManager[];
 	runWith?: RunWith[];
+	noRunWith?: RunWith[];
 	pkgManagerAlias?: string[];
+	noPkgManagerAlias?: string[];
 	testType?: TestType[];
+	noTestType?: TestType[];
 }
 
 function parseIntArg(value: string, _prev?: number): number {
@@ -81,8 +86,20 @@ program
 	)
 	.addOption(
 		new Option(
+			"--noModType <modTypes...>",
+			"Limits the tests that run to any that don't have the specified module types",
+		).choices(Object.values(ModuleTypes)),
+	)
+	.addOption(
+		new Option(
 			"--pkgManager <pkgManagers...>",
 			"Limits the tests that run to the specified base package manager",
+		).choices(Object.values(PkgManager)),
+	)
+	.addOption(
+		new Option(
+			"--noPkgManager <pkgManagers...>",
+			"Limits the tests that run to any that don't have the specified base package manager",
 		).choices(Object.values(PkgManager)),
 	)
 	.addOption(
@@ -93,14 +110,32 @@ program
 	)
 	.addOption(
 		new Option(
+			"--noRunWith <runWiths...>",
+			"Limits the tests that run to any that don't have the specified runWith",
+		).choices(Object.values(RunWith)),
+	)
+	.addOption(
+		new Option(
 			"--pkgManagerAlias <pkgManagerAliases...>",
 			"Limits the tests that run to the pkgManager config alias (pkgtest default) runs the string PkgManager configs",
 		),
 	)
 	.addOption(
 		new Option(
+			"--noPkgManagerAlias <pkgManagerAliases...>",
+			"Limits the tests that run to any that don't have the pkgManager config alias (pkgtest default) runs the string PkgManager configs",
+		),
+	)
+	.addOption(
+		new Option(
 			"--testType <testType...>",
 			"Limits the tests that run to the type of test",
+		).choices(Object.values(TestType)),
+	)
+	.addOption(
+		new Option(
+			"--noTestType <testType...>",
+			"Limits the tests that run to any that don't have the type of test",
 		).choices(Object.values(TestType)),
 	)
 	.addArgument(
@@ -125,10 +160,15 @@ program
 				filters: {
 					fileTestNames: testMatch ?? [],
 					moduleTypes: options.modType,
+					noModuleTypes: options.noModType,
 					packageManagers: options.pkgManager,
+					noPackageManagers: options.noPkgManager,
 					runWith: options.runWith,
+					noRunWith: options.noRunWith,
 					pkgManagerAlias: options.pkgManagerAlias,
+					noPkgManagerAlias: options.noPkgManagerAlias,
 					testTypes: options.testType,
+					noTestTypes: options.noTestType,
 				},
 				parallel: options.parallel,
 			});

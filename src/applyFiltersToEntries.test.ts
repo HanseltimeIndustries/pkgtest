@@ -1,4 +1,7 @@
-import { applyFiltersToEntries, FilterOptions } from "./applyFiltersToEntries";
+import {
+	applyFiltersToEntries,
+	EntryFilterOptions,
+} from "./applyFiltersToEntries";
 import { StandardizedTestConfig, StandardizedTestConfigEntry } from "./config";
 import { Logger } from "./Logger";
 import { TestGroupOverview } from "./reporters";
@@ -281,11 +284,77 @@ it.each(
 			// 2 pk * 2 mod * 2 entries with both
 			[20, 8],
 		],
+		[
+			{
+				noTestTypes: [TestType.File],
+				noModuleTypes: [ModuleTypes.Commonjs],
+				noPackageManagers: [PkgManager.YarnV1],
+				noRunWith: [RunWith.TsNode, RunWith.Tsx],
+			},
+			[testEntryAllTypes, testFileTestOnly, testBinTestOnly],
+			[
+				{
+					...testEntryAllTypes,
+					moduleTypes: [ModuleTypes.ESM],
+					packageManagers: testEntryAllTypes.packageManagers.filter((pm) => {
+						return pm.packageManager !== PkgManager.YarnV1;
+					}),
+					fileTests: undefined,
+				},
+				{
+					...testBinTestOnly,
+					moduleTypes: [ModuleTypes.ESM],
+					packageManagers: testFileTestOnly.packageManagers.filter((pm) => {
+						return pm.packageManager !== PkgManager.YarnV1;
+					}),
+				},
+			],
+			// All file tests
+			// all commonjs skipped and none with yarn-v1 (2) = 4 + 2
+			[totalFileTests, 6],
+		],
+		[
+			{
+				noTestTypes: [TestType.Bin],
+				noModuleTypes: [ModuleTypes.Commonjs],
+				noPackageManagers: [PkgManager.YarnV1],
+				noRunWith: [RunWith.TsNode, RunWith.Tsx],
+			},
+			[testEntryAllTypes, testFileTestOnly, testBinTestOnly],
+			[
+				{
+					...testEntryAllTypes,
+					moduleTypes: [ModuleTypes.ESM],
+					packageManagers: testEntryAllTypes.packageManagers.filter((pm) => {
+						return pm.packageManager !== PkgManager.YarnV1;
+					}),
+					fileTests: {
+						...testFileTestOnly.fileTests,
+						runWith: [RunWith.Node],
+					},
+					binTests: undefined,
+				},
+				{
+					...testFileTestOnly,
+					moduleTypes: [ModuleTypes.ESM],
+					packageManagers: testFileTestOnly.packageManagers.filter((pm) => {
+						return pm.packageManager !== PkgManager.YarnV1;
+					}),
+					fileTests: {
+						...testFileTestOnly.fileTests,
+						runWith: [RunWith.Node],
+					},
+				},
+			],
+			// All bin tests
+			// There's only 1 test (yarn-berry + 1 runWith) * 2 entries => 24 - 2 = 22
+			[22, 8],
+		],
 	].map((e) => {
 		// Serialize the filter for test clarity
 		return [JSON.stringify(e[0]), ...e] as unknown as [
 			string,
-			FilterOptions,
+			EntryFilterOptions,
 			StandardizedTestConfigEntry[],
 			StandardizedTestConfig[],
 			[number, number],

@@ -15,20 +15,17 @@ export interface ContextOptions {
 	binTestSuitesOverview: TestGroupOverview;
 }
 
-export interface FilterOptions {
+export interface EntryFilterOptions {
 	moduleTypes?: ModuleTypes[];
+	noModuleTypes?: ModuleTypes[];
 	packageManagers?: PkgManager[];
+	noPackageManagers?: PkgManager[];
 	runWith?: RunWith[];
+	noRunWith?: RunWith[];
 	pkgManagerAlias?: string[];
+	noPkgManagerAlias?: string[];
 	testTypes?: TestType[];
-	/**
-	 * A glob filter of file names to run (relative to the cwd root)
-	 */
-	fileTestNames?: string[];
-	/**
-	 * A string match/regex filter to only run bins that match
-	 */
-	binTestNames?: string[];
+	noTestTypes?: TestType[];
 }
 
 /**
@@ -38,7 +35,7 @@ export interface FilterOptions {
 export function applyFiltersToEntries(
 	entries: StandardizedTestConfigEntry[],
 	context: ContextOptions,
-	filters?: FilterOptions,
+	filters?: EntryFilterOptions,
 ): StandardizedTestConfigEntry[] {
 	const { logger, fileTestSuitesOverview, binTestSuitesOverview } = context;
 	// No need to do any filtering if there's no options
@@ -54,10 +51,32 @@ export function applyFiltersToEntries(
 		return entries;
 	}
 
-	const skipFileTests =
-		filters?.testTypes && !filters.testTypes.includes(TestType.File);
-	const skipBinTests =
-		filters?.testTypes && !filters.testTypes.includes(TestType.Bin);
+	function getFromNoType(values: string[], filters?: string[]) {
+		return filters ? values.filter((v) => !filters.includes(v)) : values;
+	}
+
+	// For enum types, we don't support no and only types at the same tim
+
+	// Coerce filters with "noTypes" - filters types take precedence
+	let modTypes = getFromNoType(
+		filters.moduleTypes ?? Object.values(ModuleTypes),
+		filters.noModuleTypes,
+	);
+	let testTypes = getFromNoType(
+		filters.testTypes ?? Object.values(TestType),
+		filters.noTestTypes,
+	);
+	let packageManagers = getFromNoType(
+		filters.packageManagers ?? Object.values(PkgManager),
+		filters.noPackageManagers,
+	);
+	let runWith = getFromNoType(
+		filters.runWith ?? Object.values(RunWith),
+		filters.noRunWith,
+	);
+
+	const skipFileTests = testTypes && !testTypes.includes(TestType.File);
+	const skipBinTests = testTypes && !testTypes.includes(TestType.Bin);
 	return (
 		entries
 			.map((testConfigEntry) => {
@@ -108,7 +127,7 @@ export function applyFiltersToEntries(
 
 				// reassign
 				filteredModTypes = testConfigEntry.moduleTypes.filter((modType) => {
-					if (filters.moduleTypes && !filters.moduleTypes.includes(modType)) {
+					if (modTypes && !modTypes.includes(modType)) {
 						// Do some UI Logging for each package manager variant that we lose as a result of cutting the module type
 						filteredPkgManagers.forEach(
 							({ packageManager: pkgManager, alias: pkgManagerAlias }) => {
@@ -137,10 +156,7 @@ export function applyFiltersToEntries(
 						const { packageManager: pkgManager, alias: pkgManagerAlias } =
 							_pkgManager;
 
-						if (
-							filters.packageManagers &&
-							!filters.packageManagers.includes(pkgManager)
-						) {
+						if (packageManagers && !packageManagers.includes(pkgManager)) {
 							filteredModTypes.forEach((modType) => {
 								testEntryProjectLevelSkip(
 									logger,
@@ -175,6 +191,26 @@ export function applyFiltersToEntries(
 							});
 							return false;
 						}
+						// Apply No Type
+						if (
+							filters.noPkgManagerAlias &&
+							filters.noPkgManagerAlias.includes(pkgManagerAlias)
+						) {
+							filteredModTypes.forEach((modType) => {
+								testEntryProjectLevelSkip(
+									logger,
+									{
+										modType,
+										pkgManager,
+										pkgManagerAlias,
+									},
+									filteredTestTypeConfigEntry,
+									fileTestSuitesOverview,
+									binTestSuitesOverview,
+								);
+							});
+							return false;
+						}
 						return true;
 					},
 				);
@@ -185,7 +221,7 @@ export function applyFiltersToEntries(
 						...filteredTestTypeConfigEntry.fileTests,
 						runWith: filteredTestTypeConfigEntry.fileTests.runWith.filter(
 							(rw) => {
-								if (filters.runWith && !filters.runWith.includes(rw)) {
+								if (runWith && !runWith.includes(rw)) {
 									filteredModTypes.forEach((modType) => {
 										filteredPkgManagers.forEach(
 											({

@@ -13,8 +13,6 @@ import {
 	FailFastError,
 	ModuleTypes,
 	PkgManager,
-	RunWith,
-	TestType,
 } from "./types";
 import { getMatchIgnore } from "./getMatchIgnore";
 import { ensureMinimumCorepack, getPkgManagerCommand } from "./pkgManager";
@@ -22,7 +20,10 @@ import { BinTestRunner } from "./BinTestRunner";
 import { TestGroupOverview } from "./reporters";
 import { findAdditionalFilesForCopyOver } from "./files";
 import { AdditionalFilesCopy } from "./files/types";
-import { applyFiltersToEntries } from "./applyFiltersToEntries";
+import {
+	applyFiltersToEntries,
+	EntryFilterOptions,
+} from "./applyFiltersToEntries";
 import { groupSyncInstallEntries } from "./groupSyncInstallEntries";
 import { readFileSync, rmSync } from "fs";
 import { PackageJson } from "type-fest";
@@ -98,12 +99,7 @@ export interface RunOptions {
 	 * For every supplied filter, the tests that would be created via the configs will be paired down to only thouse
 	 * that match all filters provided
 	 */
-	filters?: {
-		moduleTypes?: ModuleTypes[];
-		packageManagers?: PkgManager[];
-		runWith?: RunWith[];
-		pkgManagerAlias?: string[];
-		testTypes?: TestType[];
+	filters?: EntryFilterOptions & {
 		/**
 		 * A glob filter of file names to run (relative to the cwd root)
 		 */

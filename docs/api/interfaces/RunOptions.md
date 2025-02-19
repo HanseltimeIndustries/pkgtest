@@ -34,42 +34,24 @@ Immediately stop running tests after a failure
 
 ### filters?
 
-> `optional` **filters**: `object`
+> `optional` **filters**: `EntryFilterOptions` & `object`
 
 For every supplied filter, the tests that would be created via the configs will be paired down to only thouse
 that match all filters provided
 
-#### binTestNames?
+#### Type declaration
+
+##### binTestNames?
 
 > `optional` **binTestNames**: `string`[]
 
 A string match/regex filter to only run bins that match
 
-#### fileTestNames?
+##### fileTestNames?
 
 > `optional` **fileTestNames**: `string`[]
 
 A glob filter of file names to run (relative to the cwd root)
-
-#### moduleTypes?
-
-> `optional` **moduleTypes**: [`ModuleTypes`](../enumerations/ModuleTypes.md)[]
-
-#### packageManagers?
-
-> `optional` **packageManagers**: [`PkgManager`](../enumerations/PkgManager.md)[]
-
-#### pkgManagerAlias?
-
-> `optional` **pkgManagerAlias**: `string`[]
-
-#### runWith?
-
-> `optional` **runWith**: [`RunWith`](../enumerations/RunWith.md)[]
-
-#### testTypes?
-
-> `optional` **testTypes**: [`TestType`](../enumerations/TestType.md)[]
 
 ***
 
