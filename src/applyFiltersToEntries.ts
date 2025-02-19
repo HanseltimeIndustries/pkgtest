@@ -40,11 +40,19 @@ export function applyFiltersToEntries(
 	context: ContextOptions,
 	filters?: FilterOptions,
 ): StandardizedTestConfigEntry[] {
+	const { logger, fileTestSuitesOverview, binTestSuitesOverview } = context;
 	// No need to do any filtering if there's no options
 	if (!filters || Object.keys(filters).length === 0) {
+		// Add additional to the total
+		entries.forEach((ent) => {
+			addFilteredEntryToTotal(
+				ent,
+				fileTestSuitesOverview,
+				binTestSuitesOverview,
+			);
+		});
 		return entries;
 	}
-	const { logger, fileTestSuitesOverview, binTestSuitesOverview } = context;
 
 	const skipFileTests =
 		filters?.testTypes && !filters.testTypes.includes(TestType.File);
@@ -203,13 +211,19 @@ export function applyFiltersToEntries(
 					};
 				}
 
-				return {
+				const filteredEntry = {
 					...testConfigEntry,
 					fileTests: filteredFileTests,
 					binTests: filteredBinTests,
 					packageManagers: filteredPkgManagers,
 					moduleTypes: filteredModTypes,
 				};
+				addFilteredEntryToTotal(
+					filteredEntry,
+					fileTestSuitesOverview,
+					binTestSuitesOverview,
+				);
+				return filteredEntry;
 			})
 			// In the event that we filtered both file and binTests, don't even pass it back
 			.filter((fEntry) => fEntry.fileTests || fEntry.binTests)
@@ -293,5 +307,24 @@ function testEntryProjectLevelSkip(
 	}
 	if (config.binTests) {
 		binTestsSkip(logger, context, config, binTestsSuiteOverview);
+	}
+}
+
+function addFilteredEntryToTotal(
+	ent: StandardizedTestConfigEntry,
+	fileTestSuitesOverview: TestGroupOverview,
+	binTestSuitesOverview: TestGroupOverview,
+) {
+	if (ent.fileTests) {
+		fileTestSuitesOverview.addToTotal(
+			ent.moduleTypes.length *
+				ent.packageManagers.length *
+				ent.fileTests.runWith.length,
+		);
+	}
+	if (ent.binTests) {
+		binTestSuitesOverview.addToTotal(
+			ent.moduleTypes.length * ent.packageManagers.length,
+		);
 	}
 }

@@ -1,7 +1,7 @@
 import { tmpdir } from "os";
 import { getConfig, LIBRARY_NAME, StandardizedTestConfigEntry } from "./config";
 import { createTestProject } from "./createTestProject";
-import { mkdtemp, rm } from "fs/promises";
+import { mkdtemp } from "fs/promises";
 import { join } from "path";
 import { FileTestRunner } from "./FileTestRunner";
 import { SimpleReporter } from "./reporters/SimpleReporter";
@@ -17,15 +17,34 @@ import {
 	TestType,
 } from "./types";
 import { getMatchIgnore } from "./getMatchIgnore";
-import { ensureMinimumCorepack } from "./pkgManager";
+import { ensureMinimumCorepack, getPkgManagerCommand } from "./pkgManager";
 import { BinTestRunner } from "./BinTestRunner";
 import { TestGroupOverview } from "./reporters";
 import { findAdditionalFilesForCopyOver } from "./files";
 import { AdditionalFilesCopy } from "./files/types";
 import { applyFiltersToEntries } from "./applyFiltersToEntries";
 import { groupSyncInstallEntries } from "./groupSyncInstallEntries";
+import { readFileSync, rmSync } from "fs";
+import { PackageJson } from "type-fest";
+import { execSync } from "child_process";
 
 export const DEFAULT_TIMEOUT = 2000;
+
+const cleanUps: (() => Promise<void>)[] = [];
+async function runCleanup() {
+	await Promise.allSettled(cleanUps.map((c) => c()));
+}
+
+[
+	`exit`,
+	`SIGINT`,
+	`SIGUSR1`,
+	`SIGUSR2`,
+	`uncaughtException`,
+	`SIGTERM`,
+].forEach((eventType) => {
+	process.on(eventType, runCleanup);
+});
 
 export interface RunOptions {
 	/**
@@ -45,6 +64,13 @@ export interface RunOptions {
 	 * If true, we've detected a ci environment - used for some determinations around yarn install
 	 */
 	isCI: boolean;
+	/**
+	 * This means we will create the test projects and then end.  This is helpful for 2 scenarios:
+	 * 
+	 * 1. If you just want to have a test project created and then access it afterwards to test config with "--preserve"
+	 * 2. If you want to pre-cache dependencies before running tests separately
+	 */
+	installOnly?: boolean;
 	/**
 	 * If set to true, this will not clean up the test project directories that were created
 	 *
@@ -121,6 +147,9 @@ export async function run(options: RunOptions) {
 	const rootDir = config.rootDir ?? ".";
 	logger.logDebug(`rootDir: ${rootDir}`);
 	const projectDir = process.cwd();
+	const { name: packageUnderTestName } = JSON.parse(
+		readFileSync(join(projectDir, "package.json")).toString(),
+	) as PackageJson;
 
 	const tmpDir = process.env.PKG_TEST_TEMP_DIR ?? tmpdir();
 	logger.logDebug(`Writing test projects to temporary directory: ${tmpDir}`);
@@ -166,6 +195,7 @@ export async function run(options: RunOptions) {
 		filters,
 	);
 
+	let yarnCacheCleaned = false;
 	async function initializeOneEntry(
 		modType: ModuleTypes,
 		_pkgManager: StandardizedTestConfigEntry["packageManagers"][0],
@@ -174,6 +204,7 @@ export async function run(options: RunOptions) {
 		const {
 			packageManager: pkgManager,
 			alias: pkgManagerAlias,
+			version: pkgManagerVersion,
 			options: pkgManagerOptions,
 		} = _pkgManager;
 		// End filters
@@ -182,18 +213,38 @@ export async function run(options: RunOptions) {
 		ensureMinimumCorepack({
 			cwd: testProjectDir,
 		});
+		let cleanCalled = false;
 		async function cleanup() {
+			if (cleanCalled) {
+				return;
+			}
 			// Clean up the folder
 			if (!preserveResources) {
-				logger.logDebug(`Cleaning up ${testProjectDir}`);
-				await rm(testProjectDir, {
+				await rmSync(testProjectDir, {
 					force: true,
 					recursive: true,
 				});
+				logger.logDebug(`Cleaned up ${testProjectDir}`);
 			} else {
 				logger.log(chalk.yellow(`Skipping deletion of ${testProjectDir}`));
 			}
+			cleanCalled = true;
+			// yarn-v1 bloats caches aggressively with file inclusion
+			if (pkgManager === PkgManager.YarnV1) {
+				if (!yarnCacheCleaned) {
+					logger.log(`Cleaning up yarn-v1 package cache disk leak...`);
+					execSync(
+						`${getPkgManagerCommand(pkgManager, pkgManagerVersion)} cache clean ${packageUnderTestName}`,
+						{
+							stdio: "pipe",
+						},
+					);
+					yarnCacheCleaned = true;
+				}
+			}
 		}
+		// Add clean up to the process exit handler
+		cleanUps.push(cleanup);
 		const entryLevelAdditionalFiles: AdditionalFilesCopy[] = [];
 		let entryLevelCreateAdditionalFiles: AddFilePerTestProjectCreate[] = [];
 		if (testConfigEntry.additionalFiles) {
@@ -224,54 +275,44 @@ export async function run(options: RunOptions) {
 			);
 		}
 
-		try {
-			const { fileTestRunners, binTestRunner } = await createTestProject(
-				{
-					projectDir,
-					testProjectDir,
-					debug,
-					failFast,
-					matchIgnore,
-					rootDir,
-					updateLock: !!options.updateLocks,
-					isCI: options.isCI,
-					lock,
-					entryAlias: testConfigEntry.alias,
-					config,
+		const { fileTestRunners, binTestRunner } = await createTestProject(
+			{
+				projectDir,
+				testProjectDir,
+				debug,
+				failFast,
+				matchIgnore,
+				rootDir,
+				updateLock: !!options.updateLocks,
+				isCI: options.isCI,
+				lock,
+				entryAlias: testConfigEntry.alias,
+				config,
+			},
+			{
+				modType,
+				pkgManager,
+				pkgManagerOptions,
+				pkgManagerAlias,
+				fileTests: testConfigEntry.fileTests,
+				binTests: testConfigEntry.binTests,
+				additionalFiles: [
+					...topLevelAdditionalFiles,
+					...entryLevelAdditionalFiles,
+				],
+				createAdditionalFiles: entryLevelCreateAdditionalFiles,
+				reporter,
+				timeout: testConfigEntry.timeout || topLevelTimeout,
+				packageJson: {
+					...config.packageJson,
+					...testConfigEntry.packageJson,
 				},
-				{
-					modType,
-					pkgManager,
-					pkgManagerOptions,
-					pkgManagerAlias,
-					fileTests: testConfigEntry.fileTests,
-					binTests: testConfigEntry.binTests,
-					additionalFiles: [
-						...topLevelAdditionalFiles,
-						...entryLevelAdditionalFiles,
-					],
-					createAdditionalFiles: entryLevelCreateAdditionalFiles,
-					reporter,
-					timeout: testConfigEntry.timeout || topLevelTimeout,
-					packageJson: {
-						...config.packageJson,
-						...testConfigEntry.packageJson,
-					},
-				},
-			);
-			if (binTestRunner) {
-				binTestSuitesOverview.addToTotal(1);
-			}
-			fileTestSuitesOverview.addToTotal(fileTestRunners.length);
-			return {
-				fileTestRunners,
-				binTestRunner,
-				cleanup,
-			};
-		} catch (err) {
-			await cleanup();
-			throw err;
-		}
+			},
+		);
+		return {
+			fileTestRunners,
+			binTestRunner,
+		};
 	}
 
 	// Since yarn-v1 has parallelism issues on install, we want to run yarn-v1 in sync
@@ -297,14 +338,12 @@ export async function run(options: RunOptions) {
 				[] as Promise<{
 					fileTestRunners: FileTestRunner[];
 					binTestRunner?: BinTestRunner;
-					cleanup: () => Promise<void>;
 				}>[],
 			);
 		} else {
 			const initReturn = [] as Promise<{
 				fileTestRunners: FileTestRunner[];
 				binTestRunner?: BinTestRunner;
-				cleanup: () => Promise<void>;
 			}>[];
 			for (const testConfigEntry of entries) {
 				for (const modType of testConfigEntry.moduleTypes) {
@@ -334,6 +373,9 @@ export async function run(options: RunOptions) {
 	const testRunnerPkgs = await Promise.all(allExecs);
 	logger.logDebug(`Finished initializing test projects.`);
 	const setupTime = new Date().getTime() - startSetup.getTime();
+	if (options.installOnly) {
+		return false;
+	}
 
 	// TODO: multi-threading pool for better results, although there's not a large amount of tests necessary at the moment
 	try {
@@ -432,13 +474,6 @@ export async function run(options: RunOptions) {
 		);
 		logger.log(
 			`${"Bin Test Time:".padEnd(labelLength)} ${binTestSuitesOverview.time / 1000} s`,
-		);
-
-		// Cleanup async
-		await Promise.allSettled(
-			testRunnerPkgs.map(async ({ cleanup }) => {
-				await cleanup();
-			}),
 		);
 	}
 }
