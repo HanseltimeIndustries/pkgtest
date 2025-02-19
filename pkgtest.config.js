@@ -89,6 +89,11 @@ const packageManagers = [
 	"yarn-berry",
 	nodeLinkedYarnBerry,
 ];
+// To allow for --install only caching, we'll handle an environmet variable with installOnly and propagate it
+let addArgs = "";
+if (process.env.NESTED_INSTALL == true) {
+	addArgs = " --installOnly";
+}
 
 const simpleFileTests = {
 	fileTests: {
@@ -116,7 +121,7 @@ const cjsBinTests = {
 		pkgtest: [
 			{
 				// Run an actual simple pkgtest via the cli
-				args: "",
+				args: addArgs,
 			},
 		],
 	},
@@ -134,13 +139,13 @@ const esmBinTests = {
 		pkgtest: [
 			{
 				// Run an actual simple pkgtest via the cli
-				args: "",
+				args: addArgs,
 			},
 		],
 	},
 	packageManagers,
 	moduleTypes: ["esm"],
-	timeout: 100000, // Make it about 2 minutes since we're literally running another pkgtest
+	timeout: 140000, // Make it about 2 minutes since we're literally running another pkgtest - little longer for yarn cache cleaning
 };
 
 module.exports = {

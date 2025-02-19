@@ -15,4 +15,4 @@ Since pkgtest is effectively running shell calls to scripts in test projects, it
 shells or workers in parallel), then you might start hitting the resource limits of your machine despited a relatively low number.
 
 As a real work example, the pkgtests that this repo has do A LOT of heavy lifting (they run pkgtest again in the test projects which entails additional test projects being created and network loading of packages, etc.).  We found that, for our simple test entry, parallelism could be very high, but for the `bin` tests where we do a multiple new projects, `p < 4` led to us not missing test times (and test times increasing due
-to parallelism can generally be attributed to system resources being over-leveraged)
+to parallelism can generally be attributed to system resources being over-leveraged).

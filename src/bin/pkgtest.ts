@@ -58,7 +58,7 @@ program
 		"-p, --parallel <parallel>",
 		"The max number of suites to run at once",
 		parseIntArg,
-		4,
+		1,
 	)
 	.option(
 		"--preserve",
