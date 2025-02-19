@@ -1,7 +1,7 @@
 import { tmpdir } from "os";
 import { getConfig, LIBRARY_NAME, StandardizedTestConfigEntry } from "./config";
 import { createTestProject } from "./createTestProject";
-import { mkdtemp, rm } from "fs/promises";
+import { mkdtemp } from "fs/promises";
 import { join } from "path";
 import { FileTestRunner } from "./FileTestRunner";
 import { SimpleReporter } from "./reporters/SimpleReporter";
@@ -24,8 +24,25 @@ import { findAdditionalFilesForCopyOver } from "./files";
 import { AdditionalFilesCopy } from "./files/types";
 import { applyFiltersToEntries } from "./applyFiltersToEntries";
 import { groupSyncInstallEntries } from "./groupSyncInstallEntries";
+import { rmSync } from "fs";
 
 export const DEFAULT_TIMEOUT = 2000;
+
+const cleanUps: (() => Promise<void>)[] = [];
+async function runCleanup() {
+	await Promise.allSettled(cleanUps.map((c) => c()));
+}
+
+[
+	`exit`,
+	`SIGINT`,
+	`SIGUSR1`,
+	`SIGUSR2`,
+	`uncaughtException`,
+	`SIGTERM`,
+].forEach((eventType) => {
+	process.on(eventType, runCleanup);
+});
 
 export interface RunOptions {
 	/**
@@ -182,18 +199,25 @@ export async function run(options: RunOptions) {
 		ensureMinimumCorepack({
 			cwd: testProjectDir,
 		});
+		let cleanCalled = false;
 		async function cleanup() {
+			if (cleanCalled) {
+				return;
+			}
 			// Clean up the folder
 			if (!preserveResources) {
-				logger.logDebug(`Cleaning up ${testProjectDir}`);
-				await rm(testProjectDir, {
+				await rmSync(testProjectDir, {
 					force: true,
 					recursive: true,
 				});
+				logger.logDebug(`Cleaned up ${testProjectDir}`);
 			} else {
 				logger.log(chalk.yellow(`Skipping deletion of ${testProjectDir}`));
 			}
+			cleanCalled = true;
 		}
+		// Add clean up to the process exit handler
+		cleanUps.push(cleanup);
 		const entryLevelAdditionalFiles: AdditionalFilesCopy[] = [];
 		let entryLevelCreateAdditionalFiles: AddFilePerTestProjectCreate[] = [];
 		if (testConfigEntry.additionalFiles) {
@@ -224,50 +248,44 @@ export async function run(options: RunOptions) {
 			);
 		}
 
-		try {
-			const { fileTestRunners, binTestRunner } = await createTestProject(
-				{
-					projectDir,
-					testProjectDir,
-					debug,
-					failFast,
-					matchIgnore,
-					rootDir,
-					updateLock: !!options.updateLocks,
-					isCI: options.isCI,
-					lock,
-					entryAlias: testConfigEntry.alias,
-					config,
+		const { fileTestRunners, binTestRunner } = await createTestProject(
+			{
+				projectDir,
+				testProjectDir,
+				debug,
+				failFast,
+				matchIgnore,
+				rootDir,
+				updateLock: !!options.updateLocks,
+				isCI: options.isCI,
+				lock,
+				entryAlias: testConfigEntry.alias,
+				config,
+			},
+			{
+				modType,
+				pkgManager,
+				pkgManagerOptions,
+				pkgManagerAlias,
+				fileTests: testConfigEntry.fileTests,
+				binTests: testConfigEntry.binTests,
+				additionalFiles: [
+					...topLevelAdditionalFiles,
+					...entryLevelAdditionalFiles,
+				],
+				createAdditionalFiles: entryLevelCreateAdditionalFiles,
+				reporter,
+				timeout: testConfigEntry.timeout || topLevelTimeout,
+				packageJson: {
+					...config.packageJson,
+					...testConfigEntry.packageJson,
 				},
-				{
-					modType,
-					pkgManager,
-					pkgManagerOptions,
-					pkgManagerAlias,
-					fileTests: testConfigEntry.fileTests,
-					binTests: testConfigEntry.binTests,
-					additionalFiles: [
-						...topLevelAdditionalFiles,
-						...entryLevelAdditionalFiles,
-					],
-					createAdditionalFiles: entryLevelCreateAdditionalFiles,
-					reporter,
-					timeout: testConfigEntry.timeout || topLevelTimeout,
-					packageJson: {
-						...config.packageJson,
-						...testConfigEntry.packageJson,
-					},
-				},
-			);
-			return {
-				fileTestRunners,
-				binTestRunner,
-				cleanup,
-			};
-		} catch (err) {
-			await cleanup();
-			throw err;
-		}
+			},
+		);
+		return {
+			fileTestRunners,
+			binTestRunner,
+		};
 	}
 
 	// Since yarn-v1 has parallelism issues on install, we want to run yarn-v1 in sync
@@ -293,14 +311,12 @@ export async function run(options: RunOptions) {
 				[] as Promise<{
 					fileTestRunners: FileTestRunner[];
 					binTestRunner?: BinTestRunner;
-					cleanup: () => Promise<void>;
 				}>[],
 			);
 		} else {
 			const initReturn = [] as Promise<{
 				fileTestRunners: FileTestRunner[];
 				binTestRunner?: BinTestRunner;
-				cleanup: () => Promise<void>;
 			}>[];
 			for (const testConfigEntry of entries) {
 				for (const modType of testConfigEntry.moduleTypes) {
@@ -428,13 +444,6 @@ export async function run(options: RunOptions) {
 		);
 		logger.log(
 			`${"Bin Test Time:".padEnd(labelLength)} ${binTestSuitesOverview.time / 1000} s`,
-		);
-
-		// Cleanup async
-		await Promise.allSettled(
-			testRunnerPkgs.map(async ({ cleanup }) => {
-				await cleanup();
-			}),
 		);
 	}
 }

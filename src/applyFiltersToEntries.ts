@@ -45,8 +45,12 @@ export function applyFiltersToEntries(
 	if (!filters || Object.keys(filters).length === 0) {
 		// Add additional to the total
 		entries.forEach((ent) => {
-			addFilteredEntryToTotal(ent, fileTestSuitesOverview, binTestSuitesOverview)
-		})
+			addFilteredEntryToTotal(
+				ent,
+				fileTestSuitesOverview,
+				binTestSuitesOverview,
+			);
+		});
 		return entries;
 	}
 
@@ -214,8 +218,12 @@ export function applyFiltersToEntries(
 					packageManagers: filteredPkgManagers,
 					moduleTypes: filteredModTypes,
 				};
-				addFilteredEntryToTotal(filteredEntry, fileTestSuitesOverview, binTestSuitesOverview)
-				return filteredEntry
+				addFilteredEntryToTotal(
+					filteredEntry,
+					fileTestSuitesOverview,
+					binTestSuitesOverview,
+				);
+				return filteredEntry;
 			})
 			// In the event that we filtered both file and binTests, don't even pass it back
 			.filter((fEntry) => fEntry.fileTests || fEntry.binTests)
@@ -302,11 +310,21 @@ function testEntryProjectLevelSkip(
 	}
 }
 
-function addFilteredEntryToTotal(ent: StandardizedTestConfigEntry, fileTestSuitesOverview: TestGroupOverview, binTestSuitesOverview: TestGroupOverview) {
+function addFilteredEntryToTotal(
+	ent: StandardizedTestConfigEntry,
+	fileTestSuitesOverview: TestGroupOverview,
+	binTestSuitesOverview: TestGroupOverview,
+) {
 	if (ent.fileTests) {
-		fileTestSuitesOverview.addToTotal(ent.moduleTypes.length * ent.packageManagers.length * ent.fileTests.runWith.length)
+		fileTestSuitesOverview.addToTotal(
+			ent.moduleTypes.length *
+				ent.packageManagers.length *
+				ent.fileTests.runWith.length,
+		);
 	}
 	if (ent.binTests) {
-		binTestSuitesOverview.addToTotal(ent.moduleTypes.length * ent.packageManagers.length)
+		binTestSuitesOverview.addToTotal(
+			ent.moduleTypes.length * ent.packageManagers.length,
+		);
 	}
 }

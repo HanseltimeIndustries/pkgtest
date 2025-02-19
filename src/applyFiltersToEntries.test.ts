@@ -39,9 +39,9 @@ const testBinTestOnly = {
 	fileTests: undefined,
 };
 // all + fileTestsOnly (2) * 2 pkg managers * 2 modTypes * 3 runWith = 24
-const totalFileTests = 24
+const totalFileTests = 24;
 // all + binTestsOnly (2) * 2 pkg managers * 2 modTypes = 8
-const totalBinTests = 8
+const totalBinTests = 8;
 
 const testLogger: Logger = {
 	log: jest.fn(),

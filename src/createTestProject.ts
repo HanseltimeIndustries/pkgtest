@@ -32,6 +32,79 @@ import { StandardizedTestConfig } from "./config";
 export const SRC_DIRECTORY = "src";
 export const BUILD_DIRECTORY = "dist";
 
+export interface CreateTestProjectContext {
+	/**
+	 * Absolute path to the project under test directory
+	 */
+	projectDir: string;
+	/**
+	 * The relative path from the projectDir to look for tests.  This affects testMatch
+	 *
+	 * This defaults to ./
+	 */
+	rootDir: string;
+	/**
+	 * An alias string to track which entry is calling this (used for installation lock storage)
+	 */
+	entryAlias: string;
+	isCI: boolean;
+	/**
+	 * Whether or not there is a context that we want to load lockfiles to
+	 */
+	lock:
+		| false
+		| {
+				folder: string;
+		  };
+	updateLock: boolean;
+	/**
+	 * For each glob pattern, this will not even bother looking for tests inside of it.
+	 *
+	 * This is ideal for folders that just eat up performance by having pkgtest look through it
+	 * even though there's no tests (node_modules anyone?)
+	 */
+	matchIgnore: string[];
+	/**
+	 * Absolute path to the directory we created for temporary testing
+	 */
+	testProjectDir: string;
+	debug?: boolean;
+	failFast?: boolean;
+	/**
+	 * JUST USED FOR LAMBDA CALLS
+	 */
+	config: StandardizedTestConfig;
+}
+
+export interface CreateTestTestOptions<PkgManagerT extends PkgManager> {
+	modType: ModuleTypes;
+	pkgManager: PkgManagerT;
+	pkgManagerVersion?: string;
+	/**
+	 * The alias for the pkgmanager + options configuration - used for test differentiation
+	 */
+	pkgManagerAlias: string;
+	/**
+	 * If an advanced configuration was used, this is the package manager options for the specific manager
+	 * (set up before installing)
+	 */
+	pkgManagerOptions?: PkgManagerOptions<PkgManagerT>;
+	packageJson?: PackageJson;
+	binTests?: BinTestConfig;
+	fileTests?: FileTestConfig;
+	/**
+	 * Any additional files that we want to copy into the project directory
+	 */
+	additionalFiles: AdditionalFilesCopy[];
+	createAdditionalFiles: AddFilePerTestProjectCreate[];
+	/**
+	 * The number of ms that any test is allowed to run
+	 */
+	timeout: number;
+
+	reporter: Reporter;
+}
+
 /**
  * Creates a test project (the physical package.json folder) for a given configuration
  * and then returns the different TestRunners that represent a unit of tests that are run the
@@ -42,77 +115,8 @@ export const BUILD_DIRECTORY = "dist";
  * @returns
  */
 export async function createTestProject<PkgManagerT extends PkgManager>(
-	context: {
-		/**
-		 * Absolute path to the project under test directory
-		 */
-		projectDir: string;
-		/**
-		 * The relative path from the projectDir to look for tests.  This affects testMatch
-		 *
-		 * This defaults to ./
-		 */
-		rootDir: string;
-		/**
-		 * An alias string to track which entry is calling this (used for installation lock storage)
-		 */
-		entryAlias: string;
-		isCI: boolean;
-		/**
-		 * Whether or not there is a context that we want to load lockfiles to
-		 */
-		lock:
-			| false
-			| {
-					folder: string;
-			  };
-		updateLock: boolean;
-		/**
-		 * For each glob pattern, this will not even bother looking for tests inside of it.
-		 *
-		 * This is ideal for folders that just eat up performance by having pkgtest look through it
-		 * even though there's no tests (node_modules anyone?)
-		 */
-		matchIgnore: string[];
-		/**
-		 * Absolute path to the directory we created for temporary testing
-		 */
-		testProjectDir: string;
-		debug?: boolean;
-		failFast?: boolean;
-		/**
-		 * JUST USED FOR LAMBDA CALLS
-		 */
-		config: StandardizedTestConfig;
-	},
-	testOptions: {
-		modType: ModuleTypes;
-		pkgManager: PkgManagerT;
-		pkgManagerVersion?: string;
-		/**
-		 * The alias for the pkgmanager + options configuration - used for test differentiation
-		 */
-		pkgManagerAlias: string;
-		/**
-		 * If an advanced configuration was used, this is the package manager options for the specific manager
-		 * (set up before installing)
-		 */
-		pkgManagerOptions?: PkgManagerOptions<PkgManagerT>;
-		packageJson?: PackageJson;
-		binTests?: BinTestConfig;
-		fileTests?: FileTestConfig;
-		/**
-		 * Any additional files that we want to copy into the project directory
-		 */
-		additionalFiles: AdditionalFilesCopy[];
-		createAdditionalFiles: AddFilePerTestProjectCreate[];
-		/**
-		 * The number of ms that any test is allowed to run
-		 */
-		timeout: number;
-
-		reporter: Reporter;
-	},
+	context: CreateTestProjectContext,
+	testOptions: CreateTestTestOptions<PkgManagerT>,
 ): Promise<{
 	fileTestRunners: FileTestRunner[];
 	binTestRunner?: BinTestRunner;
