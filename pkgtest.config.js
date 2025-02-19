@@ -94,6 +94,10 @@ let addArgs = "";
 if (process.env.NESTED_INSTALL == true) {
 	addArgs = " --installOnly";
 }
+// If we supply the noYarnv1CacheClean flag, we propagate it
+if (process.argv.includes("--noYarnv1CacheClean")) {
+	addArgs += " --noYarnv1CacheClean";
+}
 
 const simpleFileTests = {
 	fileTests: {

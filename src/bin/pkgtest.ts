@@ -24,6 +24,7 @@ interface Options {
 	preserve?: boolean;
 	updateLockfiles?: boolean;
 	installOnly?: boolean;
+	noYarnv1CacheClean?: boolean;
 	// Filter options
 	modType?: ModuleTypes[];
 	noModType?: ModuleTypes[];
@@ -76,6 +77,10 @@ program
 	.option(
 		"--installOnly",
 		"This will only create test projects and then stop.  Keep in mind that, without --preserve, they will be cleaned up.",
+	)
+	.option(
+		"--noYarnv1CacheClean",
+		"This is an optimization that should only be done on machines that will be fully cleaned.  yarnv1 will blow up your cache with local file installs if not cleaned.  This will save time though.",
 	)
 	// filters
 	.addOption(
@@ -157,6 +162,7 @@ program
 				updateLocks: !!options.updateLockfiles,
 				isCI: false, // TODO: change
 				installOnly: options.installOnly,
+				noYarnv1CacheClean: options.noYarnv1CacheClean,
 				filters: {
 					fileTestNames: testMatch ?? [],
 					moduleTypes: options.modType,

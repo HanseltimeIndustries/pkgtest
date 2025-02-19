@@ -74,6 +74,16 @@ If true, we've detected a ci environment - used for some determinations around y
 
 ***
 
+### noYarnv1CacheClean?
+
+> `optional` **noYarnv1CacheClean**: `boolean`
+
+Yarn v1 will aggresively expand its local cache when doing the import of the packages.  As a result,
+we make sure to run a yarn cache clean <our package under test> before finishing the program.  You can turn
+this off if you are running in an ephemeral environment and would like to save some time.
+
+***
+
 ### parallel
 
 > **parallel**: `number`

@@ -73,6 +73,12 @@ export interface RunOptions {
 	 */
 	installOnly?: boolean;
 	/**
+	 * Yarn v1 will aggresively expand its local cache when doing the import of the packages.  As a result,
+	 * we make sure to run a yarn cache clean <our package under test> before finishing the program.  You can turn
+	 * this off if you are running in an ephemeral environment and would like to save some time.
+	 */
+	noYarnv1CacheClean?: boolean;
+	/**
 	 * If set to true, this will not clean up the test project directories that were created
 	 *
 	 * Important! Only use this for debugging pkgtests or in containers that will have their volumes cleaned up
@@ -226,7 +232,7 @@ export async function run(options: RunOptions) {
 			}
 			cleanCalled = true;
 			// yarn-v1 bloats caches aggressively with file inclusion
-			if (pkgManager === PkgManager.YarnV1) {
+			if (pkgManager === PkgManager.YarnV1 && !options.noYarnv1CacheClean) {
 				if (!yarnCacheCleaned) {
 					logger.log(`Cleaning up yarn-v1 package cache disk leak...`);
 					execSync(
