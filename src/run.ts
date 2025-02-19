@@ -17,14 +17,16 @@ import {
 	TestType,
 } from "./types";
 import { getMatchIgnore } from "./getMatchIgnore";
-import { ensureMinimumCorepack } from "./pkgManager";
+import { ensureMinimumCorepack, getPkgManagerCommand } from "./pkgManager";
 import { BinTestRunner } from "./BinTestRunner";
 import { TestGroupOverview } from "./reporters";
 import { findAdditionalFilesForCopyOver } from "./files";
 import { AdditionalFilesCopy } from "./files/types";
 import { applyFiltersToEntries } from "./applyFiltersToEntries";
 import { groupSyncInstallEntries } from "./groupSyncInstallEntries";
-import { rmSync } from "fs";
+import { readFileSync, rmSync } from "fs";
+import { PackageJson } from "type-fest";
+import { execSync } from "child_process";
 
 export const DEFAULT_TIMEOUT = 2000;
 
@@ -138,6 +140,9 @@ export async function run(options: RunOptions) {
 	const rootDir = config.rootDir ?? ".";
 	logger.logDebug(`rootDir: ${rootDir}`);
 	const projectDir = process.cwd();
+	const { name: packageUnderTestName } = JSON.parse(
+		readFileSync(join(projectDir, "package.json")).toString(),
+	) as PackageJson;
 
 	const tmpDir = process.env.PKG_TEST_TEMP_DIR ?? tmpdir();
 	logger.logDebug(`Writing test projects to temporary directory: ${tmpDir}`);
@@ -183,6 +188,7 @@ export async function run(options: RunOptions) {
 		filters,
 	);
 
+	let yarnCacheCleaned = false;
 	async function initializeOneEntry(
 		modType: ModuleTypes,
 		_pkgManager: StandardizedTestConfigEntry["packageManagers"][0],
@@ -191,6 +197,7 @@ export async function run(options: RunOptions) {
 		const {
 			packageManager: pkgManager,
 			alias: pkgManagerAlias,
+			version: pkgManagerVersion,
 			options: pkgManagerOptions,
 		} = _pkgManager;
 		// End filters
@@ -215,6 +222,19 @@ export async function run(options: RunOptions) {
 				logger.log(chalk.yellow(`Skipping deletion of ${testProjectDir}`));
 			}
 			cleanCalled = true;
+			// yarn-v1 bloats caches aggressively with file inclusion
+			if (pkgManager === PkgManager.YarnV1) {
+				if (!yarnCacheCleaned) {
+					logger.log(`Cleaning up yarn-v1 package cache disk leak...`);
+					execSync(
+						`${getPkgManagerCommand(pkgManager, pkgManagerVersion)} cache clean ${packageUnderTestName}`,
+						{
+							stdio: "pipe",
+						},
+					);
+					yarnCacheCleaned = true;
+				}
+			}
 		}
 		// Add clean up to the process exit handler
 		cleanUps.push(cleanup);
