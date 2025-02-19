@@ -73,6 +73,17 @@ A glob filter of file names to run (relative to the cwd root)
 
 ***
 
+### installOnly?
+
+> `optional` **installOnly**: `boolean`
+
+This means we will create the test projects and then end.  This is helpful for 2 scenarios:
+
+1. If you just want to have a test project created and then access it afterwards to test config with "--preserve"
+2. If you want to pre-cache dependencies before running tests separately
+
+***
+
 ### isCI
 
 > **isCI**: `boolean`

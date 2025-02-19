@@ -70,7 +70,7 @@ program
 	)
 	.option(
 		"--installOnly",
-		"This will only create test projects and then stop.  Keep in mind that, without --preserve, they will be cleaned up."
+		"This will only create test projects and then stop.  Keep in mind that, without --preserve, they will be cleaned up.",
 	)
 	// filters
 	.addOption(
