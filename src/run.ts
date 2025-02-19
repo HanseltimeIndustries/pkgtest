@@ -65,6 +65,13 @@ export interface RunOptions {
 	 */
 	isCI: boolean;
 	/**
+	 * This means we will create the test projects and then end.  This is helpful for 2 scenarios:
+	 * 
+	 * 1. If you just want to have a test project created and then access it afterwards to test config with "--preserve"
+	 * 2. If you want to pre-cache dependencies before running tests separately
+	 */
+	installOnly?: boolean;
+	/**
 	 * If set to true, this will not clean up the test project directories that were created
 	 *
 	 * Important! Only use this for debugging pkgtests or in containers that will have their volumes cleaned up
@@ -366,6 +373,9 @@ export async function run(options: RunOptions) {
 	const testRunnerPkgs = await Promise.all(allExecs);
 	logger.logDebug(`Finished initializing test projects.`);
 	const setupTime = new Date().getTime() - startSetup.getTime();
+	if (options.installOnly) {
+		return false;
+	}
 
 	// TODO: multi-threading pool for better results, although there's not a large amount of tests necessary at the moment
 	try {

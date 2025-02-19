@@ -23,6 +23,7 @@ interface Options {
 	parallel: number;
 	preserve?: boolean;
 	updateLockfiles?: boolean;
+	installOnly?: boolean;
 	// Filter options
 	modType?: ModuleTypes[];
 	pkgManager?: PkgManager[];
@@ -66,6 +67,10 @@ program
 	.option(
 		"--updateLockfiles",
 		"Will update any changes to the lock files for the different test projects in your locks.folder (default: <rootdir>/lockfiles)",
+	)
+	.option(
+		"--installOnly",
+		"This will only create test projects and then stop.  Keep in mind that, without --preserve, they will be cleaned up."
 	)
 	// filters
 	.addOption(
@@ -116,6 +121,7 @@ program
 				preserveResources: options.preserve,
 				updateLocks: !!options.updateLockfiles,
 				isCI: false, // TODO: change
+				installOnly: options.installOnly,
 				filters: {
 					fileTestNames: testMatch ?? [],
 					moduleTypes: options.modType,
