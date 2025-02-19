@@ -259,10 +259,6 @@ export async function run(options: RunOptions) {
 					},
 				},
 			);
-			if (binTestRunner) {
-				binTestSuitesOverview.addToTotal(1);
-			}
-			fileTestSuitesOverview.addToTotal(fileTestRunners.length);
 			return {
 				fileTestRunners,
 				binTestRunner,

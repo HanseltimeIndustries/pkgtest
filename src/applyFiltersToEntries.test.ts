@@ -38,6 +38,10 @@ const testBinTestOnly = {
 	alias: "onlybintests",
 	fileTests: undefined,
 };
+// all + fileTestsOnly (2) * 2 pkg managers * 2 modTypes * 3 runWith = 24
+const totalFileTests = 24
+// all + binTestsOnly (2) * 2 pkg managers * 2 modTypes = 8
+const totalBinTests = 8
 
 const testLogger: Logger = {
 	log: jest.fn(),
@@ -308,7 +312,7 @@ it.each(
 		// We only increment totals and skips in this method
 		expect(fileTestSuitesOverview.skipped).toBe(fileTestsSkipped);
 		expect(binTestSuitesOverview.skipped).toBe(binTestsSkipped);
-		expect(fileTestSuitesOverview.total).toBe(fileTestsSkipped);
-		expect(binTestSuitesOverview.total).toBe(binTestsSkipped);
+		expect(fileTestSuitesOverview.total).toBe(totalFileTests);
+		expect(binTestSuitesOverview.total).toBe(totalBinTests);
 	},
 );
