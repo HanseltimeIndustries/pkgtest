@@ -34,32 +34,61 @@ Immediately stop running tests after a failure
 
 ### filters?
 
-> `optional` **filters**: `object`
+> `optional` **filters**: `EntryFilterOptions` & `object`
 
 For every supplied filter, the tests that would be created via the configs will be paired down to only thouse
 that match all filters provided
 
-#### moduleTypes?
+#### Type declaration
 
-> `optional` **moduleTypes**: [`ModuleTypes`](../enumerations/ModuleTypes.md)[]
+##### binTestNames?
 
-#### packageManagers?
+> `optional` **binTestNames**: `string`[]
 
-> `optional` **packageManagers**: [`PkgManager`](../enumerations/PkgManager.md)[]
+A string match/regex filter to only run bins that match
 
-#### pkgManagerAlias?
+##### fileTestNames?
 
-> `optional` **pkgManagerAlias**: `string`[]
-
-#### runWith?
-
-> `optional` **runWith**: [`RunWith`](../enumerations/RunWith.md)[]
-
-#### testNames?
-
-> `optional` **testNames**: `string`[]
+> `optional` **fileTestNames**: `string`[]
 
 A glob filter of file names to run (relative to the cwd root)
+
+***
+
+### installOnly?
+
+> `optional` **installOnly**: `boolean`
+
+This means we will create the test projects and then end.  This is helpful for 2 scenarios:
+
+1. If you just want to have a test project created and then access it afterwards to test config with "--preserve"
+2. If you want to pre-cache dependencies before running tests separately
+
+***
+
+### isCI
+
+> **isCI**: `boolean`
+
+If true, we've detected a ci environment - used for some determinations around yarn install
+
+***
+
+### noYarnv1CacheClean?
+
+> `optional` **noYarnv1CacheClean**: `boolean`
+
+Yarn v1 will aggresively expand its local cache when doing the import of the packages.  As a result,
+we make sure to run a yarn cache clean <our package under test> before finishing the program.  You can turn
+this off if you are running in an ephemeral environment and would like to save some time.
+
+***
+
+### parallel
+
+> **parallel**: `number`
+
+The number of test suites to run in parallel
 
 ***
 
@@ -83,3 +112,12 @@ The max amount of time for a test to run (keep in mind, this is just the call to
 and not installation)
 
 Defaults to 2000
+
+***
+
+### updateLocks?
+
+> `optional` **updateLocks**: `boolean`
+
+If set to true, and locks: false is not set in the config, this will update any changes to the lock files in test
+projects to the lockfiles folder

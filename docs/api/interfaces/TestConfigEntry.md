@@ -21,6 +21,31 @@ or other explicit fields like "typescript.tsx.version".
 
 ***
 
+### additionalFiles?
+
+> `optional` **additionalFiles**: ([`AdditionalFilesEntry`](../type-aliases/AdditionalFilesEntry.md) \| [`AddFilePerTestProjectCreate`](../type-aliases/AddFilePerTestProjectCreate.md))[]
+
+If you would like to place additional files within the test projects
+
+***
+
+### binTests?
+
+> `optional` **binTests**: [`BinTestConfig`](BinTestConfig.md)
+
+If this is provided, this will also generate a test per package manager + module type combination
+where each bin command provided is called accordingly
+
+By default, if you provide an empty object, all commands will be run with --help
+
+***
+
+### fileTests?
+
+> `optional` **fileTests**: [`FileTestConfig`](FileTestConfig.md)
+
+***
+
 ### moduleTypes
 
 > **moduleTypes**: [`ModuleTypes`](../enumerations/ModuleTypes.md)[]
@@ -35,6 +60,14 @@ you can change the testMatch to pick the correct files.
 
 ***
 
+### packageJson?
+
+> `optional` **packageJson**: `Omit`\<`PackageJson`, `"name"`\>
+
+This will override the test Project PackageJson with the specific values
+
+***
+
 ### packageManagers
 
 > **packageManagers**: ([`PkgManager`](../enumerations/PkgManager.md) \| [`PkgManagerOptionsConfig`](PkgManagerOptionsConfig.md)\<[`PkgManager`](../enumerations/PkgManager.md)\>)[]
@@ -46,33 +79,8 @@ manager to avoid dependency install and access issues.
 
 ***
 
-### runWith
+### timeout?
 
-> **runWith**: [`RunWith`](../enumerations/RunWith.md)[]
+> `optional` **timeout**: `number`
 
-The various ways that you want to run the scripts in question to verify they work as expected.
-Note, we will run each way per package manager + module project that is created.
-
-***
-
-### testMatch
-
-> **testMatch**: `string`
-
-A glob patterned string from the cwd (the package root) that will identify any pkgTest files to copy into
-respective package tests and then run.
-
-***
-
-### transforms
-
-> **transforms**: `object`
-
-Transforms that need to be run on the raw tests that were found via testMatch and copied into the project.
-
-If none are provided, then you can only use runWith tools that can operate directly on js and we expect
-the files to be in the correct raw js flavor
-
-#### typescript
-
-> **typescript**: [`TypescriptOptions`](TypescriptOptions.md)
+Number of milliseconds per test to allow before failing

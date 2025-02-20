@@ -1,5 +1,6 @@
 import { TsConfigJson } from "get-tsconfig";
 import { CreateDependenciesOptions } from "./createDependencies";
+import { PackageJson } from "type-fest";
 
 /**
  * The type of module that the testing package will be created as:
@@ -37,6 +38,18 @@ export enum PkgManager {
 	 * Yarn >1.x - this is referred to by the yarn project as yarn berry
 	 */
 	YarnBerry = "yarn-berry",
+}
+
+export enum TestType {
+	/**
+	 * Represents a test that we are going to call node or some node equivalent on a source file
+	 */
+	File = "file",
+	/**
+	 * Represents a test where we are actually going to call one of the declared bin's in the package
+	 * that we're testing
+	 */
+	Bin = "bin",
 }
 
 export interface InstalledTool {
@@ -111,23 +124,94 @@ export interface PkgManagerOptionsConfig<T extends PkgManager> {
 	 * Defaults to latest if not supplied
 	 */
 	version?: string;
-	options: PkgManagerOptions<T>;
+	options?: PkgManagerOptions<T>;
 }
 
-export interface TestConfigEntry {
+/**
+ * This can either be an absolute path to anywhere, a relative path (relative to the rootDir of pkgtest)
+ *
+ * Directories will be copied recursively
+ */
+export type AddFileMatch = string;
+/**
+ * A context object for create additional file lambdas
+ */
+export interface CreateTestProjectInfo {
+	/**
+	 * The path of the current test project that is being created
+	 */
+	testProjectDir: string;
+	/**
+	 * The path of the project under test
+	 */
+	projectDir: string;
+	packageManager: PkgManager;
+	packageManagerAlias: string;
+	moduleType: ModuleTypes;
+	fileTests?: FileTestConfig;
+	binTests?: BinTestConfig;
+}
+
+/**
+ * In the event that you need to do some more programmatic generation of files, you can provide a function
+ * that will be invoked at the end of setting up the project.  This will provide file contents and the
+ * relative file name that will be placed in the test project.
+ *
+ * @param {TestConfig} config - This is the entire test config object that this function is found in
+ * @param {TestConfigEntry} projectInfo - If this is part of a test entry, then project info describing the current
+ * 			test project that is being created will be provided
+ * @returns {[string, string]} returns the file contents in the first spot and then the name of the file relative
+ *          to the test project directory.
+ */
+export type AddFilePerTestProjectCreate = (
+	config: TestConfig,
+	projectInfo: CreateTestProjectInfo,
+) => Promise<[string, string]> | [string, string];
+/**
+ * A path that is set up relative to the test project directory where this file will be copied (same name)
+ */
+export type ToDir = string;
+/**
+ * Specifies exactly where within the project directory that we want to copy the files provided
+ */
+export type AddFileCopyTo = [AddFileMatch, ToDir];
+/**
+ * If you just supply a string as an entry, then the file/files will be copied to the root of the test project.
+ *
+ * If you provide your own to directory, then all files will be copied relative to that directory.
+ */
+export type AdditionalFilesEntry = AddFileMatch | [AddFileMatch, ToDir];
+
+export interface BinTestEntry {
+	/**
+	 * A string of args to add after the call
+	 */
+	args: string;
+	/**
+	 * Any environment variables to set for this particular test
+	 */
+	env?: Record<string, string>;
+}
+
+/**
+ * Note: if the object is empty, then `--help` will be called on every found bin command
+ */
+export interface BinTestConfig {
+	/**
+	 * Per named bin command in your package.json, you can add a key to override cli calls that we run
+	 * to test.
+	 *
+	 * Each array entry creates a new test of the binary.
+	 */
+	[binCmd: string]: BinTestEntry[];
+}
+
+export interface FileTestConfig {
 	/**
 	 * A glob patterned string from the cwd (the package root) that will identify any pkgTest files to copy into
 	 * respective package tests and then run.
 	 */
 	testMatch: string;
-	/**
-	 * Which package managed we will use to install dependencies and run the various test scripts provided.
-	 *
-	 * Important - to preserve integrity during testing, each module type will get a brand new project per package
-	 * manager to avoid dependency install and access issues.
-	 */
-	packageManagers: (PkgManager | PkgManagerOptionsConfig<PkgManager>)[];
-
 	/**
 	 * The various ways that you want to run the scripts in question to verify they work as expected.
 	 * Note, we will run each way per package manager + module project that is created.
@@ -139,9 +223,20 @@ export interface TestConfigEntry {
 	 * If none are provided, then you can only use runWith tools that can operate directly on js and we expect
 	 * the files to be in the correct raw js flavor
 	 */
-	transforms: {
+	transforms?: {
 		typescript: TypescriptOptions;
 	};
+}
+
+export interface TestConfigEntry {
+	fileTests?: FileTestConfig;
+	/**
+	 * Which package managed we will use to install dependencies and run the various test scripts provided.
+	 *
+	 * Important - to preserve integrity during testing, each module type will get a brand new project per package
+	 * manager to avoid dependency install and access issues.
+	 */
+	packageManagers: (PkgManager | PkgManagerOptionsConfig<PkgManager>)[];
 	/**
 	 * A list of module types that we will import the package under test with.  If you are using typescript,
 	 * you will probably want the same configuration for both moduleTypes and will only need one TetsConfigEntry
@@ -157,6 +252,25 @@ export interface TestConfigEntry {
 	 * or other explicit fields like "typescript.tsx.version".
 	 */
 	additionalDependencies?: CreateDependenciesOptions["additionalDependencies"];
+	/**
+	 * If this is provided, this will also generate a test per package manager + module type combination
+	 * where each bin command provided is called accordingly
+	 *
+	 * By default, if you provide an empty object, all commands will be run with --help
+	 */
+	binTests?: BinTestConfig;
+	/**
+	 * If you would like to place additional files within the test projects
+	 */
+	additionalFiles?: (AdditionalFilesEntry | AddFilePerTestProjectCreate)[];
+	/**
+	 * Number of milliseconds per test to allow before failing
+	 */
+	timeout?: number;
+	/**
+	 * This will override the test Project PackageJson with the specific values
+	 */
+	packageJson?: Omit<PackageJson, "name">;
 }
 
 export interface TestConfig {
@@ -165,22 +279,46 @@ export interface TestConfig {
 	 *
 	 * @default "./"
 	 */
-	matchRootDir?: string;
+	rootDir?: string;
 	/**
-	 * A string of globs to ignore even searching for matches.  This is helpful for performance by ensuring that we skip scanning large
+	 * A string of globs to ignore when searching for file test matches.  This is helpful for performance by ensuring that we skip scanning large
 	 * directories like node_modules.
 	 *
-	 * Note: pkgtest will use .gitignore as a baseline
+	 * Keep in mind that this glob is relative to rootDir.
+	 *
+	 * (As a matter of performance, we don't scan node_modules, .yarn, or .git)
 	 */
 	matchIgnore?: string[];
 	/**
 	 * Logical unit separating out what test files should be run and under what conditions.
 	 */
 	entries: TestConfigEntry[];
-
+	/**
+	 * This will override the test Project PackageJson with the specific values
+	 */
+	packageJson?: Omit<PackageJson, "name">;
 	/**
 	 * Additional dependencies that can't be inferred from the project's package.json
 	 * or other explicit fields like "typescript.tsx.version".
 	 */
 	additionalDependencies?: CreateDependenciesOptions["additionalDependencies"];
+	/**
+	 * If you would like to place additional files within the test projects
+	 */
+	additionalFiles?: AdditionalFilesEntry[];
+	/**
+	 * Behavior for package locks
+	 */
+	locks:
+		| {
+				folder: string;
+		  }
+		| boolean;
 }
+
+/**
+ * Simple error to indicate controlled failures of a test internally
+ */
+export class TestFailError extends Error {}
+
+export class FailFastError extends Error {}

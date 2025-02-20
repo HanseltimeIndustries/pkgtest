@@ -25,9 +25,9 @@ multiple of the same package manager are used
 
 ***
 
-### options
+### options?
 
-> **options**: [`PkgManagerOptions`](../type-aliases/PkgManagerOptions.md)\<`T`\>
+> `optional` **options**: [`PkgManagerOptions`](../type-aliases/PkgManagerOptions.md)\<`T`\>
 
 ***
 

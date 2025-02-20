@@ -3,6 +3,7 @@
 	"version": "1.0.0",
 	"types": "./dist/types/index.d.ts",
 	"main": "./dist/cjs/index.js",
+	"bin": "dist/esm/bin/pkgtest.mjs",
 	"exports": {
 		"types": "./dist/types/index.d.ts",
 		"require": "./dist/cjs/index.js",
@@ -14,6 +15,7 @@
 		"chalk": "^5.4.1",
 		"commander": "^13.1.0",
 		"js-yaml": "^4.1.0",
+		"lodash.camelcase": "^4.3.0",
 		"micromatch": "^4.0.8",
 		"semver": "^7.7.1",
 		"zod": "^3.24.1",
@@ -38,6 +40,7 @@
 		"@types/babel__core": "^7",
 		"@types/jest": "^29.5.11",
 		"@types/js-yaml": "^4",
+		"@types/lodash.camelcase": "^4",
 		"@types/micromatch": "^4.0.9",
 		"@types/node": "^18.11.18",
 		"@types/semver": "^7",
@@ -63,7 +66,7 @@
 		"format": "biome format",
 		"build:esm": "tswc -- src -d dist/esm --config-file .esm.swcrc --strip-leading-paths --out-file-extension mjs",
 		"build:cjs": "tswc -- src -d dist/cjs --config-file .cjs.swcrc --strip-leading-paths",
-		"build:bin": "rspack build",
+		"build:bin": "node ./bin-build.js",
 		"build:types": "tsc",
 		"build": "yarn build:types && yarn build:esm && yarn build:cjs && yarn build:bin",
 		"prepack": "pinst --disable",
@@ -81,5 +84,5 @@
 		"type": "git",
 		"url": "https://github.com/HanseltimeIndustries/pkgtest.git"
 	},
-	"packageManager": "yarn@4.6.0"
+	"packageManager": "yarn@4.6.0+sha512.5383cc12567a95f1d668fbe762dfe0075c595b4bfff433be478dbbe24e05251a8e8c3eb992a986667c1d53b6c3a9c85b8398c35a960587fbd9fa3a0915406728"
 }

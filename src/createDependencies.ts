@@ -3,7 +3,7 @@ import { TypescriptOptions, RunWith, PkgManager } from "./types";
 
 export interface CreateDependenciesOptions {
 	typescript?: TypescriptOptions;
-	runBy: RunWith[];
+	runBy?: RunWith[];
 	pkgManager: PkgManager;
 	/**
 	 * If you explicitly want to include other dependencies, you can add them here,
@@ -66,7 +66,7 @@ export function createDependencies(
 			}
 		: {};
 	// Make sure we have minimum dependency requirements
-	runBy.forEach((rBy) => {
+	runBy?.forEach((rBy) => {
 		if (rBy === RunWith.Tsx || rBy === RunWith.TsNode) {
 			if (!typescript) {
 				throw new Error(
@@ -86,7 +86,7 @@ export function createDependencies(
 		}
 	});
 
-	runBy.forEach((rBy) => {
+	runBy?.forEach((rBy) => {
 		switch (rBy) {
 			case RunWith.Node:
 				break;

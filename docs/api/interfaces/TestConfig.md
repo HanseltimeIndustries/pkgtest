@@ -21,6 +21,14 @@ or other explicit fields like "typescript.tsx.version".
 
 ***
 
+### additionalFiles?
+
+> `optional` **additionalFiles**: [`AdditionalFilesEntry`](../type-aliases/AdditionalFilesEntry.md)[]
+
+If you would like to place additional files within the test projects
+
+***
+
 ### entries
 
 > **entries**: [`TestConfigEntry`](TestConfigEntry.md)[]
@@ -29,20 +37,38 @@ Logical unit separating out what test files should be run and under what conditi
 
 ***
 
+### locks
+
+> **locks**: `boolean` \| \{ `folder`: `string`; \}
+
+Behavior for package locks
+
+***
+
 ### matchIgnore?
 
 > `optional` **matchIgnore**: `string`[]
 
-A string of globs to ignore even searching for matches.  This is helpful for performance by ensuring that we skip scanning large
+A string of globs to ignore when searching for file test matches.  This is helpful for performance by ensuring that we skip scanning large
 directories like node_modules.
 
-Note: pkgtest will use .gitignore as a baseline
+Keep in mind that this glob is relative to rootDir.
+
+(As a matter of performance, we don't scan node_modules, .yarn, or .git)
 
 ***
 
-### matchRootDir?
+### packageJson?
 
-> `optional` **matchRootDir**: `string`
+> `optional` **packageJson**: `Omit`\<`PackageJson`, `"name"`\>
+
+This will override the test Project PackageJson with the specific values
+
+***
+
+### rootDir?
+
+> `optional` **rootDir**: `string`
 
 The directory that we will match our globs against.  This path is relative to the directory with the pkgtest.config file.
 

@@ -13,16 +13,16 @@ export function getPkgManagerSetCommand(
 	pkgManager: PkgManager,
 	version: string = "latest",
 ) {
+	// Note, for corepack, we don't use "use" since that performs a default install too
 	switch (pkgManager) {
 		case PkgManager.Npm:
-			// Corepack does not run npm
-			return `corepack use npm@${version}`;
+			return `corepack npm@${version} --version`;
 		case PkgManager.Pnpm:
-			return `corepack use pnpm@${version}`;
+			return `corepack pnpm@${version} --version`;
 		case PkgManager.YarnBerry:
-			return `corepack use yarn@${version}`;
+			return `corepack yarn@${version} --version`;
 		case PkgManager.YarnV1:
-			return `corepack use yarn@${coerceYarnV1(version)}`;
+			return `corepack yarn@${coerceYarnV1(version)} --version`;
 		default:
 			throw new Error(`Unimplemented pkg manager command for ${pkgManager}`);
 	}

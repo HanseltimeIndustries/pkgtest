@@ -1,19 +1,52 @@
-import { program, Command, Argument, Option } from "commander";
+import {
+	program,
+	Command,
+	Argument,
+	Option,
+	InvalidArgumentError,
+} from "commander";
 import { DEFAULT_CONFIG_FILE_NAME_BASE, LIBRARY_NAME } from "../config";
-import { DEFAULT_TIMEOUT, FailFastError, run } from "../run";
-import { ModuleTypes, PkgManager, RunWith } from "../types";
+import { DEFAULT_TIMEOUT, run } from "../run";
+import {
+	FailFastError,
+	ModuleTypes,
+	PkgManager,
+	RunWith,
+	TestType,
+} from "../types";
 
 interface Options {
 	config?: string;
 	debug?: boolean;
 	failFast?: boolean;
 	timeout?: number;
+	parallel: number;
 	preserve?: boolean;
+	updateLockfiles?: boolean;
+	installOnly?: boolean;
+	noYarnv1CacheClean?: boolean;
 	// Filter options
 	modType?: ModuleTypes[];
+	noModType?: ModuleTypes[];
 	pkgManager?: PkgManager[];
+	noPkgManager?: PkgManager[];
 	runWith?: RunWith[];
+	noRunWith?: RunWith[];
 	pkgManagerAlias?: string[];
+	noPkgManagerAlias?: string[];
+	testType?: TestType[];
+	noTestType?: TestType[];
+}
+
+function parseIntArg(value: string, _prev?: number): number {
+	const parsedValue = parseInt(value, 10);
+	if (isNaN(parsedValue)) {
+		throw new InvalidArgumentError("Not a number.");
+	}
+	if (parsedValue <= 0) {
+		throw new InvalidArgumentError("Must be a positive integer.");
+	}
+	return parsedValue;
 }
 
 program
@@ -23,11 +56,31 @@ program
 	.option("--debug", "Adds more logging for each test that runs")
 	.option("--failFast", "Immediately stops test execution on the first failure")
 	.option(
-		`-t, --timeout <ms>', 'The max time in milliseconds to wait for a test to run (does not include test package folder set up).  Defaults to: ${DEFAULT_TIMEOUT}`,
+		"-t, --timeout <ms>",
+		`The max time in milliseconds to wait for a test to run (does not include test package folder set up).  Defaults to: ${DEFAULT_TIMEOUT}`,
+		parseIntArg,
+	)
+	.option(
+		"-p, --parallel <parallel>",
+		"The max number of suites to run at once",
+		parseIntArg,
+		1,
 	)
 	.option(
 		"--preserve",
 		"Preserves all test project directories that were created (use for debugging, but keep in mind this leaves large resources on your hard disk that you have to clean up)",
+	)
+	.option(
+		"--updateLockfiles",
+		"Will update any changes to the lock files for the different test projects in your locks.folder (default: <rootdir>/lockfiles)",
+	)
+	.option(
+		"--installOnly",
+		"This will only create test projects and then stop.  Keep in mind that, without --preserve, they will be cleaned up.",
+	)
+	.option(
+		"--noYarnv1CacheClean",
+		"This is an optimization that should only be done on machines that will be fully cleaned.  yarnv1 will blow up your cache with local file installs if not cleaned.  This will save time though.",
 	)
 	// filters
 	.addOption(
@@ -38,8 +91,20 @@ program
 	)
 	.addOption(
 		new Option(
+			"--noModType <modTypes...>",
+			"Limits the tests that run to any that don't have the specified module types",
+		).choices(Object.values(ModuleTypes)),
+	)
+	.addOption(
+		new Option(
 			"--pkgManager <pkgManagers...>",
 			"Limits the tests that run to the specified base package manager",
+		).choices(Object.values(PkgManager)),
+	)
+	.addOption(
+		new Option(
+			"--noPkgManager <pkgManagers...>",
+			"Limits the tests that run to any that don't have the specified base package manager",
 		).choices(Object.values(PkgManager)),
 	)
 	.addOption(
@@ -50,9 +115,33 @@ program
 	)
 	.addOption(
 		new Option(
+			"--noRunWith <runWiths...>",
+			"Limits the tests that run to any that don't have the specified runWith",
+		).choices(Object.values(RunWith)),
+	)
+	.addOption(
+		new Option(
 			"--pkgManagerAlias <pkgManagerAliases...>",
 			"Limits the tests that run to the pkgManager config alias (pkgtest default) runs the string PkgManager configs",
 		),
+	)
+	.addOption(
+		new Option(
+			"--noPkgManagerAlias <pkgManagerAliases...>",
+			"Limits the tests that run to any that don't have the pkgManager config alias (pkgtest default) runs the string PkgManager configs",
+		),
+	)
+	.addOption(
+		new Option(
+			"--testType <testType...>",
+			"Limits the tests that run to the type of test",
+		).choices(Object.values(TestType)),
+	)
+	.addOption(
+		new Option(
+			"--noTestType <testType...>",
+			"Limits the tests that run to any that don't have the type of test",
+		).choices(Object.values(TestType)),
 	)
 	.addArgument(
 		new Argument(
@@ -70,13 +159,24 @@ program
 				timeout: options.timeout,
 				configPath: options.config,
 				preserveResources: options.preserve,
+				updateLocks: !!options.updateLockfiles,
+				isCI: false, // TODO: change
+				installOnly: options.installOnly,
+				noYarnv1CacheClean: options.noYarnv1CacheClean,
 				filters: {
-					testNames: testMatch ?? [],
+					fileTestNames: testMatch ?? [],
 					moduleTypes: options.modType,
+					noModuleTypes: options.noModType,
 					packageManagers: options.pkgManager,
+					noPackageManagers: options.noPkgManager,
 					runWith: options.runWith,
+					noRunWith: options.noRunWith,
 					pkgManagerAlias: options.pkgManagerAlias,
+					noPkgManagerAlias: options.noPkgManagerAlias,
+					testTypes: options.testType,
+					noTestTypes: options.noTestType,
 				},
+				parallel: options.parallel,
 			});
 			if (!passed) {
 				process.exit(44);

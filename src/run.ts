@@ -1,18 +1,51 @@
 import { tmpdir } from "os";
-import { getConfig, LIBRARY_NAME } from "./config";
+import { getConfig, LIBRARY_NAME, StandardizedTestConfigEntry } from "./config";
 import { createTestProject } from "./createTestProject";
-import { mkdtemp, rm } from "fs/promises";
+import { mkdtemp } from "fs/promises";
 import { join } from "path";
-import { TestRunner } from "./TestRunner";
+import { FileTestRunner } from "./FileTestRunner";
 import { SimpleReporter } from "./reporters/SimpleReporter";
 import { Logger } from "./Logger";
 import chalk from "chalk";
-import { ModuleTypes, PkgManager, RunWith } from "./types";
-import { testSuiteDescribe } from "./reporters";
+import {
+	AddFilePerTestProjectCreate,
+	AdditionalFilesEntry,
+	FailFastError,
+	ModuleTypes,
+	PkgManager,
+} from "./types";
 import { getMatchIgnore } from "./getMatchIgnore";
-import { ensureMinimumCorepack } from "./pkgManager";
+import { ensureMinimumCorepack, getPkgManagerCommand } from "./pkgManager";
+import { BinTestRunner } from "./BinTestRunner";
+import { TestGroupOverview } from "./reporters";
+import { findAdditionalFilesForCopyOver } from "./files";
+import { AdditionalFilesCopy } from "./files/types";
+import {
+	applyFiltersToEntries,
+	EntryFilterOptions,
+} from "./applyFiltersToEntries";
+import { groupSyncInstallEntries } from "./groupSyncInstallEntries";
+import { readFileSync, rmSync } from "fs";
+import { PackageJson } from "type-fest";
+import { execSync } from "child_process";
 
 export const DEFAULT_TIMEOUT = 2000;
+
+const cleanUps: (() => Promise<void>)[] = [];
+async function runCleanup() {
+	await Promise.allSettled(cleanUps.map((c) => c()));
+}
+
+[
+	`exit`,
+	`SIGINT`,
+	`SIGUSR1`,
+	`SIGUSR2`,
+	`uncaughtException`,
+	`SIGTERM`,
+].forEach((eventType) => {
+	process.on(eventType, runCleanup);
+});
 
 export interface RunOptions {
 	/**
@@ -23,6 +56,28 @@ export interface RunOptions {
 	 * Immediately stop running tests after a failure
 	 */
 	failFast?: boolean;
+	/**
+	 * If set to true, and locks: false is not set in the config, this will update any changes to the lock files in test
+	 * projects to the lockfiles folder
+	 */
+	updateLocks?: boolean;
+	/**
+	 * If true, we've detected a ci environment - used for some determinations around yarn install
+	 */
+	isCI: boolean;
+	/**
+	 * This means we will create the test projects and then end.  This is helpful for 2 scenarios:
+	 *
+	 * 1. If you just want to have a test project created and then access it afterwards to test config with "--preserve"
+	 * 2. If you want to pre-cache dependencies before running tests separately
+	 */
+	installOnly?: boolean;
+	/**
+	 * Yarn v1 will aggresively expand its local cache when doing the import of the packages.  As a result,
+	 * we make sure to run a yarn cache clean <our package under test> before finishing the program.  You can turn
+	 * this off if you are running in an ephemeral environment and would like to save some time.
+	 */
+	noYarnv1CacheClean?: boolean;
 	/**
 	 * If set to true, this will not clean up the test project directories that were created
 	 *
@@ -39,6 +94,10 @@ export interface RunOptions {
 	 */
 	timeout?: number;
 	/**
+	 * The number of test suites to run in parallel
+	 */
+	parallel: number;
+	/**
 	 * The path of the config file to use - if not supplied obeys default search rules
 	 */
 	configPath?: string;
@@ -46,19 +105,17 @@ export interface RunOptions {
 	 * For every supplied filter, the tests that would be created via the configs will be paired down to only thouse
 	 * that match all filters provided
 	 */
-	filters?: {
-		moduleTypes?: ModuleTypes[];
-		packageManagers?: PkgManager[];
-		runWith?: RunWith[];
-		pkgManagerAlias?: string[];
+	filters?: EntryFilterOptions & {
 		/**
 		 * A glob filter of file names to run (relative to the cwd root)
 		 */
-		testNames?: string[];
+		fileTestNames?: string[];
+		/**
+		 * A string match/regex filter to only run bins that match
+		 */
+		binTestNames?: string[];
 	};
 }
-
-export class FailFastError extends Error {}
 
 interface Overview {
 	passed: number;
@@ -68,18 +125,16 @@ interface Overview {
 	total: number;
 }
 
-const DEFAULT_PKG_MANAGER_ALIAS = "pkgtest default";
-
 export async function run(options: RunOptions) {
 	const {
 		configPath,
 		debug,
 		failFast,
-		timeout = 2000,
 		preserveResources,
 		filters = {},
 	} = options;
-	const { testNames = [] } = filters;
+	const topLevelTimeout = options.timeout || DEFAULT_TIMEOUT;
+	const { fileTestNames: testNames = [] } = filters;
 	const logger = new Logger({
 		context: "[runner]",
 		debug: !!debug,
@@ -91,296 +146,338 @@ export async function run(options: RunOptions) {
 
 	const matchIgnore = getMatchIgnore(process.cwd(), config.matchIgnore);
 	logger.logDebug(`matchIgnore: ${JSON.stringify(matchIgnore)}`);
-	const matchRootDir = config.matchRootDir ?? ".";
-	logger.logDebug(`matchRootDir: ${matchRootDir}`);
+	const rootDir = config.rootDir ?? ".";
+	logger.logDebug(`rootDir: ${rootDir}`);
 	const projectDir = process.cwd();
+	const { name: packageUnderTestName } = JSON.parse(
+		readFileSync(join(projectDir, "package.json")).toString(),
+	) as PackageJson;
 
 	const tmpDir = process.env.PKG_TEST_TEMP_DIR ?? tmpdir();
 	logger.logDebug(`Writing test projects to temporary directory: ${tmpDir}`);
 
+	// Scan additionalFiles
+	const topLevelAdditionalFiles: AdditionalFilesCopy[] = config.additionalFiles
+		? await findAdditionalFilesForCopyOver({
+				additionalFiles: config.additionalFiles,
+				projectDir,
+				rootDir,
+			})
+		: [];
+
+	// Coerce the lockfile object to default true
+	const lock:
+		| false
+		| {
+				folder: string;
+		  } =
+		config.locks === true
+			? {
+					folder: "lockfiles",
+				}
+			: config.locks;
+
 	// Set up the runner contexts
 	logger.logDebug(`Initializing test projects...`);
-	const overview: {
-		suite: Overview;
-		tests: Overview;
-		setupTime: number;
-		testTime: number;
-	} = {
-		suite: {
-			passed: 0,
-			failed: 0,
-			notReached: 0,
-			skipped: 0,
-			total: 0,
-		},
-		tests: {
-			passed: 0,
-			failed: 0,
-			notReached: 0,
-			skipped: 0,
-			total: 0,
-		},
-		setupTime: 0,
-		testTime: 0,
-	};
-	function addSkippedSuite(n: number) {
-		overview.suite.passed += n;
-		overview.suite.total += n;
-	}
-	const startSetup = new Date();
-	const testRunnerPkgs = await Promise.all(
-		config.entries.reduce(
-			(runners, testConfigEntry) => {
-				testConfigEntry.moduleTypes.forEach((modType) => {
-					// Ensure we don't have duplicate aliases
-					const usedPkgManagerAliasMap = Object.values(PkgManager).reduce(
-						(used, pkgm) => {
-							used.set(pkgm, new Set<string>());
-							return used;
-						},
-						new Map<string, Set<string>>(),
-					);
-					runners.push(
-						...testConfigEntry.packageManagers.map(async (_pkgManager) => {
-							const simpleOptions = typeof _pkgManager === "string";
-							const pkgManager = simpleOptions
-								? _pkgManager
-								: _pkgManager.packageManager;
-							const pkgManagerOptions = simpleOptions
-								? undefined
-								: _pkgManager.options;
-							const pkgManagerAlias = simpleOptions
-								? DEFAULT_PKG_MANAGER_ALIAS
-								: _pkgManager.alias;
-
-							// Ensure the alias is unique to the entry
-							const usedAliases = usedPkgManagerAliasMap.get(pkgManager);
-							if (usedAliases?.has(pkgManagerAlias!)) {
-								throw new Error(
-									`Cannot provide the same pkgManager alias for ${pkgManager} configuration! ${pkgManagerAlias}`,
-								);
-							}
-							usedAliases?.add(pkgManagerAlias);
-
-							// Apply filters
-							if (
-								filters.moduleTypes &&
-								!filters.moduleTypes.includes(modType)
-							) {
-								addSkippedSuite(
-									skipSuitesNotice(logger, {
-										runWith: testConfigEntry.runWith,
-										modType,
-										pkgManager,
-										pkgManagerAlias,
-									}),
-								);
-								return;
-							}
-							if (
-								filters.packageManagers &&
-								!filters.packageManagers.includes(pkgManager)
-							) {
-								addSkippedSuite(
-									skipSuitesNotice(logger, {
-										runWith: testConfigEntry.runWith,
-										modType,
-										pkgManager,
-										pkgManagerAlias,
-									}),
-								);
-								return;
-							}
-							if (
-								filters.pkgManagerAlias &&
-								!filters.pkgManagerAlias.includes(pkgManagerAlias)
-							) {
-								addSkippedSuite(
-									skipSuitesNotice(logger, {
-										runWith: testConfigEntry.runWith,
-										modType,
-										pkgManager,
-										pkgManagerAlias,
-									}),
-								);
-								return;
-							}
-							let runWith = testConfigEntry.runWith;
-							if (filters.runWith) {
-								runWith = testConfigEntry.runWith.reduce((rWith, runBy) => {
-									if (!filters.runWith!.includes(runBy)) {
-										addSkippedSuite(
-											skipSuitesNotice(logger, {
-												runWith: [runBy],
-												modType,
-												pkgManager,
-												pkgManagerAlias,
-											}),
-										);
-									} else {
-										rWith.push(runBy);
-									}
-									return rWith;
-								}, [] as RunWith[]);
-							}
-							// End filters
-							const testProjectDir = await mkdtemp(
-								join(tmpDir, `${LIBRARY_NAME}-`),
-							);
-							// Ensure that this directory has access to the correct corepack
-							ensureMinimumCorepack({
-								cwd: testProjectDir,
-							});
-							async function cleanup() {
-								// Clean up the folder
-								if (!preserveResources) {
-									logger.logDebug(`Cleaning up ${testProjectDir}`);
-									await rm(testProjectDir, {
-										force: true,
-										recursive: true,
-									});
-								} else {
-									logger.log(
-										chalk.yellow(`Skipping deletion of ${testProjectDir}`),
-									);
-								}
-							}
-							try {
-								const runners = await createTestProject(
-									{
-										projectDir,
-										testProjectDir,
-										debug,
-										failFast,
-										matchIgnore,
-										matchRootDir,
-									},
-									{
-										runBy: runWith,
-										modType,
-										pkgManager,
-										pkgManagerOptions,
-										pkgManagerAlias,
-										testMatch: testConfigEntry.testMatch,
-										typescript: testConfigEntry.transforms.typescript,
-										additionalDependencies: {
-											...config.additionalDependencies,
-											...testConfigEntry.additionalDependencies,
-										},
-									},
-								);
-								overview.suite.total += runners.length;
-								return {
-									runners,
-									cleanup,
-								};
-							} catch (err) {
-								await cleanup();
-								throw err;
-							}
-						}),
-					);
-				});
-				return runners;
-			},
-			[] as Promise<
-				| {
-						runners: TestRunner[];
-						cleanup: () => Promise<void>;
-				  }
-				| undefined
-			>[],
-		),
-	);
-	const testRunnerPkgsFiltered = testRunnerPkgs.filter((run) => !!run);
-	logger.logDebug(`Finished initializing test projects.`);
-	overview.setupTime = new Date().getTime() - startSetup.getTime();
-
+	const fileTestSuitesOverview = new TestGroupOverview();
+	const fileTestsOverview = new TestGroupOverview();
+	const binTestSuitesOverview = new TestGroupOverview();
+	const binTestsOverview = new TestGroupOverview();
 	const reporter = new SimpleReporter({
 		debug,
 	});
+	const startSetup = new Date();
+	const filteredEntries = applyFiltersToEntries(
+		config.entries,
+		{
+			fileTestSuitesOverview,
+			binTestSuitesOverview,
+			logger,
+		},
+		filters,
+	);
+
+	let yarnCacheCleaned = false;
+	async function initializeOneEntry(
+		modType: ModuleTypes,
+		_pkgManager: StandardizedTestConfigEntry["packageManagers"][0],
+		testConfigEntry: StandardizedTestConfigEntry,
+	) {
+		const {
+			packageManager: pkgManager,
+			alias: pkgManagerAlias,
+			version: pkgManagerVersion,
+			options: pkgManagerOptions,
+		} = _pkgManager;
+		// End filters
+		const testProjectDir = await mkdtemp(join(tmpDir, `${LIBRARY_NAME}-`));
+		// Ensure that this directory has access to the correct corepack
+		ensureMinimumCorepack({
+			cwd: testProjectDir,
+		});
+		let cleanCalled = false;
+		async function cleanup() {
+			if (cleanCalled) {
+				return;
+			}
+			// Clean up the folder
+			if (!preserveResources) {
+				await rmSync(testProjectDir, {
+					force: true,
+					recursive: true,
+				});
+				logger.logDebug(`Cleaned up ${testProjectDir}`);
+			} else {
+				logger.log(chalk.yellow(`Skipping deletion of ${testProjectDir}`));
+			}
+			cleanCalled = true;
+			// yarn-v1 bloats caches aggressively with file inclusion
+			if (pkgManager === PkgManager.YarnV1 && !options.noYarnv1CacheClean) {
+				if (!yarnCacheCleaned) {
+					logger.log(`Cleaning up yarn-v1 package cache disk leak...`);
+					execSync(
+						`${getPkgManagerCommand(pkgManager, pkgManagerVersion)} cache clean ${packageUnderTestName}`,
+						{
+							stdio: "pipe",
+						},
+					);
+					yarnCacheCleaned = true;
+				}
+			}
+		}
+		// Add clean up to the process exit handler
+		cleanUps.push(cleanup);
+		const entryLevelAdditionalFiles: AdditionalFilesCopy[] = [];
+		let entryLevelCreateAdditionalFiles: AddFilePerTestProjectCreate[] = [];
+		if (testConfigEntry.additionalFiles) {
+			const { copyAdditionalFiles, createAdditionalFiles } =
+				testConfigEntry.additionalFiles.reduce(
+					(fileTypees, af) => {
+						if (typeof af === "function") {
+							fileTypees.createAdditionalFiles.push(
+								af as AddFilePerTestProjectCreate,
+							);
+						} else {
+							fileTypees.copyAdditionalFiles.push(af);
+						}
+						return fileTypees;
+					},
+					{
+						copyAdditionalFiles: [] as AdditionalFilesEntry[],
+						createAdditionalFiles: [] as AddFilePerTestProjectCreate[],
+					},
+				);
+			entryLevelCreateAdditionalFiles.push(...createAdditionalFiles);
+			entryLevelAdditionalFiles.push(
+				...(await findAdditionalFilesForCopyOver({
+					additionalFiles: copyAdditionalFiles,
+					projectDir,
+					rootDir,
+				})),
+			);
+		}
+
+		const { fileTestRunners, binTestRunner } = await createTestProject(
+			{
+				projectDir,
+				testProjectDir,
+				debug,
+				failFast,
+				matchIgnore,
+				rootDir,
+				updateLock: !!options.updateLocks,
+				isCI: options.isCI,
+				lock,
+				entryAlias: testConfigEntry.alias,
+				config,
+			},
+			{
+				modType,
+				pkgManager,
+				pkgManagerOptions,
+				pkgManagerAlias,
+				fileTests: testConfigEntry.fileTests,
+				binTests: testConfigEntry.binTests,
+				additionalFiles: [
+					...topLevelAdditionalFiles,
+					...entryLevelAdditionalFiles,
+				],
+				createAdditionalFiles: entryLevelCreateAdditionalFiles,
+				reporter,
+				timeout: testConfigEntry.timeout || topLevelTimeout,
+				packageJson: {
+					...config.packageJson,
+					...testConfigEntry.packageJson,
+				},
+			},
+		);
+		return {
+			fileTestRunners,
+			binTestRunner,
+		};
+	}
+
+	// Since yarn-v1 has parallelism issues on install, we want to run yarn-v1 in sync
+	const entryGroups = groupSyncInstallEntries(filteredEntries);
+
+	const testGroupExecs = entryGroups.map(async ({ parallel, entries }) => {
+		if (parallel) {
+			return entries.reduce(
+				(runners, testConfigEntry) => {
+					testConfigEntry.moduleTypes.forEach((modType) => {
+						runners.push(
+							...testConfigEntry.packageManagers.map(async (pkgManager) => {
+								return await initializeOneEntry(
+									modType,
+									pkgManager,
+									testConfigEntry,
+								);
+							}),
+						);
+					});
+					return runners;
+				},
+				[] as Promise<{
+					fileTestRunners: FileTestRunner[];
+					binTestRunner?: BinTestRunner;
+				}>[],
+			);
+		} else {
+			const initReturn = [] as Promise<{
+				fileTestRunners: FileTestRunner[];
+				binTestRunner?: BinTestRunner;
+			}>[];
+			for (const testConfigEntry of entries) {
+				for (const modType of testConfigEntry.moduleTypes) {
+					for (const pkgManager of testConfigEntry.packageManagers) {
+						logger.logDebug(
+							`Running modType ${modType}, pkgManager ${pkgManager.packageManager} (${pkgManager.alias}) in series`,
+						);
+						const prom = initializeOneEntry(
+							modType,
+							pkgManager,
+							testConfigEntry,
+						);
+						initReturn.push(prom);
+						await prom;
+					}
+				}
+			}
+			return initReturn;
+		}
+	});
+
+	const allExecs = [];
+	for (const testGroupExec of testGroupExecs) {
+		allExecs.push(...(await testGroupExec));
+	}
+
+	const testRunnerPkgs = await Promise.all(allExecs);
+	logger.logDebug(`Finished initializing test projects.`);
+	const setupTime = new Date().getTime() - startSetup.getTime();
+	if (options.installOnly) {
+		return false;
+	}
 
 	// TODO: multi-threading pool for better results, although there's not a large amount of tests necessary at the moment
-	const startTests = new Date();
 	try {
 		let pass = true;
-		for (const testRunnerPkg of testRunnerPkgsFiltered) {
-			for (const runner of testRunnerPkg.runners) {
-				const summary = await runner.runTests({
-					timeout,
-					testNames,
-					reporter,
+		fileTestSuitesOverview.startTime();
+		const fileTestPromises: (() => Promise<void>)[] = [];
+		for (const testRunnerPkg of testRunnerPkgs) {
+			for (const runner of testRunnerPkg.fileTestRunners) {
+				fileTestPromises.push(async () => {
+					const summary = await runner.runTests({
+						testNames,
+					});
+					// Do all tests updating
+					if (summary.failed > 0) {
+						fileTestSuitesOverview.fail(1);
+						pass = false;
+					} else {
+						fileTestSuitesOverview.pass(1);
+					}
+					fileTestsOverview.addToTotal(summary.total);
+					fileTestsOverview.fail(summary.failed);
+					fileTestsOverview.pass(summary.passed);
+					fileTestsOverview.skip(summary.skipped);
+
+					if (summary.failedFast) {
+						// Fail normally instead of letting an error make it to the top
+						logger.log("Tests failed fast");
+						throw new FailFastError("Tests failed fast");
+					}
 				});
+			}
+		}
+		await pool(fileTestPromises, options.parallel);
+		fileTestSuitesOverview.finalize();
+		// Run bin tests as well
+		const binTestPromises: (() => Promise<void>)[] = [];
+		binTestSuitesOverview.startTime();
+		for (const { binTestRunner } of testRunnerPkgs) {
+			// Since bin Tests are less certain, we filter here
+			if (!binTestRunner) continue;
+			binTestPromises.push(async () => {
+				const summary = await binTestRunner.runTests();
 				// Do all tests updating
 				if (summary.failed > 0) {
-					overview.suite.failed++;
+					binTestSuitesOverview.fail(1);
 					pass = false;
 				} else {
-					overview.suite.passed++;
+					binTestSuitesOverview.pass(1);
 				}
-				overview.tests.failed += summary.failed;
-				overview.tests.notReached += summary.notReached.length;
-				overview.tests.passed += summary.passed;
-				overview.tests.skipped += summary.skipped;
-				overview.tests.total += summary.total;
+				binTestsOverview.addToTotal(summary.total);
+				binTestsOverview.fail(summary.failed);
+				binTestsOverview.pass(summary.passed);
+				binTestsOverview.skip(summary.skipped);
 
 				if (summary.failedFast) {
 					// Fail normally instead of letting an error make it to the top
 					logger.log("Tests failed fast");
 					throw new FailFastError("Tests failed fast");
 				}
-			}
+			});
 		}
+		await pool(binTestPromises, options.parallel);
+		binTestSuitesOverview.finalize();
 		return pass;
 	} finally {
 		// Do a final report
-		overview.testTime = new Date().getTime() - startTests.getTime();
-		overview.suite.notReached =
-			overview.suite.total -
-			(overview.suite.failed + overview.suite.passed + overview.suite.skipped);
+		fileTestsOverview.finalize();
+		fileTestSuitesOverview.finalize();
+		binTestSuitesOverview.finalize();
+		binTestsOverview.finalize();
 
-		const labelLength = 14;
+		const labelLength = 20;
 		overviewNotice(
 			logger,
-			"Test Suites:".padEnd(labelLength, " "),
-			overview.suite,
+			"File Test Suites:".padEnd(labelLength, " "),
+			fileTestSuitesOverview,
 		);
-		overviewNotice(logger, "Tests:".padEnd(labelLength, " "), overview.tests);
+		overviewNotice(
+			logger,
+			"File Tests:".padEnd(labelLength, " "),
+			fileTestsOverview,
+		);
+		overviewNotice(
+			logger,
+			"Bin Test Suites:".padEnd(labelLength, " "),
+			binTestSuitesOverview,
+		);
+		overviewNotice(
+			logger,
+			"Bin Tests:".padEnd(labelLength, " "),
+			binTestsOverview,
+		);
+		logger.log(`${"Setup Time:".padEnd(labelLength)} ${setupTime / 1000} s`);
 		logger.log(
-			`${"Setup Time:".padEnd(labelLength)} ${overview.setupTime / 1000} s`,
+			`${"File Test Time:".padEnd(labelLength)} ${fileTestSuitesOverview.time / 1000} s`,
 		);
 		logger.log(
-			`${"Test Time:".padEnd(labelLength)} ${overview.testTime / 1000} s`,
-		);
-
-		// Cleanup async
-		await Promise.allSettled(
-			testRunnerPkgsFiltered.map(async ({ cleanup }) => {
-				await cleanup();
-			}),
+			`${"Bin Test Time:".padEnd(labelLength)} ${binTestSuitesOverview.time / 1000} s`,
 		);
 	}
-}
-
-function skipSuitesNotice(
-	logger: Logger,
-	opts: {
-		runWith: RunWith[];
-		modType: ModuleTypes;
-		pkgManager: PkgManager;
-		pkgManagerAlias: string;
-	},
-): number {
-	const { runWith, ...rest } = opts;
-	runWith.forEach((runBy) => {
-		logger.log(
-			`${chalk.yellow("Skipping Suite:")} ${testSuiteDescribe({
-				...rest,
-				runBy,
-			})}`,
-		);
-	});
-	return runWith.length;
 }
 
 function overviewNotice(logger: Logger, prefix: string, overview: Overview) {
@@ -395,4 +492,25 @@ function overviewNotice(logger: Logger, prefix: string, overview: Overview) {
 				: ""
 		}${chalk.green(overview.passed + " passed,")} ${overview.total} total`,
 	);
+}
+
+async function pool(lambdas: (() => Promise<void>)[], maxNumber: number) {
+	const promiseMap: {
+		[k: string]: Promise<void>;
+	} = {};
+
+	try {
+		for (let idx = 0; idx < lambdas.length; idx++) {
+			const lambda = lambdas[idx];
+			promiseMap[idx] = (async () => {
+				await lambda();
+				delete promiseMap[idx];
+			})();
+			if (Object.keys(promiseMap).length === maxNumber) {
+				await Promise.any(Object.values(promiseMap));
+			}
+		}
+	} finally {
+		await Promise.all(Object.values(promiseMap));
+	}
 }

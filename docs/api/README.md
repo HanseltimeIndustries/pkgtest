@@ -9,13 +9,19 @@
 - [ModuleTypes](enumerations/ModuleTypes.md)
 - [PkgManager](enumerations/PkgManager.md)
 - [RunWith](enumerations/RunWith.md)
+- [TestType](enumerations/TestType.md)
 
 ## Classes
 
 - [FailFastError](classes/FailFastError.md)
+- [TestFailError](classes/TestFailError.md)
 
 ## Interfaces
 
+- [BinTestConfig](interfaces/BinTestConfig.md)
+- [BinTestEntry](interfaces/BinTestEntry.md)
+- [CreateTestProjectInfo](interfaces/CreateTestProjectInfo.md)
+- [FileTestConfig](interfaces/FileTestConfig.md)
 - [InstalledTool](interfaces/InstalledTool.md)
 - [PkgManagerBaseOptions](interfaces/PkgManagerBaseOptions.md)
 - [PkgManagerOptionsConfig](interfaces/PkgManagerOptionsConfig.md)
@@ -29,7 +35,12 @@
 
 ## Type Aliases
 
+- [AddFileCopyTo](type-aliases/AddFileCopyTo.md)
+- [AddFileMatch](type-aliases/AddFileMatch.md)
+- [AddFilePerTestProjectCreate](type-aliases/AddFilePerTestProjectCreate.md)
+- [AdditionalFilesEntry](type-aliases/AdditionalFilesEntry.md)
 - [PkgManagerOptions](type-aliases/PkgManagerOptions.md)
+- [ToDir](type-aliases/ToDir.md)
 
 ## Variables
 
