@@ -26,7 +26,7 @@ const createConfigFile = (_config, { moduleType, projectDir }) => {
 		},
 	},
 	moduleTypes: ["commonjs", "esm"],
-	timeout: 5000,
+	timeout: 9000, // Accounts for some slow downs on CI
 };
 
 ${exportPart}{
@@ -131,7 +131,7 @@ const cjsBinTests = {
 	},
 	packageManagers,
 	moduleTypes: ["commonjs"],
-	timeout: 100000, // Make it about 2 minutes since we're literally running another pkgtest
+	timeout: 140000, // Make it about 2 minutes since we're literally running another pkgtest
 };
 
 const esmBinTests = {
@@ -149,7 +149,7 @@ const esmBinTests = {
 	},
 	packageManagers,
 	moduleTypes: ["esm"],
-	timeout: 140000, // Make it about 2 minutes since we're literally running another pkgtest - little longer for yarn cache cleaning
+	timeout: 140000, // Make it about 2 minutes since we're literally running another pkgtest
 };
 
 module.exports = {

@@ -61,7 +61,7 @@ jobs:
       - name: testing
         run: |
           yarn test
-  pkg-test:
+  pkg-test-non-yarn:
     strategy:
       matrix:
         node-version: [18.x, 20.x]
@@ -90,7 +90,37 @@ jobs:
           export PKG_TEST_TEMP_DIR="${RUNNER_TEMP}"
           npm install -g corepack@>=0.31.0
           # Unfortunately, since the machine is limited, running sync is fastest
-          yarn pkgtest -p 1 --noYarnv1CacheClean
+          yarn pkgtest -p 2 --noPkgManager yarn-v1 --noYarnv1CacheClean
+  pkg-test-yarn-v1:
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+        # os: ['ubuntu-latest', 'windows-latest', 'macos-latest']
+        os: ['ubuntu-latest']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      # TODO: caching this action would accelerate the run
+      - name: corepack
+        run: |
+          corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'yarn'
+          cache-dependency-path: yarn.lock
+      - name: install
+        run: |
+          yarn install --immutable
+      - name: build
+        run: |
+          yarn build
+      - name: pkgtest
+        run: |
+          export PKG_TEST_TEMP_DIR="${RUNNER_TEMP}"
+          npm install -g corepack@>=0.31.0
+          # Unfortunately, since the machine is limited, running sync is fastest
+          yarn pkgtest -p 1 --pkgManager yarn-v1 --noYarnv1CacheClean
   ensure-docs:
     runs-on: ubuntu-latest
     steps:
@@ -132,7 +162,8 @@ jobs:
     needs:
       - ensure-docs
       - ci-checks
-      - pkg-test
+      - pkg-test-yarn-v1
+      - pkg-test-non-yarn
     runs-on: ubuntu-latest
     name: Done
     steps:
