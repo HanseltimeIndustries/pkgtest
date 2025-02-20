@@ -10,7 +10,9 @@
 		"import": "./dist/esm/index.js",
 		"default": "./dist/esm/index.js"
 	},
-	"files": ["dist"],
+	"files": [
+		"dist"
+	],
 	"dependencies": {
 		"chalk": "^5.4.1",
 		"commander": "^13.1.0",
