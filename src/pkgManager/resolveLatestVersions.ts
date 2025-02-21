@@ -31,7 +31,7 @@ export async function resolveLatestVersions(
 							// Create a directory
 							latestMap[pkgManager.packageManager] = (async () => {
 								const preInstallDir = await mkdtemp(
-									join(tempDir, `${LIBRARY_NAME}-preinstall-`),
+									join(tempDir, `${LIBRARY_NAME}-`),
 								);
 								let version: string;
 								try {

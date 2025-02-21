@@ -420,7 +420,7 @@ export async function run(options: RunOptions) {
 		const testRunnerPkgs = await Promise.all(allExecs);
 		// Also add the yarn cache clean up once here
 		if (usedPkgManagers.includes(PkgManager.YarnV1)) {
-			onSigCleanUps.push(() => {
+			const yarnv1CacheCleanup = () => {
 				// yarn-v1 bloats caches aggressively with file inclusion
 				logger.log(`Cleaning up yarn-v1 package cache disk leak...`);
 				execSync(
@@ -429,7 +429,9 @@ export async function run(options: RunOptions) {
 						stdio: "pipe",
 					},
 				);
-			});
+			};
+			onSigCleanUps.push(yarnv1CacheCleanup);
+			asyncCleanUps.push(async () => yarnv1CacheCleanup());
 		}
 
 		logger.logDebug(`Finished initializing test projects.`);
