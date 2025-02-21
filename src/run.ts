@@ -15,7 +15,11 @@ import {
 	PkgManager,
 } from "./types";
 import { getMatchIgnore } from "./getMatchIgnore";
-import { ensureMinimumCorepack, getPkgManagerCommand } from "./pkgManager";
+import {
+	ensureMinimumCorepack,
+	getPkgManagerCommand,
+	getPkgManagers,
+} from "./pkgManager";
 import { BinTestRunner } from "./BinTestRunner";
 import { TestGroupOverview } from "./reporters";
 import { findAdditionalFilesForCopyOver } from "./files";
@@ -31,21 +35,22 @@ import { execSync } from "child_process";
 
 export const DEFAULT_TIMEOUT = 2000;
 
-const cleanUps: (() => Promise<void>)[] = [];
-async function runCleanup() {
-	await Promise.allSettled(cleanUps.map((c) => c()));
-}
-
-[
+const INTERRUPT_EVENTS = [
 	`exit`,
 	`SIGINT`,
 	`SIGUSR1`,
 	`SIGUSR2`,
 	`uncaughtException`,
 	`SIGTERM`,
-].forEach((eventType) => {
-	process.on(eventType, runCleanup);
-});
+];
+
+export type IPreserveResourcesFn = (options: {
+	entry: StandardizedTestConfigEntry;
+	pkgManager: PkgManager;
+	pkgManagerAlias: string;
+	pkgManagerVersion: string;
+	modType: ModuleTypes;
+}) => Promise<boolean>;
 
 export interface RunOptions {
 	/**
@@ -86,6 +91,10 @@ export interface RunOptions {
 	 * large amounts of node modules, etc.
 	 */
 	preserveResources?: boolean;
+	/**
+	 * Interactive Preserve resources -
+	 */
+	iPreserveResources?: IPreserveResourcesFn;
 	/**
 	 * The max amount of time for a test to run (keep in mind, this is just the call to running the pkgTest script
 	 * and not installation)
@@ -131,276 +140,346 @@ export async function run(options: RunOptions) {
 		debug,
 		failFast,
 		preserveResources,
+		iPreserveResources,
 		filters = {},
 	} = options;
+	// Store clean up functions that can be async
+	const asyncCleanUps: (() => Promise<void>)[] = [];
+	// Signal handling cleanup is only guaranteed with sync
+	const onSigCleanUps: (() => void)[] = [];
+	async function runCleanup() {
+		for (const cleanUp of onSigCleanUps) {
+			try {
+				cleanUp();
+			} catch (err) {
+				console.error("Error with cleanup!" + err);
+			}
+		}
+	}
+	INTERRUPT_EVENTS.forEach((eventType) => {
+		process.once(eventType, runCleanup);
+	});
 	const topLevelTimeout = options.timeout || DEFAULT_TIMEOUT;
 	const { fileTestNames: testNames = [] } = filters;
 	const logger = new Logger({
 		context: "[runner]",
 		debug: !!debug,
 	});
-	logger.logDebug("Retrieving Config...");
-	const config = await getConfig(configPath);
+	try {
+		logger.logDebug("Retrieving Config...");
+		const config = await getConfig(configPath);
 
-	logger.logDebug(JSON.stringify(config));
+		logger.logDebug(JSON.stringify(config));
 
-	const matchIgnore = getMatchIgnore(process.cwd(), config.matchIgnore);
-	logger.logDebug(`matchIgnore: ${JSON.stringify(matchIgnore)}`);
-	const rootDir = config.rootDir ?? ".";
-	logger.logDebug(`rootDir: ${rootDir}`);
-	const projectDir = process.cwd();
-	const { name: packageUnderTestName } = JSON.parse(
-		readFileSync(join(projectDir, "package.json")).toString(),
-	) as PackageJson;
+		const matchIgnore = getMatchIgnore(process.cwd(), config.matchIgnore);
+		logger.logDebug(`matchIgnore: ${JSON.stringify(matchIgnore)}`);
+		const rootDir = config.rootDir ?? ".";
+		logger.logDebug(`rootDir: ${rootDir}`);
+		const projectDir = process.cwd();
+		const { name: packageUnderTestName } = JSON.parse(
+			readFileSync(join(projectDir, "package.json")).toString(),
+		) as PackageJson;
 
-	const tmpDir = process.env.PKG_TEST_TEMP_DIR ?? tmpdir();
-	logger.logDebug(`Writing test projects to temporary directory: ${tmpDir}`);
+		const tmpDir = process.env.PKG_TEST_TEMP_DIR ?? tmpdir();
+		logger.logDebug(`Writing test projects to temporary directory: ${tmpDir}`);
 
-	// Scan additionalFiles
-	const topLevelAdditionalFiles: AdditionalFilesCopy[] = config.additionalFiles
-		? await findAdditionalFilesForCopyOver({
-				additionalFiles: config.additionalFiles,
-				projectDir,
-				rootDir,
-			})
-		: [];
+		// Scan additionalFiles
+		const topLevelAdditionalFiles: AdditionalFilesCopy[] =
+			config.additionalFiles
+				? await findAdditionalFilesForCopyOver({
+						additionalFiles: config.additionalFiles,
+						projectDir,
+						rootDir,
+					})
+				: [];
 
-	// Coerce the lockfile object to default true
-	const lock:
-		| false
-		| {
-				folder: string;
-		  } =
-		config.locks === true
-			? {
-					folder: "lockfiles",
-				}
-			: config.locks;
+		// Coerce the lockfile object to default true
+		const lock:
+			| false
+			| {
+					folder: string;
+			  } =
+			config.locks === true
+				? {
+						folder: "lockfiles",
+					}
+				: config.locks;
 
-	// Set up the runner contexts
-	logger.logDebug(`Initializing test projects...`);
-	const fileTestSuitesOverview = new TestGroupOverview();
-	const fileTestsOverview = new TestGroupOverview();
-	const binTestSuitesOverview = new TestGroupOverview();
-	const binTestsOverview = new TestGroupOverview();
-	const reporter = new SimpleReporter({
-		debug,
-	});
-	const startSetup = new Date();
-	const filteredEntries = applyFiltersToEntries(
-		config.entries,
-		{
-			fileTestSuitesOverview,
-			binTestSuitesOverview,
-			logger,
-		},
-		filters,
-	);
-
-	let yarnCacheCleaned = false;
-	async function initializeOneEntry(
-		modType: ModuleTypes,
-		_pkgManager: StandardizedTestConfigEntry["packageManagers"][0],
-		testConfigEntry: StandardizedTestConfigEntry,
-	) {
-		const {
-			packageManager: pkgManager,
-			alias: pkgManagerAlias,
-			version: pkgManagerVersion,
-			options: pkgManagerOptions,
-		} = _pkgManager;
-		// End filters
-		const testProjectDir = await mkdtemp(join(tmpDir, `${LIBRARY_NAME}-`));
-		// Ensure that this directory has access to the correct corepack
-		ensureMinimumCorepack({
-			cwd: testProjectDir,
+		// Set up the runner contexts
+		logger.logDebug(`Initializing test projects...`);
+		const fileTestSuitesOverview = new TestGroupOverview();
+		const fileTestsOverview = new TestGroupOverview();
+		const binTestSuitesOverview = new TestGroupOverview();
+		const binTestsOverview = new TestGroupOverview();
+		const reporter = new SimpleReporter({
+			debug,
 		});
-		let cleanCalled = false;
-		async function cleanup() {
-			if (cleanCalled) {
-				return;
+		const startSetup = new Date();
+		const filteredEntries = applyFiltersToEntries(
+			config.entries,
+			{
+				fileTestSuitesOverview,
+				binTestSuitesOverview,
+				logger,
+			},
+			filters,
+		);
+
+		const usedPkgManagers = getPkgManagers(filteredEntries);
+
+		async function initializeOneEntry(
+			modType: ModuleTypes,
+			_pkgManager: StandardizedTestConfigEntry["packageManagers"][0],
+			testConfigEntry: StandardizedTestConfigEntry,
+		) {
+			const {
+				packageManager: pkgManager,
+				alias: pkgManagerAlias,
+				version: pkgManagerVersion = "latest",
+				options: pkgManagerOptions,
+			} = _pkgManager;
+			// End filters
+			const testProjectDir = await mkdtemp(join(tmpDir, `${LIBRARY_NAME}-`));
+			// Ensure that this directory has access to the correct corepack
+			ensureMinimumCorepack({
+				cwd: testProjectDir,
+			});
+			let cleanCalled = false;
+			function baseCleanUp(preserve: boolean) {
+				if (cleanCalled) {
+					return;
+				}
+				if (!preserve) {
+					rmSync(testProjectDir, {
+						force: true,
+						recursive: true,
+					});
+					logger.logDebug(`Cleaned up ${testProjectDir}`);
+				} else {
+					logger.log(chalk.yellow(`Skipping deletion of ${testProjectDir}`));
+				}
+				cleanCalled = true;
 			}
-			// Clean up the folder
-			if (!preserveResources) {
-				await rmSync(testProjectDir, {
-					force: true,
-					recursive: true,
-				});
-				logger.logDebug(`Cleaned up ${testProjectDir}`);
-			} else {
-				logger.log(chalk.yellow(`Skipping deletion of ${testProjectDir}`));
+			async function asyncCleanUp() {
+				if (cleanCalled) {
+					return;
+				}
+				let preserve = !!preserveResources;
+				if (iPreserveResources) {
+					preserve = await iPreserveResources({
+						pkgManager,
+						pkgManagerAlias,
+						pkgManagerVersion,
+						modType,
+						entry: testConfigEntry,
+					});
+				}
+				baseCleanUp(preserve);
 			}
-			cleanCalled = true;
-			// yarn-v1 bloats caches aggressively with file inclusion
-			if (pkgManager === PkgManager.YarnV1 && !options.noYarnv1CacheClean) {
-				if (!yarnCacheCleaned) {
-					logger.log(`Cleaning up yarn-v1 package cache disk leak...`);
-					execSync(
-						`${getPkgManagerCommand(pkgManager, pkgManagerVersion)} cache clean ${packageUnderTestName}`,
+			async function cleanup() {
+				baseCleanUp(!!preserveResources);
+			}
+			// Add clean up to the process exit handler
+			onSigCleanUps.push(cleanup);
+			asyncCleanUps.push(asyncCleanUp);
+			const entryLevelAdditionalFiles: AdditionalFilesCopy[] = [];
+			let entryLevelCreateAdditionalFiles: AddFilePerTestProjectCreate[] = [];
+			if (testConfigEntry.additionalFiles) {
+				const { copyAdditionalFiles, createAdditionalFiles } =
+					testConfigEntry.additionalFiles.reduce(
+						(fileTypees, af) => {
+							if (typeof af === "function") {
+								fileTypees.createAdditionalFiles.push(
+									af as AddFilePerTestProjectCreate,
+								);
+							} else {
+								fileTypees.copyAdditionalFiles.push(af);
+							}
+							return fileTypees;
+						},
 						{
-							stdio: "pipe",
+							copyAdditionalFiles: [] as AdditionalFilesEntry[],
+							createAdditionalFiles: [] as AddFilePerTestProjectCreate[],
 						},
 					);
-					yarnCacheCleaned = true;
-				}
-			}
-		}
-		// Add clean up to the process exit handler
-		cleanUps.push(cleanup);
-		const entryLevelAdditionalFiles: AdditionalFilesCopy[] = [];
-		let entryLevelCreateAdditionalFiles: AddFilePerTestProjectCreate[] = [];
-		if (testConfigEntry.additionalFiles) {
-			const { copyAdditionalFiles, createAdditionalFiles } =
-				testConfigEntry.additionalFiles.reduce(
-					(fileTypees, af) => {
-						if (typeof af === "function") {
-							fileTypees.createAdditionalFiles.push(
-								af as AddFilePerTestProjectCreate,
-							);
-						} else {
-							fileTypees.copyAdditionalFiles.push(af);
-						}
-						return fileTypees;
-					},
-					{
-						copyAdditionalFiles: [] as AdditionalFilesEntry[],
-						createAdditionalFiles: [] as AddFilePerTestProjectCreate[],
-					},
+				entryLevelCreateAdditionalFiles.push(...createAdditionalFiles);
+				entryLevelAdditionalFiles.push(
+					...(await findAdditionalFilesForCopyOver({
+						additionalFiles: copyAdditionalFiles,
+						projectDir,
+						rootDir,
+					})),
 				);
-			entryLevelCreateAdditionalFiles.push(...createAdditionalFiles);
-			entryLevelAdditionalFiles.push(
-				...(await findAdditionalFilesForCopyOver({
-					additionalFiles: copyAdditionalFiles,
+			}
+
+			const { fileTestRunners, binTestRunner } = await createTestProject(
+				{
 					projectDir,
+					testProjectDir,
+					debug,
+					failFast,
+					matchIgnore,
 					rootDir,
-				})),
+					updateLock: !!options.updateLocks,
+					isCI: options.isCI,
+					lock,
+					entryAlias: testConfigEntry.alias,
+					config,
+				},
+				{
+					modType,
+					pkgManager,
+					pkgManagerOptions,
+					pkgManagerAlias,
+					fileTests: testConfigEntry.fileTests,
+					binTests: testConfigEntry.binTests,
+					additionalFiles: [
+						...topLevelAdditionalFiles,
+						...entryLevelAdditionalFiles,
+					],
+					createAdditionalFiles: entryLevelCreateAdditionalFiles,
+					reporter,
+					timeout: testConfigEntry.timeout || topLevelTimeout,
+					packageJson: {
+						...config.packageJson,
+						...testConfigEntry.packageJson,
+					},
+				},
 			);
+			return {
+				fileTestRunners,
+				binTestRunner,
+			};
 		}
 
-		const { fileTestRunners, binTestRunner } = await createTestProject(
-			{
-				projectDir,
-				testProjectDir,
-				debug,
-				failFast,
-				matchIgnore,
-				rootDir,
-				updateLock: !!options.updateLocks,
-				isCI: options.isCI,
-				lock,
-				entryAlias: testConfigEntry.alias,
-				config,
-			},
-			{
-				modType,
-				pkgManager,
-				pkgManagerOptions,
-				pkgManagerAlias,
-				fileTests: testConfigEntry.fileTests,
-				binTests: testConfigEntry.binTests,
-				additionalFiles: [
-					...topLevelAdditionalFiles,
-					...entryLevelAdditionalFiles,
-				],
-				createAdditionalFiles: entryLevelCreateAdditionalFiles,
-				reporter,
-				timeout: testConfigEntry.timeout || topLevelTimeout,
-				packageJson: {
-					...config.packageJson,
-					...testConfigEntry.packageJson,
-				},
-			},
-		);
-		return {
-			fileTestRunners,
-			binTestRunner,
-		};
-	}
+		// Since yarn-v1 has parallelism issues on install, we want to run yarn-v1 in sync
+		const entryGroups = groupSyncInstallEntries(filteredEntries);
 
-	// Since yarn-v1 has parallelism issues on install, we want to run yarn-v1 in sync
-	const entryGroups = groupSyncInstallEntries(filteredEntries);
-
-	const testGroupExecs = entryGroups.map(async ({ parallel, entries }) => {
-		if (parallel) {
-			return entries.reduce(
-				(runners, testConfigEntry) => {
-					testConfigEntry.moduleTypes.forEach((modType) => {
-						runners.push(
-							...testConfigEntry.packageManagers.map(async (pkgManager) => {
-								return await initializeOneEntry(
-									modType,
-									pkgManager,
-									testConfigEntry,
-								);
-							}),
-						);
-					});
-					return runners;
-				},
-				[] as Promise<{
+		const testGroupExecs = entryGroups.map(async ({ parallel, entries }) => {
+			if (parallel) {
+				return entries.reduce(
+					(runners, testConfigEntry) => {
+						testConfigEntry.moduleTypes.forEach((modType) => {
+							runners.push(
+								...testConfigEntry.packageManagers.map(async (pkgManager) => {
+									return await initializeOneEntry(
+										modType,
+										pkgManager,
+										testConfigEntry,
+									);
+								}),
+							);
+						});
+						return runners;
+					},
+					[] as Promise<{
+						fileTestRunners: FileTestRunner[];
+						binTestRunner?: BinTestRunner;
+					}>[],
+				);
+			} else {
+				const initReturn = [] as Promise<{
 					fileTestRunners: FileTestRunner[];
 					binTestRunner?: BinTestRunner;
-				}>[],
-			);
-		} else {
-			const initReturn = [] as Promise<{
-				fileTestRunners: FileTestRunner[];
-				binTestRunner?: BinTestRunner;
-			}>[];
-			for (const testConfigEntry of entries) {
-				for (const modType of testConfigEntry.moduleTypes) {
-					for (const pkgManager of testConfigEntry.packageManagers) {
-						logger.logDebug(
-							`Running modType ${modType}, pkgManager ${pkgManager.packageManager} (${pkgManager.alias}) in series`,
-						);
-						const prom = initializeOneEntry(
-							modType,
-							pkgManager,
-							testConfigEntry,
-						);
-						initReturn.push(prom);
-						await prom;
+				}>[];
+				for (const testConfigEntry of entries) {
+					for (const modType of testConfigEntry.moduleTypes) {
+						for (const pkgManager of testConfigEntry.packageManagers) {
+							logger.logDebug(
+								`Running modType ${modType}, pkgManager ${pkgManager.packageManager} (${pkgManager.alias}) in series`,
+							);
+							const prom = initializeOneEntry(
+								modType,
+								pkgManager,
+								testConfigEntry,
+							);
+							initReturn.push(prom);
+							await prom;
+						}
 					}
 				}
+				return initReturn;
 			}
-			return initReturn;
+		});
+
+		const allExecs = [];
+		for (const testGroupExec of testGroupExecs) {
+			allExecs.push(...(await testGroupExec));
 		}
-	});
 
-	const allExecs = [];
-	for (const testGroupExec of testGroupExecs) {
-		allExecs.push(...(await testGroupExec));
-	}
+		const testRunnerPkgs = await Promise.all(allExecs);
+		// Also add the yarn cache clean up once here
+		if (usedPkgManagers.includes(PkgManager.YarnV1)) {
+			onSigCleanUps.push(() => {
+				// yarn-v1 bloats caches aggressively with file inclusion
+				logger.log(`Cleaning up yarn-v1 package cache disk leak...`);
+				execSync(
+					`${getPkgManagerCommand(PkgManager.YarnV1)} cache clean ${packageUnderTestName}`,
+					{
+						stdio: "pipe",
+					},
+				);
+			});
+		}
 
-	const testRunnerPkgs = await Promise.all(allExecs);
-	logger.logDebug(`Finished initializing test projects.`);
-	const setupTime = new Date().getTime() - startSetup.getTime();
-	if (options.installOnly) {
-		return false;
-	}
+		logger.logDebug(`Finished initializing test projects.`);
+		const setupTime = new Date().getTime() - startSetup.getTime();
+		if (options.installOnly) {
+			return false;
+		}
 
-	// TODO: multi-threading pool for better results, although there's not a large amount of tests necessary at the moment
-	try {
-		let pass = true;
-		fileTestSuitesOverview.startTime();
-		const fileTestPromises: (() => Promise<void>)[] = [];
-		for (const testRunnerPkg of testRunnerPkgs) {
-			for (const runner of testRunnerPkg.fileTestRunners) {
-				fileTestPromises.push(async () => {
-					const summary = await runner.runTests({
-						testNames,
+		// TODO: multi-threading pool for better results, although there's not a large amount of tests necessary at the moment
+		try {
+			let pass = true;
+			fileTestSuitesOverview.startTime();
+			const fileTestPromises: (() => Promise<void>)[] = [];
+			for (const testRunnerPkg of testRunnerPkgs) {
+				for (const runner of testRunnerPkg.fileTestRunners) {
+					fileTestPromises.push(async () => {
+						const summary = await runner.runTests({
+							testNames,
+						});
+						// Do all tests updating
+						if (summary.failed > 0) {
+							fileTestSuitesOverview.fail(1);
+							pass = false;
+						} else {
+							fileTestSuitesOverview.pass(1);
+						}
+						fileTestsOverview.addToTotal(summary.total);
+						fileTestsOverview.fail(summary.failed);
+						fileTestsOverview.pass(summary.passed);
+						fileTestsOverview.skip(summary.skipped);
+
+						if (summary.failedFast) {
+							// Fail normally instead of letting an error make it to the top
+							logger.log("Tests failed fast");
+							throw new FailFastError("Tests failed fast");
+						}
 					});
+				}
+			}
+			await pool(fileTestPromises, options.parallel);
+			fileTestSuitesOverview.finalize();
+			// Run bin tests as well
+			const binTestPromises: (() => Promise<void>)[] = [];
+			binTestSuitesOverview.startTime();
+			for (const { binTestRunner } of testRunnerPkgs) {
+				// Since bin Tests are less certain, we filter here
+				if (!binTestRunner) continue;
+				binTestPromises.push(async () => {
+					const summary = await binTestRunner.runTests();
 					// Do all tests updating
 					if (summary.failed > 0) {
-						fileTestSuitesOverview.fail(1);
+						binTestSuitesOverview.fail(1);
 						pass = false;
 					} else {
-						fileTestSuitesOverview.pass(1);
+						binTestSuitesOverview.pass(1);
 					}
-					fileTestsOverview.addToTotal(summary.total);
-					fileTestsOverview.fail(summary.failed);
-					fileTestsOverview.pass(summary.passed);
-					fileTestsOverview.skip(summary.skipped);
+					binTestsOverview.addToTotal(summary.total);
+					binTestsOverview.fail(summary.failed);
+					binTestsOverview.pass(summary.passed);
+					binTestsOverview.skip(summary.skipped);
 
 					if (summary.failedFast) {
 						// Fail normally instead of letting an error make it to the top
@@ -409,74 +488,55 @@ export async function run(options: RunOptions) {
 					}
 				});
 			}
-		}
-		await pool(fileTestPromises, options.parallel);
-		fileTestSuitesOverview.finalize();
-		// Run bin tests as well
-		const binTestPromises: (() => Promise<void>)[] = [];
-		binTestSuitesOverview.startTime();
-		for (const { binTestRunner } of testRunnerPkgs) {
-			// Since bin Tests are less certain, we filter here
-			if (!binTestRunner) continue;
-			binTestPromises.push(async () => {
-				const summary = await binTestRunner.runTests();
-				// Do all tests updating
-				if (summary.failed > 0) {
-					binTestSuitesOverview.fail(1);
-					pass = false;
-				} else {
-					binTestSuitesOverview.pass(1);
-				}
-				binTestsOverview.addToTotal(summary.total);
-				binTestsOverview.fail(summary.failed);
-				binTestsOverview.pass(summary.passed);
-				binTestsOverview.skip(summary.skipped);
+			await pool(binTestPromises, options.parallel);
+			binTestSuitesOverview.finalize();
+			return pass;
+		} finally {
+			// Do a final report
+			fileTestsOverview.finalize();
+			fileTestSuitesOverview.finalize();
+			binTestSuitesOverview.finalize();
+			binTestsOverview.finalize();
 
-				if (summary.failedFast) {
-					// Fail normally instead of letting an error make it to the top
-					logger.log("Tests failed fast");
-					throw new FailFastError("Tests failed fast");
-				}
-			});
+			const labelLength = 20;
+			overviewNotice(
+				logger,
+				"File Test Suites:".padEnd(labelLength, " "),
+				fileTestSuitesOverview,
+			);
+			overviewNotice(
+				logger,
+				"File Tests:".padEnd(labelLength, " "),
+				fileTestsOverview,
+			);
+			overviewNotice(
+				logger,
+				"Bin Test Suites:".padEnd(labelLength, " "),
+				binTestSuitesOverview,
+			);
+			overviewNotice(
+				logger,
+				"Bin Tests:".padEnd(labelLength, " "),
+				binTestsOverview,
+			);
+			logger.log(`${"Setup Time:".padEnd(labelLength)} ${setupTime / 1000} s`);
+			logger.log(
+				`${"File Test Time:".padEnd(labelLength)} ${fileTestSuitesOverview.time / 1000} s`,
+			);
+			logger.log(
+				`${"Bin Test Time:".padEnd(labelLength)} ${binTestSuitesOverview.time / 1000} s`,
+			);
 		}
-		await pool(binTestPromises, options.parallel);
-		binTestSuitesOverview.finalize();
-		return pass;
 	} finally {
-		// Do a final report
-		fileTestsOverview.finalize();
-		fileTestSuitesOverview.finalize();
-		binTestSuitesOverview.finalize();
-		binTestsOverview.finalize();
-
-		const labelLength = 20;
-		overviewNotice(
-			logger,
-			"File Test Suites:".padEnd(labelLength, " "),
-			fileTestSuitesOverview,
-		);
-		overviewNotice(
-			logger,
-			"File Tests:".padEnd(labelLength, " "),
-			fileTestsOverview,
-		);
-		overviewNotice(
-			logger,
-			"Bin Test Suites:".padEnd(labelLength, " "),
-			binTestSuitesOverview,
-		);
-		overviewNotice(
-			logger,
-			"Bin Tests:".padEnd(labelLength, " "),
-			binTestsOverview,
-		);
-		logger.log(`${"Setup Time:".padEnd(labelLength)} ${setupTime / 1000} s`);
-		logger.log(
-			`${"File Test Time:".padEnd(labelLength)} ${fileTestSuitesOverview.time / 1000} s`,
-		);
-		logger.log(
-			`${"Bin Test Time:".padEnd(labelLength)} ${binTestSuitesOverview.time / 1000} s`,
-		);
+		// Run async cleanup for normal removal and interactivity
+		// Since we're doing potentially interations, we run it sync
+		for (const asyncCleanUp of asyncCleanUps) {
+			await asyncCleanUp();
+		}
+		// Remove our interrupt handler since we don't need it anymore
+		INTERRUPT_EVENTS.forEach((eventType) => {
+			process.removeListener(eventType, runCleanup);
+		});
 	}
 }
 
