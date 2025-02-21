@@ -19,6 +19,8 @@ import {
 	ensureMinimumCorepack,
 	getPkgManagerCommand,
 	getPkgManagers,
+	LatestResolvedTestConfigEntry,
+	resolveLatestVersions,
 } from "./pkgManager";
 import { BinTestRunner } from "./BinTestRunner";
 import { TestGroupOverview } from "./reporters";
@@ -215,27 +217,34 @@ export async function run(options: RunOptions) {
 			debug,
 		});
 		const startSetup = new Date();
-		const filteredEntries = applyFiltersToEntries(
-			config.entries,
-			{
-				fileTestSuitesOverview,
-				binTestSuitesOverview,
-				logger,
-			},
-			filters,
+		const filteredEntries = await resolveLatestVersions(
+			tmpDir,
+			applyFiltersToEntries(
+				config.entries,
+				{
+					fileTestSuitesOverview,
+					binTestSuitesOverview,
+					logger,
+				},
+				filters,
+			),
+			new Logger({
+				context: "[resolve latest pkg manager]",
+				debug: !!debug,
+			}),
 		);
 
 		const usedPkgManagers = getPkgManagers(filteredEntries);
 
 		async function initializeOneEntry(
 			modType: ModuleTypes,
-			_pkgManager: StandardizedTestConfigEntry["packageManagers"][0],
-			testConfigEntry: StandardizedTestConfigEntry,
+			_pkgManager: LatestResolvedTestConfigEntry["packageManagers"][0],
+			testConfigEntry: LatestResolvedTestConfigEntry,
 		) {
 			const {
 				packageManager: pkgManager,
 				alias: pkgManagerAlias,
-				version: pkgManagerVersion = "latest",
+				version: pkgManagerVersion,
 				options: pkgManagerOptions,
 			} = _pkgManager;
 			// End filters
@@ -331,6 +340,7 @@ export async function run(options: RunOptions) {
 					pkgManager,
 					pkgManagerOptions,
 					pkgManagerAlias,
+					pkgManagerVersion,
 					fileTests: testConfigEntry.fileTests,
 					binTests: testConfigEntry.binTests,
 					additionalFiles: [

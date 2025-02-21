@@ -16,6 +16,7 @@ import { createDependencies } from "./createDependencies";
 import {
 	getPkgBinaryRunnerCommand,
 	getPkgManagerSetCommand,
+	sanitizeEnv,
 } from "./pkgManager";
 import { FileTestRunner } from "./FileTestRunner";
 import * as yaml from "js-yaml";
@@ -79,7 +80,10 @@ export interface CreateTestProjectContext {
 export interface CreateTestTestOptions<PkgManagerT extends PkgManager> {
 	modType: ModuleTypes;
 	pkgManager: PkgManagerT;
-	pkgManagerVersion?: string;
+	/**
+	 * At this point, package manager version should be a fixed non-latest string
+	 */
+	pkgManagerVersion: string;
 	/**
 	 * The alias for the pkgmanager + options configuration - used for test differentiation
 	 */
@@ -261,12 +265,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 			);
 		}
 	}
-	// Since yarn plug'n'play pollutes node options with its loader
-	const sanitizedEnv = {
-		...process.env,
-		NODE_OPTIONS: "",
-		npm_package_json: resolve(testProjectDir, "package.json"),
-	};
+	const sanitizedEnv = sanitizeEnv(resolve(testProjectDir, "package.json"));
 	await controlledExec(
 		getPkgManagerSetCommand(pkgManager, pkgManagerVersion),
 		{

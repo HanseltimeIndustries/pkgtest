@@ -5,6 +5,7 @@ import {
 	getPkgManagerSetCommand,
 	getPkgInstallCommand,
 	LockFileMode,
+	sanitizeEnv,
 } from "./pkgManager";
 import { getTypescriptConfig } from "./getTypescriptConfig";
 import { cp, readFile, writeFile } from "fs/promises";
@@ -44,6 +45,7 @@ const mockGetPkgManagerSetCommand = jest.mocked(getPkgManagerSetCommand);
 const mockGetPkgInstallCommand = jest.mocked(getPkgInstallCommand);
 const mockGetTypescriptConfig = jest.mocked(getTypescriptConfig);
 const mockReadFile = jest.mocked(readFile);
+const mockSanitizeEnv = jest.mocked(sanitizeEnv);
 
 const testTimeout = 3500;
 const testReporter = new SimpleReporter({
@@ -99,8 +101,8 @@ const testPkgManagerOptions: PkgManagerBaseOptions = {
 const testPkgManagerVersion = "3.8.2";
 
 // Since yarn plug'n'play pollutes NODE_OPTIONS, we invalidate it in our exec scripts
-const expectedSanitizedEnv = {
-	...process.env,
+const testSanitizedEnv = {
+	SOME_LOCAL_KEY: "value",
 	NODE_OPTIONS: "",
 	npm_package_json: join(testProjectDir, "package.json"),
 };
@@ -128,6 +130,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				cb(null, "stdout", "stderr");
 				return undefined as any;
 			});
+			mockSanitizeEnv.mockReturnValue(testSanitizedEnv);
 		});
 
 		const expectedTypeField =
@@ -208,7 +211,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				pkgManagerAlias: "myalias",
 				modType,
 				failFast: false,
-				baseEnv: expectedSanitizedEnv,
+				baseEnv: testSanitizedEnv,
 				extraEnv: {},
 				timeout: testTimeout,
 				reporter: testReporter,
@@ -221,7 +224,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				testPkgManagerSetCmd,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv,
+					env: testSanitizedEnv,
 				},
 				expect.anything(),
 			);
@@ -244,7 +247,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				testPkgInstallCmd,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv,
+					env: testSanitizedEnv,
 				},
 				expect.anything(),
 			);
@@ -387,7 +390,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				pkgManagerAlias: "myalias",
 				modType,
 				failFast: false,
-				baseEnv: expectedSanitizedEnv,
+				baseEnv: testSanitizedEnv,
 				extraEnv: {},
 				timeout: testTimeout,
 				reporter: testReporter,
@@ -400,7 +403,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				testPkgManagerSetCmd,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv,
+					env: testSanitizedEnv,
 				},
 				expect.anything(),
 			);
@@ -410,7 +413,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				testPkgInstallCmd,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv,
+					env: testSanitizedEnv,
 				},
 				expect.anything(),
 			);
@@ -539,7 +542,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				testPkgManagerSetCmd,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv,
+					env: testSanitizedEnv,
 				},
 				expect.anything(),
 			);
@@ -549,7 +552,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				testPkgInstallCmd,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv,
+					env: testSanitizedEnv,
 				},
 				expect.anything(),
 			);
@@ -602,7 +605,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				pkgManagerAlias: "myalias",
 				modType: modType,
 				failFast: false,
-				baseEnv: expectedSanitizedEnv,
+				baseEnv: testSanitizedEnv,
 				extraEnv: {},
 				timeout: testTimeout,
 				reporter: testReporter,
@@ -657,7 +660,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				`${testBinCmd} tsc -p ${expectedConfigFile}`,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv,
+					env: testSanitizedEnv,
 				},
 				expect.anything(), // callback
 			);
@@ -749,7 +752,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				testPkgManagerSetCmd,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv,
+					env: testSanitizedEnv,
 				},
 				expect.anything(),
 			);
@@ -759,7 +762,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				testPkgInstallCmd,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv,
+					env: testSanitizedEnv,
 				},
 				expect.anything(),
 			);
@@ -812,7 +815,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				pkgManagerAlias: "myalias",
 				modType: modType,
 				failFast: false,
-				baseEnv: expectedSanitizedEnv,
+				baseEnv: testSanitizedEnv,
 				extraEnv: {},
 				timeout: testTimeout,
 				reporter: testReporter,
@@ -825,7 +828,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				pkgManagerAlias: "myalias",
 				modType: modType,
 				failFast: false,
-				baseEnv: expectedSanitizedEnv,
+				baseEnv: testSanitizedEnv,
 				binTestConfig: {
 					bin1: [
 						{
@@ -899,7 +902,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				`${testBinCmd} tsc -p ${expectedConfigFile}`,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv,
+					env: testSanitizedEnv,
 				},
 				expect.anything(), // callback
 			);
@@ -974,7 +977,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				testPkgManagerSetCmd,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv,
+					env: testSanitizedEnv,
 				},
 				expect.anything(),
 			);
@@ -984,7 +987,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				testPkgInstallCmd,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv,
+					env: testSanitizedEnv,
 				},
 				expect.anything(),
 			);
@@ -1038,7 +1041,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				pkgManagerAlias: "myalias",
 				modType,
 				failFast: false,
-				baseEnv: expectedSanitizedEnv,
+				baseEnv: testSanitizedEnv,
 				extraEnv: {},
 				timeout: testTimeout,
 				reporter: testReporter,
@@ -1065,7 +1068,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				timeout: testTimeout,
 				reporter: testReporter,
 				groupOverview: expect.any(TestGroupOverview),
-				baseEnv: expectedSanitizedEnv,
+				baseEnv: testSanitizedEnv,
 				extraEnv:
 					modType === ModuleTypes.Commonjs
 						? {}
@@ -1087,7 +1090,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				pkgManagerAlias: "myalias",
 				modType,
 				failFast: false,
-				baseEnv: expectedSanitizedEnv,
+				baseEnv: testSanitizedEnv,
 				extraEnv: {},
 				timeout: testTimeout,
 				reporter: testReporter,
@@ -1141,7 +1144,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				`${testBinCmd} tsc -p ${expectedConfigFile}`,
 				{
 					cwd: testProjectDir,
-					env: expectedSanitizedEnv,
+					env: testSanitizedEnv,
 				},
 				expect.anything(), // callback
 			);
@@ -1172,6 +1175,7 @@ it("throws an error if the projectdir is not absolute", async () => {
 				modType: ModuleTypes.Commonjs,
 				pkgManager: PkgManager.YarnV1,
 				pkgManagerAlias: "myalias",
+				pkgManagerVersion: "something",
 				additionalFiles: [],
 				createAdditionalFiles: [],
 				fileTests: {
@@ -1203,6 +1207,7 @@ it("throws an error if the testProjectDir is not absolute", async () => {
 				modType: ModuleTypes.Commonjs,
 				pkgManager: PkgManager.YarnV1,
 				pkgManagerAlias: "myalias",
+				pkgManagerVersion: "2.2.3",
 				additionalFiles: [],
 				createAdditionalFiles: [],
 				fileTests: {

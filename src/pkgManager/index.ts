@@ -5,3 +5,6 @@ export * from "./corepack";
 export * from "./constants";
 export * from "./getPkgInstallCommand";
 export * from "./getPkgManagers";
+export * from "./preinstallLatest";
+export * from "./resolveLatestVersions";
+export * from "./sanitizeEnv";
