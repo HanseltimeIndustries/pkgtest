@@ -384,8 +384,27 @@ Now you should see something like
 
     The way pkgtest works is that it will setup every project first (package install + transformation), before
     it then runs the test files in the various directories created.  Because of this, we have more packages than
-    just the one that failed in `--failFast` mode.  A suggestion for different functionality is welcome if there
-    is a use case for it.
+    just the one that failed in `--failFast` mode.
+
+### Interactive Preserve
+
+If you didn't like the fact that we kept all those test project folders, pkgtest also provides a `--ipreserve` flag which
+stands for `interactive preserve`.
+
+If you run with this flag, the process will not exit until you have answered its questions about deleting each project folder
+that was created.
+
+<pre>
+<code>[runner] Tests failed fast
+... previous
+[runner] File Test Time:      0 s
+[runner] Bin Test Time:       233.697 s
+✔ Delete pkg for entry1: [commonjs, yarn-v1 (pkgtest default)]? <span style="color:blue">No</span>
+[runner] <span style="color:orange">Skipping deletion of /tmp/pkgTest-TsUzXm</span>
+✔ Delete pkg for entry1: [commonjs, npm (pkgtest default)]? <span style="color:blue">Yes</span>
+✔ Delete pkg for entry1: [commonjs, pnpm (pkgtest default)]? <span style="color:blue">Yes</span>
+</code>
+</pre>
 
 ### Let's debug!
 
