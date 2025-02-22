@@ -1,6 +1,6 @@
 # Configuration
 
-`pkgtest` is configured by a `pkgtest.config.[json|js|cjs|mjs|ts]` file at the root of the package you want to test.
+`pkgtest` is mainly configured by a `pkgtest.config.[json|js|cjs|mjs|ts]` file at the root of the package you want to test.
 
 The following will discuss the main concepts of the configuration file, but you can always check the [Config interface docs](../api/interfaces/TestConfig.md)
 for a full set of features.
