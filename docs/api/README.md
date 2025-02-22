@@ -49,4 +49,7 @@
 
 ## Functions
 
+- [findPkgTestProjectsByPrefix](functions/findPkgTestProjectsByPrefix.md)
+- [getTempDir](functions/getTempDir.md)
+- [getTempProjectDirPrefix](functions/getTempProjectDirPrefix.md)
 - [run](functions/run.md)
