@@ -29,6 +29,7 @@ import { PackageJson } from "type-fest";
 import { controlledExec } from "./controlledExec";
 import { performInstall } from "./performInstall";
 import { StandardizedTestConfig } from "./config";
+import { existsSync } from "fs";
 
 export const SRC_DIRECTORY = "src";
 export const BUILD_DIRECTORY = "dist";
@@ -386,6 +387,12 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 						// ts-node and esm do not play well.  This is the most stable config I know of
 						if (modType === ModuleTypes.ESM) {
 							runCommand = "node --loader ts-node/esm";
+							if (pkgManager === PkgManager.YarnBerry) {
+								if (existsSync(join(testProjectDir, ".pnp.loader.mjs"))) {
+									// Yarn plug'n'play requires us to also specify its loader
+									runCommand += " --loader ./.pnp.loader.mjs";
+								}
+							}
 							additionalEnv.TS_NODE_PROJECT = configFilePath;
 						} else {
 							runCommand = rBy;
