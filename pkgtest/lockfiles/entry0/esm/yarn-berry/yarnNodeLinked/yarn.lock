@@ -205,7 +205,6 @@ __metadata:
     lodash.camelcase: "npm:^4.3.0"
     micromatch: "npm:^4.0.8"
     semver: "npm:^7.7.1"
-    signal-exit: "npm:^4.1.0"
     zod: "npm:^3.24.1"
     zod-validation-error: "npm:^3.4.0"
   bin:

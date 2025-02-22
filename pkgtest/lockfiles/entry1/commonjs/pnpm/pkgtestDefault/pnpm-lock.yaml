@@ -287,7 +287,6 @@ snapshots:
       lodash.camelcase: 4.3.0
       micromatch: 4.0.8
       semver: 7.7.1
-      signal-exit: 4.1.0
       zod: 3.24.2
       zod-validation-error: 3.4.0(zod@3.24.2)
     transitivePeerDependencies:
