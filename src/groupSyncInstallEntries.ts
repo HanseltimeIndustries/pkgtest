@@ -1,4 +1,4 @@
-import { StandardizedTestConfigEntry } from "./config";
+import { LatestResolvedTestConfigEntry } from "./pkgManager";
 import { PkgManager } from "./types";
 
 /**
@@ -7,17 +7,17 @@ import { PkgManager } from "./types";
  * @param entries
  */
 export function groupSyncInstallEntries(
-	entries: StandardizedTestConfigEntry[],
+	entries: LatestResolvedTestConfigEntry[],
 ): {
 	parallel: boolean;
-	entries: StandardizedTestConfigEntry[];
+	entries: LatestResolvedTestConfigEntry[];
 }[] {
 	// Since yarn-v1 has parallelism issues on install, we want to run yarn-v1 in sync
-	const yarnv1Entries = [] as StandardizedTestConfigEntry[];
-	const parallelableEntries = [] as StandardizedTestConfigEntry[];
+	const yarnv1Entries = [] as LatestResolvedTestConfigEntry[];
+	const parallelableEntries = [] as LatestResolvedTestConfigEntry[];
 	entries.forEach((ent) => {
-		const yarnv1Pms = [] as StandardizedTestConfigEntry["packageManagers"];
-		const parallelPms = [] as StandardizedTestConfigEntry["packageManagers"];
+		const yarnv1Pms = [] as LatestResolvedTestConfigEntry["packageManagers"];
+		const parallelPms = [] as LatestResolvedTestConfigEntry["packageManagers"];
 		ent.packageManagers.forEach((pm) => {
 			if (pm.packageManager === PkgManager.YarnV1) {
 				yarnv1Pms.push(pm);

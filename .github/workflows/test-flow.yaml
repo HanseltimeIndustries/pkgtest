@@ -61,12 +61,13 @@ jobs:
       - name: testing
         run: |
           yarn test
-  pkg-test-non-yarn:
+  pkg-test:
     strategy:
       matrix:
         node-version: [18.x, 20.x]
         # os: ['ubuntu-latest', 'windows-latest', 'macos-latest']
         os: ['ubuntu-latest']
+        pkgManager: ['yarn-v1', 'yarn-berry', 'pnpm', 'npm']
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -85,42 +86,19 @@ jobs:
       - name: build
         run: |
           yarn build
-      - name: pkgtest
+      - name: populate yarnv1 cache
         run: |
           export PKG_TEST_TEMP_DIR="${RUNNER_TEMP}"
           npm install -g corepack@>=0.31.0
-          # Unfortunately, since the machine is limited, running sync is fastest
-          yarn pkgtest -p 2 --noPkgManager yarn-v1 --noYarnv1CacheClean
-  pkg-test-yarn-v1:
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x]
-        # os: ['ubuntu-latest', 'windows-latest', 'macos-latest']
-        os: ['ubuntu-latest']
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      # TODO: caching this action would accelerate the run
-      - name: corepack
-        run: |
-          corepack enable
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'yarn'
-          cache-dependency-path: yarn.lock
-      - name: install
-        run: |
-          yarn install --immutable
-      - name: build
-        run: |
-          yarn build
+          # This avoids yarnv1 level failures due to global cache lock issues
+          # Just preps by filling the cache in a synchronous manner
+          # No need to clean up since the container will do that on close
+          NESTED_YARN_V1_INSTALL=true yarn pkgtest -p 1 --noYarnv1CacheClean --testType bin
       - name: pkgtest
         run: |
           export PKG_TEST_TEMP_DIR="${RUNNER_TEMP}"
-          npm install -g corepack@>=0.31.0
-          # Unfortunately, since the machine is limited, running sync is fastest
-          yarn pkgtest -p 1 --pkgManager yarn-v1 --noYarnv1CacheClean
+          # No need to clean up since the container will do that on close
+          yarn pkgtest -p 1 --noYarnv1CacheClean --pkgManager ${{ matrix.pkgManager }}
   ensure-docs:
     runs-on: ubuntu-latest
     steps:
@@ -162,8 +140,7 @@ jobs:
     needs:
       - ensure-docs
       - ci-checks
-      - pkg-test-yarn-v1
-      - pkg-test-non-yarn
+      - pkg-test
     runs-on: ubuntu-latest
     name: Done
     steps:

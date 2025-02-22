@@ -66,6 +66,14 @@ This means we will create the test projects and then end.  This is helpful for 2
 
 ***
 
+### iPreserveResources?
+
+> `optional` **iPreserveResources**: [`IPreserveResourcesFn`](../type-aliases/IPreserveResourcesFn.md)
+
+Interactive Preserve resources -
+
+***
+
 ### isCI
 
 > **isCI**: `boolean`

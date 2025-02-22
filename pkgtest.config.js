@@ -82,7 +82,7 @@ const nodeLinkedYarnBerry = {
 	},
 };
 
-const packageManagers = [
+let packageManagers = [
 	"npm",
 	"pnpm",
 	"yarn-v1",
@@ -91,8 +91,11 @@ const packageManagers = [
 ];
 // To allow for --install only caching, we'll handle an environmet variable with installOnly and propagate it
 let addArgs = "";
-if (process.env.NESTED_INSTALL == true) {
-	addArgs = " --installOnly";
+if (process.env.NESTED_YARN_V1_INSTALL == "true") {
+	addArgs = " --installOnly --pkgManager yarn-v1";
+	// Filter down to just one packageManager since we just want to make sure yarn cache doesn't break
+	// on the real run
+	packageManagers = ["yarn-berry"];
 }
 // If we supply the noYarnv1CacheClean flag, we propagate it
 if (process.argv.includes("--noYarnv1CacheClean")) {

@@ -6,7 +6,7 @@ import {
 	InvalidArgumentError,
 } from "commander";
 import { DEFAULT_CONFIG_FILE_NAME_BASE, LIBRARY_NAME } from "../config";
-import { DEFAULT_TIMEOUT, run } from "../run";
+import { DEFAULT_TIMEOUT, IPreserveResourcesFn, run } from "../run";
 import {
 	FailFastError,
 	ModuleTypes,
@@ -14,6 +14,7 @@ import {
 	RunWith,
 	TestType,
 } from "../types";
+import { confirm } from "@inquirer/prompts";
 
 interface Options {
 	config?: string;
@@ -22,6 +23,7 @@ interface Options {
 	timeout?: number;
 	parallel: number;
 	preserve?: boolean;
+	ipreserve?: boolean;
 	updateLockfiles?: boolean;
 	installOnly?: boolean;
 	noYarnv1CacheClean?: boolean;
@@ -69,6 +71,10 @@ program
 	.option(
 		"--preserve",
 		"Preserves all test project directories that were created (use for debugging, but keep in mind this leaves large resources on your hard disk that you have to clean up)",
+	)
+	.option(
+		"--ipreserve",
+		"Interactively prompts you at the end of pkgtest on whether or not you want to delete one of the temporary projects",
 	)
 	.option(
 		"--updateLockfiles",
@@ -152,6 +158,16 @@ program
 			.default([]),
 	)
 	.action(async (testMatch: string[], options: Options, _command: Command) => {
+		const iPreserveResources: IPreserveResourcesFn | undefined =
+			options.ipreserve
+				? async ({ entry, modType, pkgManager, pkgManagerAlias }) => {
+						return !(await confirm({
+							message: `Delete pkg for ${entry.alias}: [${modType}, ${pkgManager} (${pkgManagerAlias})]?`,
+							default: options.preserve,
+						}));
+					}
+				: undefined;
+
 		try {
 			const passed = await run({
 				debug: options.debug,
@@ -159,6 +175,7 @@ program
 				timeout: options.timeout,
 				configPath: options.config,
 				preserveResources: options.preserve,
+				iPreserveResources,
 				updateLocks: !!options.updateLockfiles,
 				isCI: false, // TODO: change
 				installOnly: options.installOnly,

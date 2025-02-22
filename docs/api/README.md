@@ -39,6 +39,7 @@
 - [AddFileMatch](type-aliases/AddFileMatch.md)
 - [AddFilePerTestProjectCreate](type-aliases/AddFilePerTestProjectCreate.md)
 - [AdditionalFilesEntry](type-aliases/AdditionalFilesEntry.md)
+- [IPreserveResourcesFn](type-aliases/IPreserveResourcesFn.md)
 - [PkgManagerOptions](type-aliases/PkgManagerOptions.md)
 - [ToDir](type-aliases/ToDir.md)
 
