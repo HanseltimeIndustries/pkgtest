@@ -421,14 +421,16 @@ export async function run(options: RunOptions) {
 		// Also add the yarn cache clean up once here
 		if (usedPkgManagers.includes(PkgManager.YarnV1)) {
 			const yarnv1CacheCleanup = () => {
-				// yarn-v1 bloats caches aggressively with file inclusion
-				logger.log(`Cleaning up yarn-v1 package cache disk leak...`);
-				execSync(
-					`${getPkgManagerCommand(PkgManager.YarnV1)} cache clean ${packageUnderTestName}`,
-					{
-						stdio: "pipe",
-					},
-				);
+				if (!options.noYarnv1CacheClean) {
+					// yarn-v1 bloats caches aggressively with file inclusion
+					logger.log(`Cleaning up yarn-v1 package cache disk leak...`);
+					execSync(
+						`${getPkgManagerCommand(PkgManager.YarnV1)} cache clean ${packageUnderTestName}`,
+						{
+							stdio: "pipe",
+						},
+					);
+				}
 			};
 			onSigCleanUps.push(yarnv1CacheCleanup);
 			asyncCleanUps.push(async () => yarnv1CacheCleanup());
@@ -437,7 +439,7 @@ export async function run(options: RunOptions) {
 		logger.logDebug(`Finished initializing test projects.`);
 		const setupTime = new Date().getTime() - startSetup.getTime();
 		if (options.installOnly) {
-			return false;
+			return true;
 		}
 
 		// TODO: multi-threading pool for better results, although there's not a large amount of tests necessary at the moment
