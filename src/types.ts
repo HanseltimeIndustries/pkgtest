@@ -1,6 +1,6 @@
-import { TsConfigJson } from "get-tsconfig";
+import type { TsConfigJson } from "get-tsconfig";
 import { CreateDependenciesOptions } from "./createDependencies";
-import { PackageJson } from "type-fest";
+import type { PackageJson } from "type-fest";
 
 /**
  * The type of module that the testing package will be created as:
