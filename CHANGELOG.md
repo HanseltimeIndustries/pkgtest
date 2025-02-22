@@ -1,3 +1,17 @@
+# [1.1.0](https://github.com/HanseltimeIndustries/pkgtest/compare/v1.0.0...v1.1.0) (2025-02-22)
+
+
+### Bug Fixes
+
+* add preinstall behavior for latest version ([9368f1b](https://github.com/HanseltimeIndustries/pkgtest/commit/9368f1b3a234f0cc41a08ebcaa2214f2035b5951))
+* move cache cleaning either normal or sigint close out ([eb312a4](https://github.com/HanseltimeIndustries/pkgtest/commit/eb312a4e9f23694cb79005a37ed8c43e2a763c5c))
+* preserve the no yarnv1 cache clean option ([7f254f1](https://github.com/HanseltimeIndustries/pkgtest/commit/7f254f11da513802ca3c953846a9d78c369e12df))
+
+
+### Features
+
+* adding an interactive preserve option ([309708a](https://github.com/HanseltimeIndustries/pkgtest/commit/309708a11f7a15f2ead033589aaa05267a52ecd2))
+
 # 1.0.0 (2025-02-20)
 
 

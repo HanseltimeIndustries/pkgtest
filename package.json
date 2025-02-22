@@ -1,6 +1,6 @@
 {
 	"name": "@hanseltime/pkgtest",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"types": "./dist/types/index.d.ts",
 	"main": "./dist/cjs/index.js",
 	"bin": "dist/esm/bin/pkgtest.mjs",
@@ -10,7 +10,9 @@
 		"import": "./dist/esm/index.js",
 		"default": "./dist/esm/index.js"
 	},
-	"files": ["dist"],
+	"files": [
+		"dist"
+	],
 	"dependencies": {
 		"@inquirer/prompts": "^7.3.2",
 		"chalk": "^5.4.1",
