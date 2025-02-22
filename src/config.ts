@@ -21,7 +21,7 @@ import { fromError } from "zod-validation-error";
 import { readFile } from "fs/promises";
 import { DEFAULT_PKG_MANAGER_ALIAS } from "./constants";
 
-export const LIBRARY_NAME = "pkgTest";
+export const LIBRARY_NAME = "pkgtest";
 export const DEFAULT_CONFIG_FILE_NAME_BASE = `pkgtest.config`;
 
 const InstalledToolValidated = z.object({

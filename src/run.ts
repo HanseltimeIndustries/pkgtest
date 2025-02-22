@@ -1,5 +1,4 @@
-import { tmpdir } from "os";
-import { getConfig, LIBRARY_NAME, StandardizedTestConfigEntry } from "./config";
+import { getConfig, StandardizedTestConfigEntry } from "./config";
 import { createTestProject } from "./createTestProject";
 import { mkdtemp } from "fs/promises";
 import { join } from "path";
@@ -24,7 +23,10 @@ import {
 } from "./pkgManager";
 import { BinTestRunner } from "./BinTestRunner";
 import { TestGroupOverview } from "./reporters";
-import { findAdditionalFilesForCopyOver } from "./files";
+import {
+	findAdditionalFilesForCopyOver,
+	getTempProjectDirPrefix,
+} from "./files";
 import { AdditionalFilesCopy } from "./files/types";
 import {
 	applyFiltersToEntries,
@@ -34,6 +36,7 @@ import { groupSyncInstallEntries } from "./groupSyncInstallEntries";
 import { readFileSync, rmSync } from "fs";
 import { PackageJson } from "type-fest";
 import { execSync } from "child_process";
+import { getTempDir } from "./files";
 
 export const DEFAULT_TIMEOUT = 2000;
 
@@ -182,7 +185,7 @@ export async function run(options: RunOptions) {
 			readFileSync(join(projectDir, "package.json")).toString(),
 		) as PackageJson;
 
-		const tmpDir = process.env.PKG_TEST_TEMP_DIR ?? tmpdir();
+		const tmpDir = getTempDir();
 		logger.logDebug(`Writing test projects to temporary directory: ${tmpDir}`);
 
 		// Scan additionalFiles
@@ -248,7 +251,9 @@ export async function run(options: RunOptions) {
 				options: pkgManagerOptions,
 			} = _pkgManager;
 			// End filters
-			const testProjectDir = await mkdtemp(join(tmpDir, `${LIBRARY_NAME}-`));
+			const testProjectDir = await mkdtemp(
+				join(tmpDir, getTempProjectDirPrefix()),
+			);
 			// Ensure that this directory has access to the correct corepack
 			ensureMinimumCorepack({
 				cwd: testProjectDir,

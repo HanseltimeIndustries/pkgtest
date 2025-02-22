@@ -28,6 +28,7 @@ __metadata:
     zod-validation-error: "npm:^3.4.0"
   bin:
     pkgtest: dist/esm/bin/pkgtest.mjs
+    pkgtest-clean: dist/esm/bin/clean.mjs
   languageName: node
   linkType: soft
 

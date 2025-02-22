@@ -3,16 +3,17 @@
 	"version": "1.1.0",
 	"types": "./dist/types/index.d.ts",
 	"main": "./dist/cjs/index.js",
-	"bin": "dist/esm/bin/pkgtest.mjs",
+	"bin": {
+		"pkgtest": "dist/esm/bin/pkgtest.mjs",
+		"pkgtest-clean": "dist/esm/bin/clean.mjs"
+	},
 	"exports": {
 		"types": "./dist/types/index.d.ts",
 		"require": "./dist/cjs/index.js",
 		"import": "./dist/esm/index.js",
 		"default": "./dist/esm/index.js"
 	},
-	"files": [
-		"dist"
-	],
+	"files": ["dist"],
 	"dependencies": {
 		"@inquirer/prompts": "^7.3.2",
 		"chalk": "^5.4.1",
@@ -65,6 +66,7 @@
 	"scripts": {
 		"test": "jest",
 		"pkgtest": "yarn tsx src/bin/pkgtest.ts",
+		"pkgtest-clean": "yarn tsx src/bin/clean.ts",
 		"lint": "biome lint",
 		"format": "biome format",
 		"build:esm": "tswc -- src -d dist/esm --config-file .esm.swcrc --strip-leading-paths --out-file-extension mjs",
