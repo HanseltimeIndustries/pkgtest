@@ -79,6 +79,15 @@ manager to avoid dependency install and access issues.
 
 ***
 
+### scriptTests?
+
+> `optional` **scriptTests**: [`ScriptTestConfig`](ScriptTestConfig.md)[]
+
+If you would like a test suite per test project that injects the given scripts into the packge.json and runs them
+in sequence, evaluating each for a zero exit code
+
+***
+
 ### timeout?
 
 > `optional` **timeout**: `number`

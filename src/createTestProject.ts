@@ -10,18 +10,19 @@ import {
 	BinTestConfig,
 	FileTestConfig,
 	AddFilePerTestProjectCreate,
+	ScriptTestConfig,
 } from "./types";
 import { getTypescriptConfig } from "./getTypescriptConfig";
 import { createDependencies } from "./createDependencies";
 import {
 	getPkgBinaryRunnerCommand,
 	getPkgManagerSetCommand,
+	getPkgScriptRunnerCommand,
 	sanitizeEnv,
 } from "./pkgManager";
-import { FileTestRunner } from "./FileTestRunner";
+import { BinTestRunner, FileTestRunner, ScriptTestRunner } from "./runners";
 import * as yaml from "js-yaml";
 import { Logger } from "./Logger";
-import { BinTestRunner } from "./BinTestRunner";
 import { copyOverAdditionalFiles } from "./files";
 import { AdditionalFilesCopy } from "./files/types";
 import { Reporter, TestFile } from "./reporters";
@@ -96,6 +97,7 @@ export interface CreateTestTestOptions<PkgManagerT extends PkgManager> {
 	pkgManagerOptions?: PkgManagerOptions<PkgManagerT>;
 	packageJson?: PackageJson;
 	binTests?: BinTestConfig;
+	scriptTests?: ScriptTestConfig[];
 	fileTests?: FileTestConfig;
 	/**
 	 * Any additional files that we want to copy into the project directory
@@ -125,6 +127,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 ): Promise<{
 	fileTestRunners: FileTestRunner[];
 	binTestRunner?: BinTestRunner;
+	scriptTestRunner?: ScriptTestRunner;
 }> {
 	const {
 		projectDir,
@@ -155,6 +158,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		timeout,
 		reporter,
 		packageJson: packageJsonOverrides,
+		scriptTests,
 	} = testOptions;
 	const logPrefix = `[${context.entryAlias}, ${pkgManager}, ${pkgManagerAlias}, ${modType}, @${testProjectDir}]`;
 
@@ -244,6 +248,18 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		private: true,
 		...packageJsonOverrides,
 		dependencies,
+		scripts: {
+			...packageJsonOverrides?.scripts,
+			...scriptTests?.reduce(
+				(scripts, sT) => {
+					scripts[sT.name] = sT.script;
+					return scripts;
+				},
+				{} as {
+					[s: string]: string;
+				},
+			),
+		},
 	};
 	// Write the package.json to the directory
 	await writeFile(
@@ -475,6 +491,22 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		});
 	}
 
+	let scriptTestRunner: ScriptTestRunner | undefined = undefined;
+	if (scriptTests) {
+		scriptTestRunner = new ScriptTestRunner({
+			runCommand: getPkgScriptRunnerCommand(pkgManager, pkgManagerVersion),
+			projectDir: testProjectDir,
+			scriptTests,
+			pkgManager,
+			pkgManagerAlias,
+			modType,
+			timeout,
+			failFast,
+			reporter,
+			baseEnv: sanitizedEnv,
+		});
+	}
+
 	// Copy over files at the end
 	if (additionalFiles) {
 		await copyOverAdditionalFiles(additionalFiles, testProjectDir);
@@ -501,6 +533,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 
 	return {
 		binTestRunner,
+		scriptTestRunner,
 		fileTestRunners,
 	};
 }

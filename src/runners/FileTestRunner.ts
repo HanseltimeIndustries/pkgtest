@@ -1,10 +1,17 @@
-import { ModuleTypes, PkgManager, RunWith } from "./types";
+import { ModuleTypes, PkgManager, RunWith } from "../types";
 import micromatch from "micromatch";
-import { FileTestRunnerDescribe, Reporter, TestFile } from "./reporters";
+import { FileTestRunnerDescribe, Reporter, TestFile } from "../reporters";
 import { BaseTestRunner } from "./BaseTestRunner";
 
+interface RunTestOptions {
+	/**
+	 * If the array is non-empty, we only run tests that include the glob pattern provided
+	 */
+	testNames: string[];
+}
+
 export class FileTestRunner
-	extends BaseTestRunner
+	extends BaseTestRunner<RunTestOptions>
 	implements FileTestRunnerDescribe
 {
 	readonly runCommand: string;
@@ -50,13 +57,7 @@ export class FileTestRunner
 		this.extraEnv = options.extraEnv ?? {};
 	}
 
-	// For now, we run this in parallel since we're running shell processes and that can lead to increased parallelism
-	async runTests(options: {
-		/**
-		 * If the array is non-empty, we only run tests that include the glob pattern provided
-		 */
-		testNames: string[];
-	}) {
+	async runTests(options: RunTestOptions) {
 		const { testNames } = options;
 		this.reporter.start(this);
 		this.groupOverview.startTime();

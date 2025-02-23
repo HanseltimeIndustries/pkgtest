@@ -15,6 +15,7 @@ import {
 	AdditionalFilesEntry,
 	AddFileCopyTo,
 	AddFilePerTestProjectCreate,
+	ScriptTestConfig,
 } from "./types";
 import { z, ZodError, ZodType } from "zod";
 import { fromError } from "zod-validation-error";
@@ -145,8 +146,14 @@ const AddFilePerTestProjectCreateValidated = z
 	.args(z.any(), z.any())
 	.returns(z.any()) satisfies ZodType<AddFilePerTestProjectCreate>;
 
+const ScriptTestConfigValidated = z.object({
+	name: z.string(),
+	script: z.string(),
+}) satisfies ZodType<ScriptTestConfig>;
+
 const TestConfigEntryValidated = z.object({
 	fileTests: FileTestsValidated.optional(),
+	scriptTests: z.array(ScriptTestConfigValidated).optional(),
 	packageManagers: z
 		.array(
 			z.union([
@@ -302,9 +309,9 @@ export async function getConfig(configFile?: string, cwd = process.cwd()) {
 			const entryLocation = `entries[${idx}]`;
 			const entryAlias = `entry${idx}`;
 
-			if (!ent.fileTests && !ent.binTests) {
+			if (!ent.fileTests && !ent.binTests && !ent.scriptTests) {
 				throw new Error(
-					`${entryLocation} must supply at least one binTests or fileTests config!`,
+					`${entryLocation} must supply at least one binTests, scriptTests, or fileTests config!`,
 				);
 			}
 			// Coerce bin tests to a default config

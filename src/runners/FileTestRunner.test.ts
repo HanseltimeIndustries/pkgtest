@@ -1,6 +1,6 @@
-import { Reporter, TestGroupOverview } from "./reporters";
+import { Reporter, TestGroupOverview } from "../reporters";
 import { FileTestRunner } from "./FileTestRunner";
-import { ModuleTypes, PkgManager, RunWith } from "./types";
+import { ModuleTypes, PkgManager, RunWith } from "../types";
 import { exec, ExecException } from "child_process";
 
 jest.mock("child_process");

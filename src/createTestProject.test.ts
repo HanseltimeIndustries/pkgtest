@@ -292,6 +292,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						dependencies: {
 							...testDeps,
 						},
+						scripts: {},
 					},
 					null,
 					4,
@@ -462,6 +463,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						dependencies: {
 							...testDeps,
 						},
+						scripts: {},
 					},
 					null,
 					4,
@@ -532,6 +534,16 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 								typescript: typescriptOptions,
 							},
 						},
+						scriptTests: [
+							{
+								name: "script1",
+								script: "echo $something",
+							},
+							{
+								name: "script2",
+								script: "jest",
+							},
+						],
 						timeout: testTimeout,
 						reporter: testReporter,
 					},
@@ -636,6 +648,10 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						// These were populated by the createDependencies method we mocked
 						dependencies: {
 							...testDeps,
+						},
+						scripts: {
+							script1: "echo $something",
+							script2: "jest",
 						},
 					},
 					null,
@@ -879,6 +895,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						dependencies: {
 							...testDeps,
 						},
+						scripts: {},
 					},
 					null,
 					4,
@@ -1122,6 +1139,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 						dependencies: {
 							...testDeps,
 						},
+						scripts: {},
 					},
 					null,
 					4,

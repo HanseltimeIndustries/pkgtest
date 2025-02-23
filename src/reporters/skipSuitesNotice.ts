@@ -1,11 +1,11 @@
 import chalk from "chalk";
-import { BinTestRunnerDescribe, FileTestRunnerDescribe } from "./types";
+import {
+	TestRunnerDescribes,
+} from "./types";
 import { testSuiteDescribe } from "./testSuiteDescribe";
 
 export function skipSuiteDescribe(
-	opts:
-		| Omit<FileTestRunnerDescribe, "projectDir">
-		| Omit<BinTestRunnerDescribe, "projectDir">,
+	opts: Omit<TestRunnerDescribes, "projectDir">,
 ) {
 	return `${chalk.yellow("Skipping Suite:")} ${testSuiteDescribe({
 		...opts,

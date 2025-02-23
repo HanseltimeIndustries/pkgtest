@@ -1,5 +1,11 @@
 import { StandardizedTestConfigEntry } from "./config";
-import { skipSuiteDescribe, TestGroupOverview } from "./reporters";
+import {
+	BinTestRunnerDescribe,
+	FileTestRunnerDescribe,
+	ScriptTestRunnerDescribe,
+	skipSuiteDescribe,
+	TestGroupOverview,
+} from "./reporters";
 import {
 	ModuleTypes,
 	PkgManager,
@@ -13,6 +19,7 @@ export interface ContextOptions {
 	logger: Logger;
 	fileTestSuitesOverview: TestGroupOverview;
 	binTestSuitesOverview: TestGroupOverview;
+	scriptTestSuitesOverview: TestGroupOverview;
 }
 
 export interface EntryFilterOptions {
@@ -37,7 +44,12 @@ export function applyFiltersToEntries(
 	context: ContextOptions,
 	filters?: EntryFilterOptions,
 ): StandardizedTestConfigEntry[] {
-	const { logger, fileTestSuitesOverview, binTestSuitesOverview } = context;
+	const {
+		logger,
+		fileTestSuitesOverview,
+		binTestSuitesOverview,
+		scriptTestSuitesOverview,
+	} = context;
 	// No need to do any filtering if there's no options
 	if (!filters || Object.keys(filters).length === 0) {
 		// Add additional to the total
@@ -46,6 +58,7 @@ export function applyFiltersToEntries(
 				ent,
 				fileTestSuitesOverview,
 				binTestSuitesOverview,
+				scriptTestSuitesOverview,
 			);
 		});
 		return entries;
@@ -77,11 +90,13 @@ export function applyFiltersToEntries(
 
 	const skipFileTests = testTypes && !testTypes.includes(TestType.File);
 	const skipBinTests = testTypes && !testTypes.includes(TestType.Bin);
+	const skipScriptTests = testTypes && !testTypes.includes(TestType.Script);
 	return (
 		entries
 			.map((testConfigEntry) => {
 				let filteredFileTests = testConfigEntry.fileTests;
 				let filteredBinTests = testConfigEntry.binTests;
+				let filteredScriptTests = testConfigEntry.scriptTests;
 				let filteredModTypes = testConfigEntry.moduleTypes;
 				let filteredPkgManagers = testConfigEntry.packageManagers;
 				if (skipBinTests) {
@@ -118,11 +133,29 @@ export function applyFiltersToEntries(
 						filteredFileTests = undefined;
 					}
 				}
+				if (skipScriptTests) {
+					if (filteredScriptTests) {
+						filteredModTypes.forEach((modType) => {
+							filteredPkgManagers.forEach(
+								({ packageManager: pkgManager, alias: pkgManagerAlias }) => {
+									scriptTestsSkip(
+										logger,
+										{ modType, pkgManager, pkgManagerAlias },
+										testConfigEntry,
+										scriptTestSuitesOverview,
+									);
+								},
+							);
+						});
+						filteredScriptTests = undefined;
+					}
+				}
 
 				const filteredTestTypeConfigEntry = {
 					...testConfigEntry,
 					fileTests: filteredFileTests,
 					binTests: filteredBinTests,
+					scriptTests: filteredScriptTests,
 				};
 
 				// reassign
@@ -141,6 +174,7 @@ export function applyFiltersToEntries(
 									filteredTestTypeConfigEntry,
 									fileTestSuitesOverview,
 									binTestSuitesOverview,
+									scriptTestSuitesOverview,
 								);
 							},
 						);
@@ -168,6 +202,7 @@ export function applyFiltersToEntries(
 									filteredTestTypeConfigEntry,
 									fileTestSuitesOverview,
 									binTestSuitesOverview,
+									scriptTestSuitesOverview,
 								);
 							});
 							return false;
@@ -187,6 +222,7 @@ export function applyFiltersToEntries(
 									filteredTestTypeConfigEntry,
 									fileTestSuitesOverview,
 									binTestSuitesOverview,
+									scriptTestSuitesOverview,
 								);
 							});
 							return false;
@@ -207,6 +243,7 @@ export function applyFiltersToEntries(
 									filteredTestTypeConfigEntry,
 									fileTestSuitesOverview,
 									binTestSuitesOverview,
+									scriptTestSuitesOverview,
 								);
 							});
 							return false;
@@ -251,6 +288,7 @@ export function applyFiltersToEntries(
 					...testConfigEntry,
 					fileTests: filteredFileTests,
 					binTests: filteredBinTests,
+					scriptTests: filteredScriptTests,
 					packageManagers: filteredPkgManagers,
 					moduleTypes: filteredModTypes,
 				};
@@ -258,11 +296,14 @@ export function applyFiltersToEntries(
 					filteredEntry,
 					fileTestSuitesOverview,
 					binTestSuitesOverview,
+					scriptTestSuitesOverview,
 				);
 				return filteredEntry;
 			})
 			// In the event that we filtered both file and binTests, don't even pass it back
-			.filter((fEntry) => fEntry.fileTests || fEntry.binTests)
+			.filter(
+				(fEntry) => fEntry.fileTests || fEntry.binTests || fEntry.scriptTests,
+			)
 	);
 }
 
@@ -281,7 +322,7 @@ function skipFileSuitesNotice(
 			skipSuiteDescribe({
 				...rest,
 				runBy,
-			}),
+			} as FileTestRunnerDescribe),
 		);
 	});
 	return runWith.length;
@@ -302,7 +343,7 @@ function binTestsSkip(
 		skipSuiteDescribe({
 			...context,
 			binTestConfig: config.binTests!,
-		}),
+		} as BinTestRunnerDescribe),
 	);
 }
 
@@ -324,6 +365,25 @@ function fileTestsSkip(
 	);
 }
 
+function scriptTestsSkip(
+	logger: Logger,
+	context: {
+		modType: ModuleTypes;
+		pkgManager: PkgManager;
+		pkgManagerAlias: string;
+	},
+	config: TestConfigEntry,
+	scriptTestsSuiteOverview: TestGroupOverview,
+) {
+	scriptTestsSuiteOverview.addSkippedToTotal(1);
+	logger.log(
+		skipSuiteDescribe({
+			...context,
+			scriptTests: config.scriptTests!,
+		} as ScriptTestRunnerDescribe),
+	);
+}
+
 /**
  * Used to indicate that we're skipping all tests related to a single project that would be created
  */
@@ -337,6 +397,7 @@ function testEntryProjectLevelSkip(
 	config: TestConfigEntry,
 	fileTestsSuiteOverview: TestGroupOverview,
 	binTestsSuiteOverview: TestGroupOverview,
+	scriptTestsOverview: TestGroupOverview,
 ) {
 	if (config.fileTests) {
 		fileTestsSkip(logger, context, config, fileTestsSuiteOverview);
@@ -344,12 +405,16 @@ function testEntryProjectLevelSkip(
 	if (config.binTests) {
 		binTestsSkip(logger, context, config, binTestsSuiteOverview);
 	}
+	if (config.scriptTests) {
+		scriptTestsSkip(logger, context, config, scriptTestsOverview);
+	}
 }
 
 function addFilteredEntryToTotal(
 	ent: StandardizedTestConfigEntry,
 	fileTestSuitesOverview: TestGroupOverview,
 	binTestSuitesOverview: TestGroupOverview,
+	scriptTestSuitesOverview: TestGroupOverview,
 ) {
 	if (ent.fileTests) {
 		fileTestSuitesOverview.addToTotal(
@@ -360,6 +425,11 @@ function addFilteredEntryToTotal(
 	}
 	if (ent.binTests) {
 		binTestSuitesOverview.addToTotal(
+			ent.moduleTypes.length * ent.packageManagers.length,
+		);
+	}
+	if (ent.scriptTests) {
+		scriptTestSuitesOverview.addToTotal(
 			ent.moduleTypes.length * ent.packageManagers.length,
 		);
 	}
