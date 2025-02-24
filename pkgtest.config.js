@@ -25,6 +25,11 @@ const createConfigFile = (_config, { moduleType, projectDir }) => {
 			}, // Use the defaults, but we do want typescript transformation
 		},
 	},
+	// Add the peerDeps of pkgtest
+	additionalDependencies: {
+		"get-tsconfig": "^4.10.0",
+		"type-fest": "^4.35.0"
+	},
 	moduleTypes: ["commonjs", "esm"],
 	timeout: 9000, // Accounts for some slow downs on CI
 };
