@@ -123,8 +123,8 @@ const nonNestedTests = {
 	scriptTests: [
 		{
 			name: "hello",
-			script: "node -e 'console.log(\"hello\")'"
-		} 
+			script: "node -e 'console.log(\"hello\")'",
+		},
 	],
 	packageManagers,
 	moduleTypes: ["commonjs", "esm"],

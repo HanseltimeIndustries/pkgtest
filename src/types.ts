@@ -60,12 +60,6 @@ export enum TestType {
 	Script = "script",
 }
 
-export const TEST_TYPE_PROPERTIES = {
-	[TestType.File]: "fileTests",
-	[TestType.Bin]: "binTests",
-	[TestType.Script]: "scriptTests",
-};
-
 export interface InstalledTool {
 	/**
 	 * Explicit version to test.  If not supplied, we will use the

@@ -1,7 +1,5 @@
 import chalk from "chalk";
-import {
-	TestRunnerDescribes,
-} from "./types";
+import { TestRunnerDescribes } from "./types";
 import { testSuiteDescribe } from "./testSuiteDescribe";
 
 export function skipSuiteDescribe(
