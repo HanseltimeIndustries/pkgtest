@@ -107,7 +107,7 @@ if (process.argv.includes("--noYarnv1CacheClean")) {
 	addArgs += " --noYarnv1CacheClean";
 }
 
-const simpleFileTests = {
+const nonNestedTests = {
 	fileTests: {
 		testMatch: "**/*.ts",
 		runWith: ["node", "tsx", "ts-node"],
@@ -119,6 +119,13 @@ const simpleFileTests = {
 			}, // Use the defaults, but we do want typescript transformation
 		},
 	},
+	// Prove that we run script tests with a dummy script
+	scriptTests: [
+		{
+			name: "hello",
+			script: "node -e 'console.log(\"hello\")'"
+		} 
+	],
 	packageManagers,
 	moduleTypes: ["commonjs", "esm"],
 	timeout: 3000, // ts-node on yarn-berry takes about 2s (kinda pretty high compared to all the others)
@@ -164,5 +171,5 @@ module.exports = {
 	rootDir: "pkgtest",
 	locks: true,
 	matchIgnore: ["fixtures/**"],
-	entries: [simpleFileTests, cjsBinTests, esmBinTests],
+	entries: [nonNestedTests, cjsBinTests, esmBinTests],
 };

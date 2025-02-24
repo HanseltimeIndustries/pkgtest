@@ -351,6 +351,7 @@ export async function run(options: RunOptions) {
 						pkgManagerVersion,
 						fileTests: testConfigEntry.fileTests,
 						binTests: testConfigEntry.binTests,
+						scriptTests: testConfigEntry.scriptTests,
 						additionalFiles: [
 							...topLevelAdditionalFiles,
 							...entryLevelAdditionalFiles,
