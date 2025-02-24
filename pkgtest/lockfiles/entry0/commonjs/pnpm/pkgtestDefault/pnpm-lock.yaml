@@ -10,16 +10,22 @@ importers:
     dependencies:
       '@hanseltime/pkgtest':
         specifier: file:${relPathToProject}
-        version: file:${relPathToProject}(@types/node@18.19.76)
+        version: file:${relPathToProject}(@types/node@18.19.76)(get-tsconfig@4.10.0)(type-fest@4.35.0)
       '@types/node':
         specifier: ^18.11.18
         version: 18.19.76
+      get-tsconfig:
+        specifier: ^4.10.0
+        version: 4.10.0
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@18.19.76)(typescript@5.7.3)
       tsx:
         specifier: ^4.19.2
         version: 4.19.2
+      type-fest:
+        specifier: ^4.35.0
+        version: 4.35.0
       typescript:
         specifier: ^5.7.3
         version: 5.7.3
@@ -178,6 +184,9 @@ packages:
     resolution: {directory: ${relPathToProject}, type: directory}
     engines: {node: '>=18'}
     hasBin: true
+    peerDependencies:
+      get-tsconfig: ^4.10.0
+      type-fest: ^4.35.0
 
   '@inquirer/checkbox@4.1.2':
     resolution: {integrity: sha512-PL9ixC5YsPXzXhAZFUPmkXGxfgjkdfZdPEPPmt4kFwQ4LBMDG9n/nHXYRGGZSKZJs+d1sGKWgS2GiPzVRKUdtQ==}
@@ -501,6 +510,10 @@ packages:
     resolution: {integrity: sha512-t0rzBq87m3fVcduHDUFhKmyyX+9eo6WQjZvf51Ea/M0Q7+T374Jp1aUiyUl0GKxp8M/OETVHSDvmkyPgvX+X2w==}
     engines: {node: '>=10'}
 
+  type-fest@4.35.0:
+    resolution: {integrity: sha512-2/AwEFQDFEy30iOLjrvHDIH7e4HEWH+f1Yl1bI5XMqzuoCUqwYCdxachgsgv0og/JdVZUhbfjcJAoHj5L1753A==}
+    engines: {node: '>=16'}
+
   typescript@5.7.3:
     resolution: {integrity: sha512-84MVSjMEHP+FQRPy3pX9sTVV/INIex71s9TL2Gm5FG/WG1SqXeKyZ0k7/blY/4FdOzI12CBy1vGc4og/eus0fw==}
     engines: {node: '>=14.17'}
@@ -611,15 +624,17 @@ snapshots:
   '@esbuild/win32-x64@0.23.1':
     optional: true
 
-  '@hanseltime/pkgtest@file:${relPathToProject}(@types/node@18.19.76)':
+  '@hanseltime/pkgtest@file:${relPathToProject}(@types/node@18.19.76)(get-tsconfig@4.10.0)(type-fest@4.35.0)':
     dependencies:
       '@inquirer/prompts': 7.3.2(@types/node@18.19.76)
       chalk: 5.4.1
       commander: 13.1.0
+      get-tsconfig: 4.10.0
       js-yaml: 4.1.0
       lodash.camelcase: 4.3.0
       micromatch: 4.0.8
       semver: 7.7.1
+      type-fest: 4.35.0
       zod: 3.24.2
       zod-validation-error: 3.4.0(zod@3.24.2)
     transitivePeerDependencies:
@@ -929,6 +944,8 @@ snapshots:
       fsevents: 2.3.3
 
   type-fest@0.21.3: {}
+
+  type-fest@4.35.0: {}
 
   typescript@5.7.3: {}
 

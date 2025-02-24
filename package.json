@@ -3,16 +3,17 @@
 	"version": "1.1.0",
 	"types": "./dist/types/index.d.ts",
 	"main": "./dist/cjs/index.js",
-	"bin": "dist/esm/bin/pkgtest.mjs",
+	"bin": {
+		"pkgtest": "dist/esm/bin/pkgtest.mjs",
+		"pkgtest-clean": "dist/esm/bin/clean.mjs"
+	},
 	"exports": {
 		"types": "./dist/types/index.d.ts",
 		"require": "./dist/cjs/index.js",
-		"import": "./dist/esm/index.js",
-		"default": "./dist/esm/index.js"
+		"import": "./dist/esm/index.mjs",
+		"default": "./dist/esm/index.mjs"
 	},
-	"files": [
-		"dist"
-	],
+	"files": ["dist"],
 	"dependencies": {
 		"@inquirer/prompts": "^7.3.2",
 		"chalk": "^5.4.1",
@@ -58,13 +59,19 @@
 		"ts-jest": "^29.1.1",
 		"tswc": "^1.4.0",
 		"tsx": "^4.19.2",
+		"type-fest": "^4.35.0",
 		"typedoc": "^0.27.6",
 		"typedoc-plugin-markdown": "^4.4.1",
 		"typescript": "^5.7.3"
 	},
+	"peerDependencies": {
+		"get-tsconfig": "^4.10.0",
+		"type-fest": "^4.35.0"
+	},
 	"scripts": {
 		"test": "jest",
 		"pkgtest": "yarn tsx src/bin/pkgtest.ts",
+		"pkgtest-clean": "yarn tsx src/bin/clean.ts",
 		"lint": "biome lint",
 		"format": "biome format",
 		"build:esm": "tswc -- src -d dist/esm --config-file .esm.swcrc --strip-leading-paths --out-file-extension mjs",
@@ -72,8 +79,6 @@
 		"build:bin": "node ./bin-build.js",
 		"build:types": "tsc",
 		"build": "yarn build:types && yarn build:esm && yarn build:cjs && yarn build:bin",
-		"prepack": "pinst --disable",
-		"postpack": "pinst --enable",
 		"release": "yarn semantic-release",
 		"ts-run": "./bin/ts-run.sh"
 	},

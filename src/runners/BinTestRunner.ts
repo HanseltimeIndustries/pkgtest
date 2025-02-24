@@ -1,9 +1,9 @@
-import { BinTestConfig, ModuleTypes, PkgManager } from "./types";
-import { BinTest, BinTestRunnerDescribe, Reporter } from "./reporters";
+import { BinTestConfig, ModuleTypes, PkgManager } from "../types";
+import { BinTest, BinTestRunnerDescribe, Reporter } from "../reporters";
 import { BaseTestRunner } from "./BaseTestRunner";
 
 export class BinTestRunner
-	extends BaseTestRunner
+	extends BaseTestRunner<undefined>
 	implements BinTestRunnerDescribe
 {
 	readonly runCommand: string;
@@ -39,7 +39,6 @@ export class BinTestRunner
 		this.modType = options.modType;
 	}
 
-	// For now, we run this in parallel since we're running shell processes and that can lead to increased parallelism
 	async runTests() {
 		this.reporter.start(this);
 		this.groupOverview.startTime();

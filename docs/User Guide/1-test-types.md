@@ -25,10 +25,21 @@ pkgtest has the concept of two different types of tests that is can run on your 
     that you would like to verify work when the underlying `<package manager> <binCmd>` is called to verify
     that it works.
 
+3. Script Tests
+
+    These are tests where we create an entry in the package.json `scripts` field and then call it using the package manager
+    of the currently configured test project.  Each script test object in your array is evaluated as a separate call
+    and evaluated to see if it exited with a 0 code.
+
+    This is the most free-form script and we recommend that you arrive at its need for things that require invoking other
+    tools to test your own package's integration like a jest plugin, etc.
+
+    [Custom Script Getting Started](../Getting%20Started/3-custom-scripts.md)
+
 !!! note
 
-    Both Bin and File Tests are set up to run in the same `package manager alias + module type` configured project.
-    This is partly to introduce a testing environment for bin scripts that mirror the more boilerplated environment
+    Bin, Script, and File Tests are set up to be able to run in the same `package manager alias + module type` configured project.
+    This is partly to introduce a testing environment for bin/scripts that mirror the more boilerplated environment
     of real projects.  It also allows us to avoid creating additional test projects just to test bin commands.
 
 ## Shared Configurations
@@ -79,3 +90,23 @@ as a key and then an array of actual command arguments as separate tests.
 ```
 
 The above configuration will run two tests per test package for the "mycommand" argument.
+
+## Script tests
+
+Script tests are very simply an array of names for scripts and their actual content.
+
+```javascript
+scriptTests: [
+    {
+        name: "script1",
+        script: "jest"
+    },
+    {
+        name: "script2",
+        script: "jest --someOption",
+    }
+]
+```
+
+Since script tests can involve calling anything, take special care to make sure your dependencies are installed and any
+configuration files are available for their test projects.

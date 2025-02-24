@@ -1,16 +1,14 @@
-import { tmpdir } from "os";
-import { getConfig, LIBRARY_NAME, StandardizedTestConfigEntry } from "./config";
+import { getConfig, StandardizedTestConfigEntry } from "./config";
 import { createTestProject } from "./createTestProject";
 import { mkdtemp } from "fs/promises";
 import { join } from "path";
-import { FileTestRunner } from "./FileTestRunner";
+import { BinTestRunner, FileTestRunner, ScriptTestRunner } from "./runners";
 import { SimpleReporter } from "./reporters/SimpleReporter";
 import { Logger } from "./Logger";
 import chalk from "chalk";
 import {
 	AddFilePerTestProjectCreate,
 	AdditionalFilesEntry,
-	FailFastError,
 	ModuleTypes,
 	PkgManager,
 } from "./types";
@@ -22,9 +20,11 @@ import {
 	LatestResolvedTestConfigEntry,
 	resolveLatestVersions,
 } from "./pkgManager";
-import { BinTestRunner } from "./BinTestRunner";
 import { TestGroupOverview } from "./reporters";
-import { findAdditionalFilesForCopyOver } from "./files";
+import {
+	findAdditionalFilesForCopyOver,
+	getTempProjectDirPrefix,
+} from "./files";
 import { AdditionalFilesCopy } from "./files/types";
 import {
 	applyFiltersToEntries,
@@ -34,6 +34,8 @@ import { groupSyncInstallEntries } from "./groupSyncInstallEntries";
 import { readFileSync, rmSync } from "fs";
 import { PackageJson } from "type-fest";
 import { execSync } from "child_process";
+import { getTempDir } from "./files";
+import { executeRunners } from "./executeRunners";
 
 export const DEFAULT_TIMEOUT = 2000;
 
@@ -182,7 +184,7 @@ export async function run(options: RunOptions) {
 			readFileSync(join(projectDir, "package.json")).toString(),
 		) as PackageJson;
 
-		const tmpDir = process.env.PKG_TEST_TEMP_DIR ?? tmpdir();
+		const tmpDir = getTempDir();
 		logger.logDebug(`Writing test projects to temporary directory: ${tmpDir}`);
 
 		// Scan additionalFiles
@@ -213,6 +215,8 @@ export async function run(options: RunOptions) {
 		const fileTestsOverview = new TestGroupOverview();
 		const binTestSuitesOverview = new TestGroupOverview();
 		const binTestsOverview = new TestGroupOverview();
+		const scriptTestSuitesOverview = new TestGroupOverview();
+		const scriptTestsOverview = new TestGroupOverview();
 		const reporter = new SimpleReporter({
 			debug,
 		});
@@ -224,6 +228,7 @@ export async function run(options: RunOptions) {
 				{
 					fileTestSuitesOverview,
 					binTestSuitesOverview,
+					scriptTestSuitesOverview,
 					logger,
 				},
 				filters,
@@ -248,7 +253,9 @@ export async function run(options: RunOptions) {
 				options: pkgManagerOptions,
 			} = _pkgManager;
 			// End filters
-			const testProjectDir = await mkdtemp(join(tmpDir, `${LIBRARY_NAME}-`));
+			const testProjectDir = await mkdtemp(
+				join(tmpDir, getTempProjectDirPrefix()),
+			);
 			// Ensure that this directory has access to the correct corepack
 			ensureMinimumCorepack({
 				cwd: testProjectDir,
@@ -321,44 +328,47 @@ export async function run(options: RunOptions) {
 				);
 			}
 
-			const { fileTestRunners, binTestRunner } = await createTestProject(
-				{
-					projectDir,
-					testProjectDir,
-					debug,
-					failFast,
-					matchIgnore,
-					rootDir,
-					updateLock: !!options.updateLocks,
-					isCI: options.isCI,
-					lock,
-					entryAlias: testConfigEntry.alias,
-					config,
-				},
-				{
-					modType,
-					pkgManager,
-					pkgManagerOptions,
-					pkgManagerAlias,
-					pkgManagerVersion,
-					fileTests: testConfigEntry.fileTests,
-					binTests: testConfigEntry.binTests,
-					additionalFiles: [
-						...topLevelAdditionalFiles,
-						...entryLevelAdditionalFiles,
-					],
-					createAdditionalFiles: entryLevelCreateAdditionalFiles,
-					reporter,
-					timeout: testConfigEntry.timeout || topLevelTimeout,
-					packageJson: {
-						...config.packageJson,
-						...testConfigEntry.packageJson,
+			const { fileTestRunners, binTestRunner, scriptTestRunner } =
+				await createTestProject(
+					{
+						projectDir,
+						testProjectDir,
+						debug,
+						failFast,
+						matchIgnore,
+						rootDir,
+						updateLock: !!options.updateLocks,
+						isCI: options.isCI,
+						lock,
+						entryAlias: testConfigEntry.alias,
+						config,
 					},
-				},
-			);
+					{
+						modType,
+						pkgManager,
+						pkgManagerOptions,
+						pkgManagerAlias,
+						pkgManagerVersion,
+						fileTests: testConfigEntry.fileTests,
+						binTests: testConfigEntry.binTests,
+						scriptTests: testConfigEntry.scriptTests,
+						additionalFiles: [
+							...topLevelAdditionalFiles,
+							...entryLevelAdditionalFiles,
+						],
+						createAdditionalFiles: entryLevelCreateAdditionalFiles,
+						reporter,
+						timeout: testConfigEntry.timeout || topLevelTimeout,
+						packageJson: {
+							...config.packageJson,
+							...testConfigEntry.packageJson,
+						},
+					},
+				);
 			return {
 				fileTestRunners,
 				binTestRunner,
+				scriptTestRunner,
 			};
 		}
 
@@ -385,12 +395,14 @@ export async function run(options: RunOptions) {
 					[] as Promise<{
 						fileTestRunners: FileTestRunner[];
 						binTestRunner?: BinTestRunner;
+						scriptTestRunner?: ScriptTestRunner;
 					}>[],
 				);
 			} else {
 				const initReturn = [] as Promise<{
 					fileTestRunners: FileTestRunner[];
 					binTestRunner?: BinTestRunner;
+					scriptTestRunner?: ScriptTestRunner;
 				}>[];
 				for (const testConfigEntry of entries) {
 					for (const modType of testConfigEntry.moduleTypes) {
@@ -442,75 +454,59 @@ export async function run(options: RunOptions) {
 			return true;
 		}
 
-		// TODO: multi-threading pool for better results, although there's not a large amount of tests necessary at the moment
 		try {
-			let pass = true;
-			fileTestSuitesOverview.startTime();
-			const fileTestPromises: (() => Promise<void>)[] = [];
-			for (const testRunnerPkg of testRunnerPkgs) {
-				for (const runner of testRunnerPkg.fileTestRunners) {
-					fileTestPromises.push(async () => {
-						const summary = await runner.runTests({
-							testNames,
-						});
-						// Do all tests updating
-						if (summary.failed > 0) {
-							fileTestSuitesOverview.fail(1);
-							pass = false;
-						} else {
-							fileTestSuitesOverview.pass(1);
-						}
-						fileTestsOverview.addToTotal(summary.total);
-						fileTestsOverview.fail(summary.failed);
-						fileTestsOverview.pass(summary.passed);
-						fileTestsOverview.skip(summary.skipped);
-
-						if (summary.failedFast) {
-							// Fail normally instead of letting an error make it to the top
-							logger.log("Tests failed fast");
-							throw new FailFastError("Tests failed fast");
-						}
-					});
-				}
-			}
-			await pool(fileTestPromises, options.parallel);
-			fileTestSuitesOverview.finalize();
-			// Run bin tests as well
-			const binTestPromises: (() => Promise<void>)[] = [];
-			binTestSuitesOverview.startTime();
-			for (const { binTestRunner } of testRunnerPkgs) {
-				// Since bin Tests are less certain, we filter here
-				if (!binTestRunner) continue;
-				binTestPromises.push(async () => {
-					const summary = await binTestRunner.runTests();
-					// Do all tests updating
-					if (summary.failed > 0) {
-						binTestSuitesOverview.fail(1);
-						pass = false;
-					} else {
-						binTestSuitesOverview.pass(1);
-					}
-					binTestsOverview.addToTotal(summary.total);
-					binTestsOverview.fail(summary.failed);
-					binTestsOverview.pass(summary.passed);
-					binTestsOverview.skip(summary.skipped);
-
-					if (summary.failedFast) {
-						// Fail normally instead of letting an error make it to the top
-						logger.log("Tests failed fast");
-						throw new FailFastError("Tests failed fast");
-					}
-				});
-			}
-			await pool(binTestPromises, options.parallel);
-			binTestSuitesOverview.finalize();
-			return pass;
+			const runnerCtx = {
+				logger,
+				parallel: options.parallel,
+			};
+			const fileTestRunners = testRunnerPkgs.reduce(
+				(runners, testRunnerPkg) => {
+					runners.push(...testRunnerPkg.fileTestRunners);
+					return runners;
+				},
+				[] as FileTestRunner[],
+			);
+			const binTestRunners = testRunnerPkgs
+				.map((trp) => trp.binTestRunner)
+				.filter((r) => !!r);
+			const scriptTestRunners = testRunnerPkgs
+				.map((trp) => trp.scriptTestRunner)
+				.filter((r) => !!r);
+			// file tests
+			const fileTestsPass = await executeRunners(
+				fileTestRunners,
+				fileTestSuitesOverview,
+				fileTestsOverview,
+				runnerCtx,
+				{
+					testNames,
+				},
+			);
+			// bin tests
+			const binTestsPass = await executeRunners(
+				binTestRunners,
+				binTestSuitesOverview,
+				binTestsOverview,
+				runnerCtx,
+				undefined,
+			);
+			// script Tests
+			const scriptTestsPass = await executeRunners(
+				scriptTestRunners,
+				scriptTestSuitesOverview,
+				scriptTestsOverview,
+				runnerCtx,
+				undefined,
+			);
+			return fileTestsPass && scriptTestsPass && binTestsPass;
 		} finally {
 			// Do a final report
 			fileTestsOverview.finalize();
 			fileTestSuitesOverview.finalize();
 			binTestSuitesOverview.finalize();
 			binTestsOverview.finalize();
+			scriptTestSuitesOverview.finalize();
+			scriptTestsOverview.finalize();
 
 			const labelLength = 20;
 			overviewNotice(
@@ -533,12 +529,25 @@ export async function run(options: RunOptions) {
 				"Bin Tests:".padEnd(labelLength, " "),
 				binTestsOverview,
 			);
+			overviewNotice(
+				logger,
+				"Script Test Suites:".padEnd(labelLength, " "),
+				scriptTestSuitesOverview,
+			);
+			overviewNotice(
+				logger,
+				"Script Tests:".padEnd(labelLength, " "),
+				scriptTestsOverview,
+			);
 			logger.log(`${"Setup Time:".padEnd(labelLength)} ${setupTime / 1000} s`);
 			logger.log(
 				`${"File Test Time:".padEnd(labelLength)} ${fileTestSuitesOverview.time / 1000} s`,
 			);
 			logger.log(
 				`${"Bin Test Time:".padEnd(labelLength)} ${binTestSuitesOverview.time / 1000} s`,
+			);
+			logger.log(
+				`${"Script Test Time:".padEnd(labelLength)} ${scriptTestSuitesOverview.time / 1000} s`,
 			);
 		}
 	} finally {
@@ -566,25 +575,4 @@ function overviewNotice(logger: Logger, prefix: string, overview: Overview) {
 				: ""
 		}${chalk.green(overview.passed + " passed,")} ${overview.total} total`,
 	);
-}
-
-async function pool(lambdas: (() => Promise<void>)[], maxNumber: number) {
-	const promiseMap: {
-		[k: string]: Promise<void>;
-	} = {};
-
-	try {
-		for (let idx = 0; idx < lambdas.length; idx++) {
-			const lambda = lambdas[idx];
-			promiseMap[idx] = (async () => {
-				await lambda();
-				delete promiseMap[idx];
-			})();
-			if (Object.keys(promiseMap).length === maxNumber) {
-				await Promise.any(Object.values(promiseMap));
-			}
-		}
-	} finally {
-		await Promise.all(Object.values(promiseMap));
-	}
 }

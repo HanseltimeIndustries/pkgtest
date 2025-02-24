@@ -1,9 +1,10 @@
 import { mkdtemp, rm } from "fs/promises";
-import { LIBRARY_NAME, StandardizedTestConfigEntry } from "../config";
+import { StandardizedTestConfigEntry } from "../config";
 import { PkgManager } from "../types";
 import { preinstallLatest } from "./preinstallLatest";
 import { join } from "path";
 import { Logger } from "../Logger";
+import { getTempProjectDirPrefix } from "../files";
 
 /**
  * Given a list of test config entries, this will evaluate any entries without explicit versioning so that
@@ -31,7 +32,7 @@ export async function resolveLatestVersions(
 							// Create a directory
 							latestMap[pkgManager.packageManager] = (async () => {
 								const preInstallDir = await mkdtemp(
-									join(tempDir, `${LIBRARY_NAME}-`),
+									join(tempDir, getTempProjectDirPrefix()),
 								);
 								let version: string;
 								try {

@@ -1,8 +1,8 @@
 import { exec } from "child_process";
-import { TestGroupOverview, Reporter, TestDescriptor } from "./reporters";
-import { FailFastError } from "./types";
+import { TestGroupOverview, Reporter, TestDescriptor } from "../reporters";
+import { FailFastError } from "../types";
 
-export class BaseTestRunner {
+export abstract class BaseTestRunner<RunTArgs> {
 	readonly timeout: number;
 	readonly projectDir: string;
 	readonly groupOverview = new TestGroupOverview();
@@ -100,4 +100,6 @@ export class BaseTestRunner {
 		}
 		return true;
 	}
+
+	abstract runTests(opts: RunTArgs): Promise<TestGroupOverview>;
 }

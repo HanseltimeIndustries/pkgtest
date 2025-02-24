@@ -1,6 +1,6 @@
-import { Reporter, TestGroupOverview } from "./reporters";
-import { BinTestRunner } from "./BinTestRunner";
-import { ModuleTypes, PkgManager } from "./types";
+import { Reporter, TestGroupOverview } from "../reporters";
+import { ScriptTestRunner } from "./ScriptTestRunner";
+import { ModuleTypes, PkgManager } from "../types";
 import { exec, ExecException } from "child_process";
 
 jest.mock("child_process");
@@ -38,17 +38,32 @@ class MockExecException extends Error implements ExecException {
 
 const testProjectDir = "someDir";
 
+const scriptTests = [
+	{
+		name: "s1",
+		script: "echo 'something'",
+	},
+	{
+		name: "s2",
+		script: "echo 'another'",
+	},
+	{
+		name: "s3",
+		script: "echo 'numba3'",
+	},
+];
+
 beforeEach(() => {
 	jest.resetAllMocks();
 });
 
-it("runs all test bins and reports the results", async () => {
+it("runs all script tests and reports the results", async () => {
 	mockExec.mockImplementation((cmd, _opts, cb) => {
 		if (!cb) {
 			throw new Error("Did not expect an undefined callback!");
 		}
 		setTimeout(() => {
-			if (cmd.includes("bin2")) {
+			if (cmd.includes(scriptTests[1].name)) {
 				cb(
 					new MockExecException({
 						message: "failure",
@@ -63,31 +78,13 @@ it("runs all test bins and reports the results", async () => {
 		// Return null for now since we don't use the return process value
 		return null as any;
 	});
-	const binTestConfig = {
-		bin1: [
-			{
-				args: "--help",
-			},
-			{
-				args: "someArg",
-				env: {
-					SPECIAL: "value",
-				},
-			},
-		],
-		bin2: [
-			{
-				args: "--help",
-			},
-		],
-	};
-	const runner = new BinTestRunner({
-		runCommand: "npx",
+	const runner = new ScriptTestRunner({
+		runCommand: "npm run",
 		projectDir: testProjectDir,
 		pkgManager: PkgManager.Npm,
 		pkgManagerAlias: "myalias",
 		modType: ModuleTypes.Commonjs,
-		binTestConfig,
+		scriptTests,
 		timeout: 5000,
 		reporter: mockReporter,
 		baseEnv: process.env,
@@ -105,46 +102,38 @@ it("runs all test bins and reports the results", async () => {
 	expect(overview.time).toBeGreaterThan(1);
 
 	// Ensure the exec options match our expectation
-	for (const binCmd of Object.keys(binTestConfig)) {
-		const configs = binTestConfig[binCmd as keyof typeof binTestConfig];
-		for (const config of configs) {
-			const cmd = `npx ${binCmd} ${config.args}`;
-			expect(mockExec).toHaveBeenCalledWith(
-				`npx ${binCmd} ${config.args}`,
-				{
-					cwd: testProjectDir,
-					timeout: 5000,
-					env: {
-						...process.env,
-						...((config as any).env ?? {}),
-					},
+	for (const { name } of scriptTests) {
+		const cmd = `npm run ${name}`;
+		expect(mockExec).toHaveBeenCalledWith(
+			cmd,
+			{
+				cwd: testProjectDir,
+				timeout: 5000,
+				env: process.env,
+			},
+			expect.anything(),
+		);
+		if (cmd.includes(scriptTests[1].name)) {
+			expect(mockReporter.failed).toHaveBeenCalledWith({
+				testCmd: cmd,
+				test: {
+					name,
 				},
-				expect.anything(),
-			);
-			if (cmd.includes("bin2")) {
-				expect(mockReporter.failed).toHaveBeenCalledWith({
-					testCmd: cmd,
-					test: {
-						bin: binCmd,
-						...config,
-					},
-					time: expect.any(Number),
-					stdout: "normal std processes",
-					stderr: "whoa dang!",
-					timedout: false,
-				});
-			} else {
-				expect(mockReporter.passed).toHaveBeenCalledWith({
-					testCmd: cmd,
-					test: {
-						bin: binCmd,
-						...config,
-					},
-					time: expect.any(Number),
-					stdout: "normal std processes",
-					stderr: "",
-				});
-			}
+				time: expect.any(Number),
+				stdout: "normal std processes",
+				stderr: "whoa dang!",
+				timedout: false,
+			});
+		} else {
+			expect(mockReporter.passed).toHaveBeenCalledWith({
+				testCmd: cmd,
+				test: {
+					name,
+				},
+				time: expect.any(Number),
+				stdout: "normal std processes",
+				stderr: "",
+			});
 		}
 	}
 
@@ -159,7 +148,7 @@ it("runs test files until first failure and reports the results with failFast", 
 			throw new Error("Did not expect an undefined callback!");
 		}
 		setTimeout(() => {
-			if (cmd.includes("bin2")) {
+			if (cmd.includes(scriptTests[1].name)) {
 				cb(
 					new MockExecException({
 						message: "failure",
@@ -174,31 +163,13 @@ it("runs test files until first failure and reports the results with failFast", 
 		// Return null for now since we don't use the return process value
 		return null as any;
 	});
-	const binTestConfig = {
-		bin1: [
-			{
-				args: "--help",
-			},
-		],
-		bin2: [
-			{
-				args: "--help",
-			},
-			{
-				args: "someArg",
-				env: {
-					SPECIAL: "value",
-				},
-			},
-		],
-	};
-	const runner = new BinTestRunner({
-		runCommand: "npx",
+	const runner = new ScriptTestRunner({
+		runCommand: "npm run",
 		projectDir: testProjectDir,
 		pkgManager: PkgManager.Npm,
 		pkgManagerAlias: "myalias",
 		modType: ModuleTypes.Commonjs,
-		binTestConfig,
+		scriptTests,
 		failFast: true,
 		timeout: 5000,
 		reporter: mockReporter,
@@ -217,51 +188,44 @@ it("runs test files until first failure and reports the results with failFast", 
 	expect(overview.time).toBeGreaterThan(1);
 
 	// Ensure the exec options match our expectation
-	for (const binCmd of Object.keys(binTestConfig)) {
-		const configs = binTestConfig[binCmd as keyof typeof binTestConfig];
-		for (const config of configs) {
-			// Skip the third one since it shoudl be skipped
-			if (config.args === "someArg") {
-				break;
-			}
-			const cmd = `npx ${binCmd} ${config.args}`;
-			expect(mockExec).toHaveBeenCalledWith(
-				`npx ${binCmd} ${config.args}`,
-				{
-					cwd: testProjectDir,
-					timeout: 5000,
-					env: {
-						...process.env,
-						...((config as any).env ?? {}),
-					},
-				},
-				expect.anything(),
-			);
-			if (cmd.includes("bin2")) {
-				expect(mockReporter.failed).toHaveBeenCalledWith({
-					testCmd: cmd,
-					test: {
-						bin: binCmd,
-						...config,
-					},
-					time: expect.any(Number),
-					stdout: "normal std processes",
-					stderr: "whoa dang!",
-					timedout: false,
-				});
-			} else {
-				expect(mockReporter.passed).toHaveBeenCalledWith({
-					testCmd: cmd,
-					test: {
-						bin: binCmd,
-						...config,
-					},
-					time: expect.any(Number),
-					stdout: "normal std processes",
-					stderr: "",
-				});
-			}
+	let idx = 0;
+	for (const { name } of scriptTests) {
+		if (idx >= 2) {
+			break;
 		}
+		const cmd = `npm run ${name}`;
+		expect(mockExec).toHaveBeenCalledWith(
+			cmd,
+			{
+				cwd: testProjectDir,
+				timeout: 5000,
+				env: process.env,
+			},
+			expect.anything(),
+		);
+		if (cmd.includes(scriptTests[1].name)) {
+			expect(mockReporter.failed).toHaveBeenCalledWith({
+				testCmd: cmd,
+				test: {
+					name,
+				},
+				time: expect.any(Number),
+				stdout: "normal std processes",
+				stderr: "whoa dang!",
+				timedout: false,
+			});
+		} else {
+			expect(mockReporter.passed).toHaveBeenCalledWith({
+				testCmd: cmd,
+				test: {
+					name,
+				},
+				time: expect.any(Number),
+				stdout: "normal std processes",
+				stderr: "",
+			});
+		}
+		idx++;
 	}
 
 	expect(mockReporter.start).toHaveBeenCalledWith(runner);
@@ -275,7 +239,7 @@ it("runs test files and handles timeouts", async () => {
 		if (!cb) {
 			throw new Error("Did not expect an undefined callback!");
 		}
-		if (cmd.includes("bin2")) {
+		if (cmd.includes(scriptTests[1].name)) {
 			// Simulate a time out by waiting
 			setTimeout(() => {
 				cb(
@@ -294,33 +258,13 @@ it("runs test files and handles timeouts", async () => {
 		// Return null for now since we don't use the return process value
 		return null as any;
 	});
-	const binTestConfig = {
-		bin1: [
-			{
-				args: "--help",
-			},
-		],
-		bin2: [
-			{
-				args: "--help",
-			},
-		],
-		bin3: [
-			{
-				args: "someArg",
-				env: {
-					SPECIAL: "value",
-				},
-			},
-		],
-	};
-	const runner = new BinTestRunner({
-		runCommand: "npx",
+	const runner = new ScriptTestRunner({
+		runCommand: "npm run",
 		projectDir: testProjectDir,
 		pkgManager: PkgManager.Npm,
 		pkgManagerAlias: "myalias",
 		modType: ModuleTypes.Commonjs,
-		binTestConfig,
+		scriptTests,
 		failFast: false,
 		timeout: 50,
 		reporter: mockReporter,
@@ -339,51 +283,44 @@ it("runs test files and handles timeouts", async () => {
 	expect(overview.time).toBeGreaterThan(1);
 
 	// Ensure the exec options match our expectation
-	for (const binCmd of Object.keys(binTestConfig)) {
-		const configs = binTestConfig[binCmd as keyof typeof binTestConfig];
-		for (const config of configs) {
-			// Skip the third one since it shoudl be skipped
-			if (config.args === "someArg") {
-				break;
-			}
-			const cmd = `npx ${binCmd} ${config.args}`;
-			expect(mockExec).toHaveBeenCalledWith(
-				`npx ${binCmd} ${config.args}`,
-				{
-					cwd: testProjectDir,
-					timeout: 50,
-					env: {
-						...process.env,
-						...((config as any).env ?? {}),
-					},
-				},
-				expect.anything(),
-			);
-			if (cmd.includes("bin2")) {
-				expect(mockReporter.failed).toHaveBeenCalledWith({
-					testCmd: cmd,
-					test: {
-						bin: binCmd,
-						...config,
-					},
-					time: expect.any(Number),
-					stdout: "normal std processes",
-					stderr: "whoa dang!",
-					timedout: true,
-				});
-			} else {
-				expect(mockReporter.passed).toHaveBeenCalledWith({
-					testCmd: cmd,
-					test: {
-						bin: binCmd,
-						...config,
-					},
-					time: expect.any(Number),
-					stdout: "normal std processes",
-					stderr: "",
-				});
-			}
+	let idx = 0;
+	for (const { name } of scriptTests) {
+		if (idx >= 2) {
+			break;
 		}
+		const cmd = `npm run ${name}`;
+		expect(mockExec).toHaveBeenCalledWith(
+			cmd,
+			{
+				cwd: testProjectDir,
+				timeout: 50,
+				env: process.env,
+			},
+			expect.anything(),
+		);
+		if (cmd.includes(scriptTests[1].name)) {
+			expect(mockReporter.failed).toHaveBeenCalledWith({
+				testCmd: cmd,
+				test: {
+					name,
+				},
+				time: expect.any(Number),
+				stdout: "normal std processes",
+				stderr: "whoa dang!",
+				timedout: true,
+			});
+		} else {
+			expect(mockReporter.passed).toHaveBeenCalledWith({
+				testCmd: cmd,
+				test: {
+					name,
+				},
+				time: expect.any(Number),
+				stdout: "normal std processes",
+				stderr: "",
+			});
+		}
+		idx++;
 	}
 
 	expect(mockReporter.start).toHaveBeenCalledWith(runner);

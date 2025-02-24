@@ -74,6 +74,7 @@ jobs:
       # TODO: caching this action would accelerate the run
       - name: corepack
         run: |
+          npm install --force -g corepack@>=0.31.0
           corepack enable
       - uses: actions/setup-node@v4
         with:

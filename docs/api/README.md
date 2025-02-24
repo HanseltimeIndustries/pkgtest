@@ -26,6 +26,7 @@
 - [PkgManagerBaseOptions](interfaces/PkgManagerBaseOptions.md)
 - [PkgManagerOptionsConfig](interfaces/PkgManagerOptionsConfig.md)
 - [RunOptions](interfaces/RunOptions.md)
+- [ScriptTestConfig](interfaces/ScriptTestConfig.md)
 - [TestConfig](interfaces/TestConfig.md)
 - [TestConfigEntry](interfaces/TestConfigEntry.md)
 - [TsNodeRun](interfaces/TsNodeRun.md)
@@ -49,4 +50,7 @@
 
 ## Functions
 
+- [findPkgTestProjectsByPrefix](functions/findPkgTestProjectsByPrefix.md)
+- [getTempDir](functions/getTempDir.md)
+- [getTempProjectDirPrefix](functions/getTempProjectDirPrefix.md)
 - [run](functions/run.md)

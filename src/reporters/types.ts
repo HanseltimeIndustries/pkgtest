@@ -1,4 +1,10 @@
-import { BinTestConfig, ModuleTypes, PkgManager, RunWith } from "../types";
+import {
+	BinTestConfig,
+	ModuleTypes,
+	PkgManager,
+	RunWith,
+	ScriptTestConfig,
+} from "../types";
 import { TestGroupOverview } from "./TestGroupOverview";
 
 export interface TestFile {
@@ -14,6 +20,13 @@ export interface BinTest {
 	env?: Record<string, string>;
 }
 
+export interface ScriptTest {
+	/**
+	 * The script name
+	 */
+	name: string;
+}
+
 export interface FileTest extends TestFile {
 	/**
 	 * The actual command run - this is in effect the true test
@@ -21,7 +34,7 @@ export interface FileTest extends TestFile {
 	command: string;
 }
 
-export type TestDescriptor = FileTest | BinTest;
+export type TestDescriptor = FileTest | BinTest | ScriptTest;
 
 export type NotReachedInfo = TestFile | BinTest;
 
@@ -40,6 +53,19 @@ export interface BinTestRunnerDescribe {
 	readonly binTestConfig: BinTestConfig;
 	readonly projectDir: string;
 }
+
+export interface ScriptTestRunnerDescribe {
+	readonly pkgManager: PkgManager;
+	readonly pkgManagerAlias: string;
+	readonly modType: ModuleTypes;
+	readonly scriptTests: ScriptTestConfig[];
+	readonly projectDir: string;
+}
+
+export type TestRunnerDescribes =
+	| FileTestRunnerDescribe
+	| BinTestRunnerDescribe
+	| ScriptTestRunnerDescribe;
 
 export interface TestResult {
 	/**
@@ -101,7 +127,12 @@ export interface Reporter {
 	 *
 	 * @param runner
 	 */
-	start(runner: FileTestRunnerDescribe | BinTestRunnerDescribe): void;
+	start(
+		runner:
+			| FileTestRunnerDescribe
+			| BinTestRunnerDescribe
+			| ScriptTestRunnerDescribe,
+	): void;
 	passed(res: TestResult): void;
 	failed(res: TestResult): void;
 	skipped(res: TestResult): void;

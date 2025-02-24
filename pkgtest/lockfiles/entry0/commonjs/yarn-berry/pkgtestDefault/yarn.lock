@@ -20,8 +20,10 @@ __metadata:
   dependencies:
     "@hanseltime/pkgtest": "portal:${relPathToProject}"
     "@types/node": "npm:^18.11.18"
+    get-tsconfig: "npm:^4.10.0"
     ts-node: "npm:^10.9.2"
     tsx: "npm:^4.19.2"
+    type-fest: "npm:^4.35.0"
     typescript: "npm:^5.7.3"
   languageName: unknown
   linkType: soft
@@ -207,8 +209,12 @@ __metadata:
     semver: "npm:^7.7.1"
     zod: "npm:^3.24.1"
     zod-validation-error: "npm:^3.4.0"
+  peerDependencies:
+    get-tsconfig: ^4.10.0
+    type-fest: ^4.35.0
   bin:
     pkgtest: dist/esm/bin/pkgtest.mjs
+    pkgtest-clean: dist/esm/bin/clean.mjs
   languageName: node
   linkType: soft
 
@@ -960,7 +966,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"get-tsconfig@npm:^4.7.5":
+"get-tsconfig@npm:^4.10.0, get-tsconfig@npm:^4.7.5":
   version: 4.10.0
   resolution: "get-tsconfig@npm:4.10.0"
   dependencies:
@@ -1610,6 +1616,13 @@ __metadata:
   version: 0.21.3
   resolution: "type-fest@npm:0.21.3"
   checksum: 10c0/902bd57bfa30d51d4779b641c2bc403cdf1371fb9c91d3c058b0133694fcfdb817aef07a47f40faf79039eecbaa39ee9d3c532deff244f3a19ce68cea71a61e8
+  languageName: node
+  linkType: hard
+
+"type-fest@npm:^4.35.0":
+  version: 4.35.0
+  resolution: "type-fest@npm:4.35.0"
+  checksum: 10c0/7032a8a940c33d45947a4ff0f74e3aa43b6fd8bb4745b32bba8e61ee47c0dd088cacd102f8377e9e889362e1ae8e0292b64a4c0698c1e42fd297bf6f8899d220
   languageName: node
   linkType: hard
 

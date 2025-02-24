@@ -971,13 +971,18 @@ __metadata:
     ts-jest: "npm:^29.1.1"
     tswc: "npm:^1.4.0"
     tsx: "npm:^4.19.2"
+    type-fest: "npm:^4.35.0"
     typedoc: "npm:^0.27.6"
     typedoc-plugin-markdown: "npm:^4.4.1"
     typescript: "npm:^5.7.3"
     zod: "npm:^3.24.1"
     zod-validation-error: "npm:^3.4.0"
+  peerDependencies:
+    get-tsconfig: ^4.10.0
+    type-fest: ^4.35.0
   bin:
     pkgtest: dist/esm/bin/pkgtest.mjs
+    pkgtest-clean: dist/esm/bin/clean.mjs
   languageName: unknown
   linkType: soft
 
@@ -10826,7 +10831,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"type-fest@npm:^4.6.0, type-fest@npm:^4.7.1":
+"type-fest@npm:^4.35.0, type-fest@npm:^4.6.0, type-fest@npm:^4.7.1":
   version: 4.35.0
   resolution: "type-fest@npm:4.35.0"
   checksum: 10/43aada576d02f2f5230bd46c859e421a1307694312b3405088a48fcc67d65bee12eafbdcd182cffe0577dd72346595cb90a1ab5700626df35bc8935cf02c635b

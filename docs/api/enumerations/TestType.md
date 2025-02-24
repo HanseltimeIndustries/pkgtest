@@ -22,3 +22,15 @@ that we're testing
 > **File**: `"file"`
 
 Represents a test that we are going to call node or some node equivalent on a source file
+
+***
+
+### Script
+
+> **Script**: `"script"`
+
+Represents a test where we call a script that we inserted into each test project's package.json.
+This is ideal for plugin type packages:
+
+i.e. writing a jest matcher and then running your pkgtest to call "jestTest": "jest" with an appropriate
+config file that has tests that use the matcher.

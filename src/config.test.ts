@@ -251,7 +251,7 @@ it("throws an error if binTests has a missing command", async () => {
 	);
 });
 
-it("throws an error if binTests and fileTests are missing", async () => {
+it("throws an error if binTests, scriptTests, and fileTests are missing", async () => {
 	const testDir = join(tempDir, `missing-alltests-command`);
 	mkdirSync(testDir);
 	const file = join(testDir, `${DEFAULT_CONFIG_FILE_NAME_BASE}.json`);
@@ -264,6 +264,7 @@ it("throws an error if binTests and fileTests are missing", async () => {
 					...defaultDetectedConfig.entries[0],
 					binTests: undefined,
 					fileTests: undefined,
+					scriptTests: undefined,
 				},
 			],
 		}),
@@ -283,7 +284,7 @@ it("throws an error if binTests and fileTests are missing", async () => {
 		}),
 	);
 	await expect(async () => await getConfig(file, testDir)).rejects.toThrow(
-		"entries[0] must supply at least one binTests or fileTests config!",
+		"entries[0] must supply at least one binTests, scriptTests, or fileTests config!",
 	);
 });
 
@@ -419,6 +420,73 @@ it("handles binTests only", async () => {
 						},
 					],
 				},
+			},
+		],
+	});
+});
+
+it("handles scriptTests only", async () => {
+	const testDir = join(tempDir, `script-tests-only`);
+	mkdirSync(testDir);
+	const file = join(testDir, `${DEFAULT_CONFIG_FILE_NAME_BASE}.json`);
+	writeFileSync(
+		file,
+		JSON.stringify({
+			...defaultDetectedConfig,
+			entries: [
+				{
+					...defaultDetectedConfig.entries[0],
+					fileTests: undefined,
+					binTests: undefined,
+					scriptTests: [
+						{
+							name: "s1",
+							script: "jest",
+						},
+					],
+				},
+			],
+		}),
+	);
+	// Write a custom file too
+	writeFileSync(
+		join(tempDir, `${explicitConfigFileName}.json`),
+		"something that should break parsing",
+	);
+	writeFileSync(
+		join(testDir, "package.json"),
+		JSON.stringify({
+			...packageJson,
+			bin: {
+				cmd2: "somethingelse.js",
+				cmd1: "something.js",
+			},
+		}),
+	);
+	const { fileTests, packageManagers, ...expEntry } =
+		defaultDetectedConfig.entries[0];
+	expect(await getConfig(file, testDir)).toEqual({
+		...defaultDetectedConfig,
+		entries: [
+			{
+				alias: "entry0",
+				...expEntry,
+				packageManagers: packageManagers.map((pm) => {
+					return typeof pm === "string"
+						? {
+								packageManager: pm,
+								alias: DEFAULT_PKG_MANAGER_ALIAS,
+								options: {},
+							}
+						: pm;
+				}),
+				binTests: undefined,
+				scriptTests: [
+					{
+						name: "s1",
+						script: "jest",
+					},
+				],
 			},
 		],
 	});

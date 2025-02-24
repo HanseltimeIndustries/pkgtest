@@ -1,6 +1,6 @@
-import { TsConfigJson } from "get-tsconfig";
+import type { TsConfigJson } from "get-tsconfig";
 import { CreateDependenciesOptions } from "./createDependencies";
-import { PackageJson } from "type-fest";
+import type { PackageJson } from "type-fest";
 
 /**
  * The type of module that the testing package will be created as:
@@ -50,6 +50,14 @@ export enum TestType {
 	 * that we're testing
 	 */
 	Bin = "bin",
+	/**
+	 * Represents a test where we call a script that we inserted into each test project's package.json.
+	 * This is ideal for plugin type packages:
+	 *
+	 * i.e. writing a jest matcher and then running your pkgtest to call "jestTest": "jest" with an appropriate
+	 * config file that has tests that use the matcher.
+	 */
+	Script = "script",
 }
 
 export interface InstalledTool {
@@ -228,8 +236,23 @@ export interface FileTestConfig {
 	};
 }
 
+/**
+ * A Script test involves declaring a set of scripts that will be run in the testProject and evaluated to see if they're true
+ *
+ * They will ultimately be run by <package manager> <script>
+ */
+export interface ScriptTestConfig {
+	name: string;
+	script: string;
+}
+
 export interface TestConfigEntry {
 	fileTests?: FileTestConfig;
+	/**
+	 * If you would like a test suite per test project that injects the given scripts into the packge.json and runs them
+	 * in sequence, evaluating each for a zero exit code
+	 */
+	scriptTests?: ScriptTestConfig[];
 	/**
 	 * Which package managed we will use to install dependencies and run the various test scripts provided.
 	 *
