@@ -1,3 +1,17 @@
+# [1.2.0](https://github.com/HanseltimeIndustries/pkgtest/compare/v1.1.0...v1.2.0) (2025-02-24)
+
+
+### Bug Fixes
+
+* correct esm path and ts peer dependencies ([af23e4f](https://github.com/HanseltimeIndustries/pkgtest/commit/af23e4f1cb8a985bef60b0f1fe0a16ee62953c73))
+* esm + yarn-barry + ts-node resolution ([7b20130](https://github.com/HanseltimeIndustries/pkgtest/commit/7b20130414a95d339d0a0ad26baa6be39faa1395))
+
+
+### Features
+
+* adding pkgtest-clean utility command ([dbe3d5d](https://github.com/HanseltimeIndustries/pkgtest/commit/dbe3d5d88dc9146b2b34b8db14d9cc5b10b719d9))
+* adding script tests functionality ([bf0da16](https://github.com/HanseltimeIndustries/pkgtest/commit/bf0da160542d92be2cd04c85d3c2f6c8b4a1b0e4))
+
 # [1.1.0](https://github.com/HanseltimeIndustries/pkgtest/compare/v1.0.0...v1.1.0) (2025-02-22)
 
 
