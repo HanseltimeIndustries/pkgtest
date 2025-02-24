@@ -55,7 +55,7 @@ In that case, we would add:
 
 ## locks
 
-The examples in [Getting started](../1-getting-started.md) use `locks: false` since that is a simpler configuration and is sufficient for running
+The examples in [Getting started](../Getting%20Started/index.md) use `locks: false` since that is a simpler configuration and is sufficient for running
 on your own machine.
 
 The locks configuration, designates how pkgtest handles lock files.  The goal of lock files is for security and repeatability and a good overview
@@ -106,7 +106,7 @@ The following format basically says copy the files at `my/path` to `${testProjec
 
 ## Test Entries
 
-If you've read [Getting Started](../1-getting-started.md), then you will probably have noticed that a single entry in the entries array can
+If you've read [Getting Started](../Getting%20Started/index.md), then you will probably have noticed that a single entry in the entries array can
 create many Test Suites.  While you technically could create multiple entries to do the same thing as we did in getting started, that would make
 your configuration file very repetitive and tedious to update or maintain.
 
@@ -353,7 +353,7 @@ set up a minimal configuration of the latest package manager project.
 This generally involves running `corepack use <package manager>@latest` or in the case of `yarn-v1`, `corepack use yarn@1,x`.
 
 This does mean that the package manager's default configuration behavior is tested, which in some cases may not be the full functionality that
-you want to test.  (The example given in [getting starterd](../1-getting-started.md) was that yarn plug'n'play is not the same behavior as its
+you want to test.  (The example given in [getting starterd](../Getting%20Started/index.md) was that yarn plug'n'play is not the same behavior as its
 other simpler and less costly `nodeLinker` modes - which for some might be fine enough when covered via `npm` and `pnpm`).
 
 !!! note
@@ -382,7 +382,7 @@ For each simple package manager type, you can choose to create any number of adv
 
 See [PkgManagerOptionsConfig](../api/interfaces/PkgManagerOptionsConfig.md) for the current options api.
 
-The [getting-started](../1-getting-started.md) guide worked through adding an additional entry for `yarn berry with a node-modules nodeLinker strategy`.
+The [getting-started](../Getting%20Started/index.md) guide worked through adding an additional entry for `yarn berry with a node-modules nodeLinker strategy`.
 If you'd like the details of that, please take a look there.
 
 ##### Example Scenario

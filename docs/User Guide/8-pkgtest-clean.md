@@ -1,6 +1,6 @@
 # pkgtest-clean
 
-As discussed in [getting started](../1-getting-started.md) and in [design](./99-design.md#test-projects), pkgtest
+As discussed in [getting started](../Getting%20Started/index.md) and in [design](./99-design.md#test-projects), pkgtest
 is effectively creating many local test projects and performing an install in each of them before then running
 tests.
 

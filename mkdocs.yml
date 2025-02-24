@@ -22,3 +22,8 @@ markdown_extensions:
 extra:
   version:
     provider: mike
+
+# Navigation ordering
+plugins:
+  - literate-nav:
+      nav_file: NAV.md
