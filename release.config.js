@@ -30,7 +30,7 @@ module.exports = {
 			"@semantic-release/git",
 			{
 				assets: ["CHANGELOG.md", "package.json"],
-				message: `docs(release): ${abbreviatedName} $\{nextRelease.version} [skip ci]\n\n$\{nextRelease.notes}`,
+				message: `docs(release): ${abbreviatedName} $\{nextRelease.version}\n\n$\{nextRelease.notes}`,
 			},
 		],
 		// This creates a release on github - you can decide if you want to mirror the files in package.json
