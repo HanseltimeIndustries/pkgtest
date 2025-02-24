@@ -180,7 +180,11 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 
 	logger.logDebug(`Generating package.json at ${testProjectDir}`);
 
-	const relativePath = relative(testProjectDir, projectDir);
+	const unnormalizedRelativePath = relative(testProjectDir, projectDir);
+	const relativePath = unnormalizedRelativePath;
+	// process.platform === "win32"
+	// 	? "/" + unnormalizedRelativePath.replaceAll("\\", "/")
+	// 	: unnormalizedRelativePath;
 	const packageJson = JSON.parse(
 		(await readFile(join(projectDir, "package.json"))).toString(),
 	) as {

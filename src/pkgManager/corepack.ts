@@ -27,7 +27,7 @@ export function ensureMinimumCorepack(options: {
 
 	if (!satisfies(version, MIN_COREPACK)) {
 		throw new Error(
-			`${LIBRARY_NAME} requires corepack version on the shell of: ${MIN_COREPACK}!  Please upgrade it via 'npm install -g corepack@${MIN_COREPACK}`,
+			`${LIBRARY_NAME} requires corepack version on the shell of: ${MIN_COREPACK}!  Found ${version}.  Please upgrade it via 'npm install -g corepack@${MIN_COREPACK}`,
 		);
 	}
 }
