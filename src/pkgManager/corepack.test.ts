@@ -18,7 +18,7 @@ it(`throws an error if the version is not ${MIN_COREPACK}`, () => {
 			cwd: "someTestPkg",
 		}),
 	).toThrow(
-		`${LIBRARY_NAME} requires corepack version on the shell of: ${MIN_COREPACK}!  Please upgrade it via 'npm install -g corepack@${MIN_COREPACK}`,
+		`${LIBRARY_NAME} requires corepack version on the shell of: ${MIN_COREPACK}!  Found 0.29.0.  Please upgrade it via 'npm install -g corepack@${MIN_COREPACK}`,
 	);
 
 	expect(mockExecSync).toHaveBeenCalledWith("corepack --version", {
