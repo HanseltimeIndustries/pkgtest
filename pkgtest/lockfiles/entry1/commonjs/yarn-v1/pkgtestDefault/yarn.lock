@@ -2,8 +2,8 @@
 # yarn lockfile v1
 
 
-"@hanseltime/pkgtest@file:${relPathToProject}":
-  version "1.1.0"
+"@hanseltime/pkgtest@${localPathVersion}":
+  version "1.2.0"
   dependencies:
     "@inquirer/prompts" "^7.3.2"
     chalk "^5.4.1"

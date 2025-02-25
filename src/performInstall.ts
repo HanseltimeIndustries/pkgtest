@@ -12,6 +12,7 @@ import { writeFile, mkdir, readFile } from "fs/promises";
 import { controlledExec } from "./controlledExec";
 import { Logger } from "./Logger";
 
+const VERSION_PROJECT_KEY = "localPathVersion";
 const PATH_TO_PROJECT_KEY = "relPathToProject";
 
 export async function performInstall(
@@ -52,7 +53,7 @@ export async function performInstall(
 		projectDir,
 		testProjectDir,
 		updateLock,
-		relPathToProject,
+		relPathToProject: _relPathToProject,
 		entryAlias,
 	} = context;
 	const {
@@ -63,7 +64,15 @@ export async function performInstall(
 		pkgManagerVersion,
 		installCLiArgs,
 	} = options;
-	const localPackagePath = getLocalPackagePath(pkgManager, relPathToProject);
+	// Yarn needs this to be double escaped
+	const relPathToProject = applyLockFileTransform(
+		pkgManager,
+		_relPathToProject,
+	);
+	const localPackagePath = applyLockFileTransform(
+		pkgManager,
+		getLocalPackagePath(pkgManager, relPathToProject),
+	);
 	let lockFileMode: LockFileMode;
 	const lockFileName = lockFiles[pkgManager];
 	const lockFileFolder = resolve(
@@ -80,7 +89,6 @@ export async function performInstall(
 		logger.log("Running with no considerations for lock files!");
 		lockFileMode = LockFileMode.None;
 	} else {
-		logger.logDebug(`Determining locks ${lockFilePath}`);
 		if (!existsSync(lockFilePath)) {
 			if (isCI && !updateLock) {
 				throw new Error(
@@ -94,25 +102,15 @@ export async function performInstall(
 				recursive: true,
 			});
 		} else {
-			logger.logDebug(
-				`Copying ${lockFilePath} to ${resolve(testProjectDir, lockFileName)}!`,
-			);
 			const file = (await readFile(lockFilePath))
 				.toString()
-				.replaceAll(`\${${PATH_TO_PROJECT_KEY}}`, localPackagePath);
-			logger.logDebug("Writing lock file: " + file);
+				.replaceAll(`\${${VERSION_PROJECT_KEY}}`, localPackagePath)
+				.replaceAll(`\${${PATH_TO_PROJECT_KEY}}`, relPathToProject);
 			// Copy the found lock file to the project
 			await writeFile(resolve(testProjectDir, lockFileName), file);
 			lockFileMode = updateLock ? LockFileMode.Update : LockFileMode.Frozen;
 		}
 	}
-
-	console.log(
-		"files in test project " +
-			JSON.stringify(
-				readFileSync(resolve(testProjectDir, "package.json")).toString(),
-			),
-	);
 
 	await controlledExec(
 		getPkgInstallCommand(
@@ -128,7 +126,6 @@ export async function performInstall(
 		logger,
 	);
 
-	// console.log(readFileSync(resolve(testProjectDir, lockFileName)));
 	if (lockFileMode === LockFileMode.Update) {
 		const writtenLockFile = resolve(testProjectDir, lockFileName);
 		if (!existsSync(writtenLockFile)) {
@@ -153,8 +150,24 @@ export async function performInstall(
 				lockFilePath,
 				nextFile
 					.toString()
-					.replaceAll(localPackagePath, `\${${PATH_TO_PROJECT_KEY}}`),
+					.replaceAll(localPackagePath, `\${${VERSION_PROJECT_KEY}}`)
+					.replaceAll(relPathToProject, `\${${PATH_TO_PROJECT_KEY}}`),
 			);
 		}
+	}
+}
+
+/**
+ * Yarn berry seems to have strange escaping
+ */
+function applyLockFileTransform(pkgManager: PkgManager, path: string) {
+	switch (pkgManager) {
+		case PkgManager.YarnV1:
+			return path.replaceAll(/([^\\])\\([^\\])/g, "$1\\\\$2");
+		case PkgManager.YarnBerry:
+			// Yarn berry normalizes to unix paths
+			return path.replaceAll('\\', '/');
+		default:
+			return path;
 	}
 }

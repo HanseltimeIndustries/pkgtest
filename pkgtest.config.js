@@ -169,7 +169,7 @@ const esmBinTests = {
 
 module.exports = {
 	rootDir: "pkgtest",
-	locks: false,
+	locks: true,
 	matchIgnore: ["fixtures/**"],
 	entries: [nonNestedTests, cjsBinTests, esmBinTests],
 };

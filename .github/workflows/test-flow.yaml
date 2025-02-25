@@ -72,11 +72,12 @@ jobs:
     needs:
       - ci-checks
     strategy:
+      fail-fast: false
       matrix:
         node-version: [18.x] # [18.x, 20.x]
         # os: ['ubuntu-latest', 'windows-latest', 'macos-latest']
         os: ['windows-latest']
-        pkgManager: ['yarn-berry', 'pnpm', 'npm'] # ['yarn-v1', 'yarn-berry', 'pnpm', 'npm']
+        pkgManager: ['yarn-v1', 'yarn-berry', 'pnpm', 'npm']
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -110,11 +111,10 @@ jobs:
         # env:
         #   PKG_TEST_TEMP_DIR: ${{ env.RUNNER_TEMP }}
         run: |
-          Write-Output $PWD
           # This avoids yarnv1 level failures due to global cache lock issues
           # Just preps by filling the cache in a synchronous manner
           # No need to clean up since the container will do that on close
-          yarn pkgtest -p 1 --noYarnv1CacheClean --pkgManager ${{ matrix.pkgManager }} --debug --preserve --updateLockfiles --installOnly
+          yarn pkgtest -p 1 --noYarnv1CacheClean --pkgManager ${{ matrix.pkgManager }} --debug --preserve --installOnly
   ensure-docs:
     runs-on: ubuntu-latest
     steps:
