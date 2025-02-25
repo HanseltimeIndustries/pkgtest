@@ -3,8 +3,10 @@ import { LIBRARY_NAME } from "../config";
 import { ModuleTypes, PkgManager } from "../types";
 import { preinstallLatest } from "./preinstallLatest";
 import { join } from "path";
-import { Logger } from "../Logger";
+import { Logger } from "../logging";
 import { resolveLatestVersions } from "./resolveLatestVersions";
+import { CollectLogFilesOn } from "../controlledExec";
+import camelCase from "lodash.camelcase";
 
 jest.mock("./preinstallLatest");
 jest.mock("fs/promises");
@@ -19,6 +21,11 @@ const latestNpm = "11.0.0";
 const latestPnpm = "9.2.2";
 
 const testTempDir = "someTempDir";
+
+const testCollectLogs = {
+	on: CollectLogFilesOn.Error,
+	toFolder: "someFolder",
+};
 
 beforeEach(() => {
 	jest.resetAllMocks();
@@ -98,6 +105,7 @@ it("applies resolution for missing versions with once and only once lookup", asy
 				},
 			],
 			logger,
+			testCollectLogs,
 		),
 	).toEqual([
 		{
@@ -155,16 +163,28 @@ it("applies resolution for missing versions with once and only once lookup", asy
 		testTempDir,
 		PkgManager.Pnpm,
 		logger,
+		{
+			...testCollectLogs,
+			subFolder: `latest${camelCase(PkgManager.Pnpm)}`,
+		},
 	);
 	expect(mockPreinstallLatest).toHaveBeenCalledWith(
 		testTempDir,
 		PkgManager.YarnV1,
 		logger,
+		{
+			...testCollectLogs,
+			subFolder: `latest${camelCase(PkgManager.YarnV1)}`,
+		},
 	);
 	expect(mockPreinstallLatest).toHaveBeenCalledWith(
 		testTempDir,
 		PkgManager.YarnBerry,
 		logger,
+		{
+			...testCollectLogs,
+			subFolder: `latest${camelCase(PkgManager.YarnBerry)}`,
+		},
 	);
 	expect(mockMkdtemp).toHaveBeenCalledTimes(3);
 	expect(mockMkdtemp).toHaveBeenCalledWith(join("someDir", `${LIBRARY_NAME}-`));

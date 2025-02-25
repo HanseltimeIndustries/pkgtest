@@ -13,7 +13,7 @@ import {
 	TestConfigEntry,
 	TestType,
 } from "./types";
-import { Logger } from "./Logger";
+import { Logger } from "./logging";
 
 export interface ContextOptions {
 	logger: Logger;

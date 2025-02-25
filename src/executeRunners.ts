@@ -1,4 +1,4 @@
-import { Logger } from "./Logger";
+import { Logger } from "./logging";
 import { TestGroupOverview } from "./reporters";
 import { BaseTestRunner } from "./runners/BaseTestRunner";
 import { FailFastError } from "./types";

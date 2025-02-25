@@ -1,4 +1,5 @@
 import { PkgManager } from "../types";
+import { applyLockLocalFileEscaping } from "./applyLockLocalFileEscaping";
 
 export function getLocalPackagePath(
 	pkgManager: PkgManager,
@@ -7,7 +8,7 @@ export function getLocalPackagePath(
 	switch (pkgManager) {
 		case PkgManager.YarnBerry:
 			// Yarn v4 does not play well with file:// since it tries zipping things it shouldn't
-			return `portal:${packageRelativePath}`;
+			return `portal:${applyLockLocalFileEscaping(pkgManager, packageRelativePath)}`;
 		case PkgManager.Npm:
 		case PkgManager.YarnV1:
 		case PkgManager.Pnpm:

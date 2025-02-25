@@ -3,7 +3,7 @@ import {
 	EntryFilterOptions,
 } from "./applyFiltersToEntries";
 import { StandardizedTestConfig, StandardizedTestConfigEntry } from "./config";
-import { Logger } from "./Logger";
+import { Logger } from "./logging";
 import { TestGroupOverview } from "./reporters";
 import { ModuleTypes, PkgManager, RunWith, TestType } from "./types";
 

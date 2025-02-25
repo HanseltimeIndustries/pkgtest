@@ -1,10 +1,10 @@
 import { getConfig, StandardizedTestConfigEntry } from "./config";
 import { createTestProject } from "./createTestProject";
 import { mkdtemp } from "fs/promises";
-import { join } from "path";
+import { join, resolve } from "path";
 import { BinTestRunner, FileTestRunner, ScriptTestRunner } from "./runners";
 import { SimpleReporter } from "./reporters/SimpleReporter";
-import { Logger } from "./Logger";
+import { Logger } from "./logging";
 import chalk from "chalk";
 import {
 	AddFilePerTestProjectCreate,
@@ -23,6 +23,7 @@ import {
 import { TestGroupOverview } from "./reporters";
 import {
 	findAdditionalFilesForCopyOver,
+	getLogCollectFolder,
 	getTempProjectDirPrefix,
 } from "./files";
 import { AdditionalFilesCopy } from "./files/types";
@@ -31,11 +32,12 @@ import {
 	EntryFilterOptions,
 } from "./applyFiltersToEntries";
 import { groupSyncInstallEntries } from "./groupSyncInstallEntries";
-import { readFileSync, rmSync } from "fs";
+import { mkdirSync, readFileSync, rmSync } from "fs";
 import { PackageJson } from "type-fest";
 import { execSync } from "child_process";
 import { getTempDir } from "./files";
 import { executeRunners } from "./executeRunners";
+import { CollectLogFilesOn, CollectLogFilesOptions } from "./controlledExec";
 
 export const DEFAULT_TIMEOUT = 2000;
 
@@ -107,6 +109,16 @@ export interface RunOptions {
 	 */
 	timeout?: number;
 	/**
+	 * If set, pkgtest will scan logs during setup calls for any detected log files and then copy them to the
+	 * log collection folder on the system when:
+	 *
+	 * - Error - only an error triggers a failure of an exec
+	 * - All - any time we see a log file mentioned regardless of failure
+	 *
+	 * Note: this is mainly meant for CI processes
+	 */
+	collectSetupLogFilesOn?: CollectLogFilesOn;
+	/**
 	 * The number of test suites to run in parallel
 	 */
 	parallel: number;
@@ -145,6 +157,7 @@ export async function run(options: RunOptions) {
 		failFast,
 		preserveResources,
 		iPreserveResources,
+		collectSetupLogFilesOn,
 		filters = {},
 	} = options;
 	// Store clean up functions that can be async
@@ -169,6 +182,23 @@ export async function run(options: RunOptions) {
 		context: "[runner]",
 		debug: !!debug,
 	});
+	// Log file collection config
+	let collectLogOptions: false | Omit<CollectLogFilesOptions, "subFolder"> =
+		false;
+	if (collectSetupLogFilesOn) {
+		const collectLogTopFolder = resolve(
+			getLogCollectFolder(),
+			"run-" + new Date().getTime(),
+		);
+		mkdirSync(collectLogTopFolder, {
+			recursive: true,
+		});
+		logger.log(`Collecting logs to ${collectLogTopFolder} for this run`);
+		collectLogOptions = {
+			on: collectSetupLogFilesOn,
+			toFolder: collectLogTopFolder,
+		};
+	}
 	try {
 		logger.logDebug("Retrieving Config...");
 		const config = await getConfig(configPath);
@@ -237,6 +267,7 @@ export async function run(options: RunOptions) {
 				context: "[resolve latest pkg manager]",
 				debug: !!debug,
 			}),
+			collectLogOptions,
 		);
 
 		const usedPkgManagers = getPkgManagers(filteredEntries);
@@ -342,6 +373,7 @@ export async function run(options: RunOptions) {
 						lock,
 						entryAlias: testConfigEntry.alias,
 						config,
+						collectLogFiles: collectLogOptions,
 					},
 					{
 						modType,

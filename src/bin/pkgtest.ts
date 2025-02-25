@@ -15,6 +15,7 @@ import {
 	TestType,
 } from "../types";
 import { confirm } from "@inquirer/prompts";
+import { CollectLogFilesOn } from "../controlledExec";
 
 interface Options {
 	config?: string;
@@ -27,6 +28,7 @@ interface Options {
 	updateLockfiles?: boolean;
 	installOnly?: boolean;
 	noYarnv1CacheClean?: boolean;
+	collectLogFilesOn?: CollectLogFilesOn;
 	// Filter options
 	modType?: ModuleTypes[];
 	noModType?: ModuleTypes[];
@@ -87,6 +89,12 @@ program
 	.option(
 		"--noYarnv1CacheClean",
 		"This is an optimization that should only be done on machines that will be fully cleaned.  yarnv1 will blow up your cache with local file installs if not cleaned.  This will save time though.",
+	)
+	.addOption(
+		new Option(
+			"--collectLogFilesOn <on>",
+			"pkgtest will scan all stdouts and stderrs of its process calls and will bundle any log files to the collect log files location (default: tempdir/pkgtest-logs or PKG_TEST_LOG_COLLECT_DIR)",
+		).choices(Object.values(CollectLogFilesOn)),
 	)
 	// filters
 	.addOption(
@@ -180,6 +188,7 @@ program
 				isCI: false, // TODO: change
 				installOnly: options.installOnly,
 				noYarnv1CacheClean: options.noYarnv1CacheClean,
+				collectSetupLogFilesOn: options.collectLogFilesOn,
 				filters: {
 					fileTestNames: testMatch ?? [],
 					moduleTypes: options.modType,

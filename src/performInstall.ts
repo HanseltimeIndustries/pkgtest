@@ -1,18 +1,20 @@
 import { join, resolve } from "path";
 import camelCase from "lodash.camelcase";
 import {
+	applyLockLocalFileEscaping,
 	getLocalPackagePath,
 	getPkgInstallCommand,
 	LockFileMode,
 	lockFiles,
 } from "./pkgManager";
 import { ModuleTypes, PkgManager } from "./types";
-import { existsSync, readFileSync } from "fs";
+import { existsSync } from "fs";
 import { writeFile, mkdir, readFile } from "fs/promises";
-import { controlledExec } from "./controlledExec";
-import { Logger } from "./Logger";
+import { CollectLogFilesOptions, controlledExec } from "./controlledExec";
+import { Logger } from "./logging";
 
-const PATH_TO_PROJECT_KEY = "relPathToProject";
+export const VERSION_PROJECT_KEY = "localPathVersion";
+export const PATH_TO_PROJECT_KEY = "relPathToProject";
 
 export async function performInstall(
 	context: {
@@ -30,6 +32,7 @@ export async function performInstall(
 		entryAlias: string;
 		isCI: boolean;
 		logger: Logger;
+		collectLogFiles: false | CollectLogFilesOptions;
 	},
 	options: {
 		modType: ModuleTypes;
@@ -52,8 +55,9 @@ export async function performInstall(
 		projectDir,
 		testProjectDir,
 		updateLock,
-		relPathToProject,
+		relPathToProject: _relPathToProject,
 		entryAlias,
+		collectLogFiles,
 	} = context;
 	const {
 		lock,
@@ -63,7 +67,15 @@ export async function performInstall(
 		pkgManagerVersion,
 		installCLiArgs,
 	} = options;
-	const localPackagePath = getLocalPackagePath(pkgManager, relPathToProject);
+	// Yarn needs this to be double escaped
+	const relPathToProject = applyLockLocalFileEscaping(
+		pkgManager,
+		_relPathToProject,
+	);
+	const localPackagePath = applyLockLocalFileEscaping(
+		pkgManager,
+		getLocalPackagePath(pkgManager, relPathToProject),
+	);
 	let lockFileMode: LockFileMode;
 	const lockFileName = lockFiles[pkgManager];
 	const lockFileFolder = resolve(
@@ -93,9 +105,10 @@ export async function performInstall(
 				recursive: true,
 			});
 		} else {
-			const file = (await readFile(lockFilePath))
-				.toString()
-				.replaceAll(`\${${PATH_TO_PROJECT_KEY}}`, localPackagePath);
+			const file = await getInjectedLockFile(lockFilePath, {
+				localPackagePath,
+				relPathToProject,
+			});
 			// Copy the found lock file to the project
 			await writeFile(resolve(testProjectDir, lockFileName), file);
 			lockFileMode = updateLock ? LockFileMode.Update : LockFileMode.Frozen;
@@ -114,6 +127,7 @@ export async function performInstall(
 			env,
 		},
 		logger,
+		collectLogFiles,
 	);
 	if (lockFileMode === LockFileMode.Update) {
 		const writtenLockFile = resolve(testProjectDir, lockFileName);
@@ -124,13 +138,16 @@ export async function performInstall(
 		}
 
 		let wereChanges: boolean = false;
-		const nextFile = readFileSync(writtenLockFile);
+		const nextFile = await readFile(writtenLockFile);
 		if (!existsSync(lockFilePath)) {
 			wereChanges = true;
 		} else {
 			// TODO smarter compare of these large files
-			const prevFile = readFileSync(lockFilePath);
-			wereChanges = prevFile !== nextFile;
+			const prevFile = await getInjectedLockFile(lockFilePath, {
+				localPackagePath,
+				relPathToProject,
+			});
+			wereChanges = prevFile !== nextFile.toString();
 		}
 		if (wereChanges) {
 			logger.log(`Updating ${lockFilePath}`);
@@ -139,8 +156,22 @@ export async function performInstall(
 				lockFilePath,
 				nextFile
 					.toString()
-					.replaceAll(localPackagePath, `\${${PATH_TO_PROJECT_KEY}}`),
+					.replaceAll(localPackagePath, `\${${VERSION_PROJECT_KEY}}`)
+					.replaceAll(relPathToProject, `\${${PATH_TO_PROJECT_KEY}}`),
 			);
 		}
 	}
+}
+
+async function getInjectedLockFile(
+	path: string,
+	opts: {
+		localPackagePath: string;
+		relPathToProject: string;
+	},
+) {
+	return (await readFile(path))
+		.toString()
+		.replaceAll(`\${${VERSION_PROJECT_KEY}}`, opts.localPackagePath)
+		.replaceAll(`\${${PATH_TO_PROJECT_KEY}}`, opts.relPathToProject);
 }

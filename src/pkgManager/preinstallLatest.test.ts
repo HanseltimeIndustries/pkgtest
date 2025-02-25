@@ -1,6 +1,6 @@
 import { writeFile } from "fs/promises";
 import { sanitizeEnv } from "./sanitizeEnv";
-import { Logger } from "../Logger";
+import { Logger } from "../logging";
 import { preinstallLatest } from "./preinstallLatest";
 import { PkgManager } from "../types";
 import { exec, ExecException } from "child_process";
@@ -41,6 +41,7 @@ it("performs the correct commands", async () => {
 			context: "something",
 			debug: false,
 		}),
+		false,
 	);
 
 	expect(mockExec).toHaveBeenCalledWith(

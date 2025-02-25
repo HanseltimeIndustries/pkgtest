@@ -4,12 +4,10 @@ import {
 	getPkgBinaryRunnerCommand,
 	getPkgManagerSetCommand,
 	getPkgInstallCommand,
-	LockFileMode,
 	sanitizeEnv,
 } from "./pkgManager";
 import { getTypescriptConfig } from "./getTypescriptConfig";
 import { cp, readFile, writeFile } from "fs/promises";
-import { exec } from "child_process";
 import {
 	BUILD_DIRECTORY,
 	createTestProject,
@@ -21,23 +19,31 @@ import {
 	PkgManagerBaseOptions,
 	RunWith,
 } from "./types";
-import { join, resolve } from "path";
+import { join, relative, resolve } from "path";
 import { TsConfigJson } from "get-tsconfig";
 import { AdditionalFilesCopy } from "./files/types";
 import { SimpleReporter } from "./reporters/SimpleReporter";
 import { TestGroupOverview } from "./reporters";
 import { StandardizedTestConfig } from "./config";
+import {
+	CollectLogFilesOn,
+	CollectLogFilesOptions,
+	controlledExec,
+} from "./controlledExec";
+import { performInstall } from "./performInstall";
+import { Logger } from "./logging";
 
 jest.mock("./createDependencies");
 jest.mock("fs/promises");
-jest.mock("child_process");
 jest.mock("./files");
 jest.mock("./pkgManager");
 jest.mock("./getTypescriptConfig");
+jest.mock("./controlledExec");
+jest.mock("./performInstall");
 const mockCreateDependencies = jest.mocked(createDependencies);
 const mockWriteFile = jest.mocked(writeFile);
 const mockCp = jest.mocked(cp);
-const mockExec = jest.mocked(exec);
+const mockControlledExec = jest.mocked(controlledExec);
 const mockGetAllMatchingFiles = jest.mocked(getAllMatchingFiles);
 const mockCopyOverAdditionalFiles = jest.mocked(copyOverAdditionalFiles);
 const mockGetPkgBinaryRunnerCommand = jest.mocked(getPkgBinaryRunnerCommand);
@@ -46,6 +52,7 @@ const mockGetPkgInstallCommand = jest.mocked(getPkgInstallCommand);
 const mockGetTypescriptConfig = jest.mocked(getTypescriptConfig);
 const mockReadFile = jest.mocked(readFile);
 const mockSanitizeEnv = jest.mocked(sanitizeEnv);
+const mockPerformInstall = jest.mocked(performInstall);
 
 const testTimeout = 3500;
 const testReporter = new SimpleReporter({
@@ -65,8 +72,8 @@ const testProjectDir = resolve(process.cwd(), "someNesting", "testProjectDir");
 const test1FileName = "test1.pkgtest.ts";
 const test2FileName = "test2.pkgtest.ts";
 const testMatchingTests = [
-	`${testProjectUnderTestDir}/something/${test1FileName}`,
-	`${testProjectUnderTestDir}/${test2FileName}`,
+	join(testProjectUnderTestDir, "something", test1FileName),
+	join(testProjectUnderTestDir, test2FileName),
 ];
 const testTsConfig: TsConfigJson = {
 	compilerOptions: {
@@ -89,10 +96,14 @@ const testAdditionalFiles: AdditionalFilesCopy[] = [
 		toDir: "./",
 	},
 ];
+const testCollectLogFiles: CollectLogFilesOptions = {
+	on: CollectLogFilesOn.Error,
+	toFolder: join("testpkg", "run", "folder"),
+};
 const mockCreateAddPromise = jest.fn();
 const mockCreateAddSync = jest.fn();
 const testCreateAdditionalFiles = [mockCreateAddPromise, mockCreateAddSync];
-const testrootDir = "./pkgtests";
+const testrootDir = join(".", "pkgtests");
 const testMatchIgnore = ["someglob"];
 
 const testPkgManagerOptions: PkgManagerBaseOptions = {
@@ -123,13 +134,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			mockWriteFile.mockResolvedValue();
 			mockCreateAddPromise.mockResolvedValue(["contents1", "file1.txt"]);
 			mockCreateAddSync.mockResolvedValue(["contents2", "file2.txt"]);
-			mockExec.mockImplementation((command, _options, cb) => {
-				if (!cb) {
-					throw new Error(`Not expecting no callback exec methods! ${command}`);
-				}
-				cb(null, "stdout", "stderr");
-				return undefined as any;
-			});
+			mockControlledExec.mockResolvedValue("stdout");
 			mockSanitizeEnv.mockReturnValue(testSanitizedEnv);
 		});
 
@@ -155,35 +160,35 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				"..",
 				projectUnderTestDirName,
 			); // Since the the package under test dir at cwd + dir
+			const context = {
+				projectDir: testProjectUnderTestDir,
+				testProjectDir,
+				rootDir: testrootDir,
+				matchIgnore: testMatchIgnore,
+				lock: false as false,
+				entryAlias: testEntryAlias,
+				isCI: false,
+				updateLock: false,
+				config: testConfig,
+				collectLogFiles: testCollectLogFiles,
+			};
+			const testOptions = {
+				modType,
+				pkgManager: PkgManager.YarnV1,
+				additionalFiles: testAdditionalFiles,
+				createAdditionalFiles: testCreateAdditionalFiles,
+				pkgManagerAlias: "myalias",
+				pkgManagerOptions: testPkgManagerOptions,
+				pkgManagerVersion: testPkgManagerVersion,
+				fileTests: {
+					runWith: [RunWith.Node],
+					testMatch: "some**glob",
+				},
+				timeout: testTimeout,
+				reporter: testReporter,
+			};
 			const { fileTestRunners: testRunners, binTestRunner } =
-				await createTestProject(
-					{
-						projectDir: testProjectUnderTestDir,
-						testProjectDir,
-						rootDir: testrootDir,
-						matchIgnore: testMatchIgnore,
-						lock: false,
-						entryAlias: testEntryAlias,
-						isCI: false,
-						updateLock: false,
-						config: testConfig,
-					},
-					{
-						modType,
-						pkgManager: PkgManager.YarnV1,
-						additionalFiles: testAdditionalFiles,
-						createAdditionalFiles: testCreateAdditionalFiles,
-						pkgManagerAlias: "myalias",
-						pkgManagerOptions: testPkgManagerOptions,
-						pkgManagerVersion: testPkgManagerVersion,
-						fileTests: {
-							runWith: [RunWith.Node],
-							testMatch: "some**glob",
-						},
-						timeout: testTimeout,
-						reporter: testReporter,
-					},
-				);
+				await createTestProject(context, testOptions);
 
 			const expectedCopyOver = testMatchingTests.map((t) => {
 				return {
@@ -220,13 +225,17 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			expect(binTestRunner).toBeUndefined();
 
 			// confirm corepack use called
-			expect(mockExec).toHaveBeenCalledWith(
+			expect(controlledExec).toHaveBeenCalledWith(
 				testPkgManagerSetCmd,
 				{
 					cwd: testProjectDir,
 					env: testSanitizedEnv,
 				},
-				expect.anything(),
+				expect.any(Logger),
+				{
+					...testCollectLogFiles,
+					subFolder: "corepackSet",
+				},
 			);
 
 			expect(mockCreateAddPromise).toHaveBeenCalledWith(testConfig, {
@@ -243,13 +252,33 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			});
 
 			// confirm pkg install command called
-			expect(mockExec).toHaveBeenCalledWith(
-				testPkgInstallCmd,
+			expect(mockPerformInstall).toHaveBeenCalledWith(
 				{
-					cwd: testProjectDir,
+					isCI: context.isCI,
+					logger: expect.any(Logger),
+					projectDir: context.projectDir,
+					testProjectDir: context.testProjectDir,
+					relPathToProject: relative(
+						context.testProjectDir,
+						context.projectDir,
+					),
+					rootDir: context.rootDir,
+					updateLock: context.updateLock,
 					env: testSanitizedEnv,
+					entryAlias: context.entryAlias,
+					collectLogFiles: {
+						...testCollectLogFiles,
+						subFolder: "install",
+					},
 				},
-				expect.anything(),
+				{
+					pkgManager: testOptions.pkgManager,
+					pkgManagerAlias: testOptions.pkgManagerAlias,
+					pkgManagerVersion: testOptions.pkgManagerVersion,
+					modType: testOptions.modType,
+					installCLiArgs: testOptions.pkgManagerOptions.installCliArgs,
+					lock: false,
+				},
 			);
 
 			// Confirm command retrieval functions called with versions
@@ -259,12 +288,6 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			);
 			expect(mockGetPkgManagerSetCommand).toHaveBeenCalledWith(
 				PkgManager.YarnV1,
-				testPkgManagerVersion,
-			);
-			expect(mockGetPkgInstallCommand).toHaveBeenCalledWith(
-				PkgManager.YarnV1,
-				LockFileMode.None,
-				testPkgManagerOptions.installCliArgs,
 				testPkgManagerVersion,
 			);
 
@@ -328,42 +351,42 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				"..",
 				projectUnderTestDirName,
 			); // Since the the package under test dir at cwd + dir
+			const context = {
+				projectDir: testProjectUnderTestDir,
+				testProjectDir,
+				rootDir: testrootDir,
+				matchIgnore: testMatchIgnore,
+				lock: false as false,
+				entryAlias: testEntryAlias,
+				isCI: false,
+				updateLock: false,
+				config: testConfig,
+				collectLogFiles: testCollectLogFiles,
+			};
+			const testOptions = {
+				modType,
+				pkgManager: PkgManager.YarnV1,
+				additionalFiles: testAdditionalFiles,
+				createAdditionalFiles: [],
+				pkgManagerAlias: "myalias",
+				pkgManagerOptions: testPkgManagerOptions,
+				pkgManagerVersion: testPkgManagerVersion,
+				fileTests: {
+					runWith: [RunWith.Node],
+					testMatch: "some**glob",
+				},
+				timeout: testTimeout,
+				reporter: testReporter,
+				packageJson: {
+					// This should stay in dev dependencies
+					devDependencies: {
+						tsx: "2.0.0",
+					},
+					anotherField: "someValue",
+				},
+			};
 			const { fileTestRunners: testRunners, binTestRunner } =
-				await createTestProject(
-					{
-						projectDir: testProjectUnderTestDir,
-						testProjectDir,
-						rootDir: testrootDir,
-						matchIgnore: testMatchIgnore,
-						lock: false,
-						entryAlias: testEntryAlias,
-						isCI: false,
-						updateLock: false,
-						config: testConfig,
-					},
-					{
-						modType,
-						pkgManager: PkgManager.YarnV1,
-						additionalFiles: testAdditionalFiles,
-						createAdditionalFiles: [],
-						pkgManagerAlias: "myalias",
-						pkgManagerOptions: testPkgManagerOptions,
-						pkgManagerVersion: testPkgManagerVersion,
-						fileTests: {
-							runWith: [RunWith.Node],
-							testMatch: "some**glob",
-						},
-						timeout: testTimeout,
-						reporter: testReporter,
-						packageJson: {
-							// This should stay in dev dependencies
-							devDependencies: {
-								tsx: "2.0.0",
-							},
-							anotherField: "someValue",
-						},
-					},
-				);
+				await createTestProject(context, testOptions);
 
 			const expectedCopyOver = testMatchingTests.map((t) => {
 				return {
@@ -400,23 +423,47 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			expect(binTestRunner).toBeUndefined();
 
 			// confirm corepack use called
-			expect(mockExec).toHaveBeenCalledWith(
+			expect(controlledExec).toHaveBeenCalledWith(
 				testPkgManagerSetCmd,
 				{
 					cwd: testProjectDir,
 					env: testSanitizedEnv,
 				},
-				expect.anything(),
+				expect.any(Logger),
+				{
+					...testCollectLogFiles,
+					subFolder: "corepackSet",
+				},
 			);
 
 			// confirm pkg install command called
-			expect(mockExec).toHaveBeenCalledWith(
-				testPkgInstallCmd,
+			expect(mockPerformInstall).toHaveBeenCalledWith(
 				{
-					cwd: testProjectDir,
+					isCI: context.isCI,
+					logger: expect.any(Logger),
+					projectDir: context.projectDir,
+					testProjectDir: context.testProjectDir,
+					relPathToProject: relative(
+						context.testProjectDir,
+						context.projectDir,
+					),
+					rootDir: context.rootDir,
+					updateLock: context.updateLock,
 					env: testSanitizedEnv,
+					entryAlias: context.entryAlias,
+					collectLogFiles: {
+						...testCollectLogFiles,
+						subFolder: "install",
+					},
 				},
-				expect.anything(),
+				{
+					pkgManager: testOptions.pkgManager,
+					pkgManagerAlias: testOptions.pkgManagerAlias,
+					pkgManagerVersion: testOptions.pkgManagerVersion,
+					modType: testOptions.modType,
+					installCLiArgs: testOptions.pkgManagerOptions.installCliArgs,
+					lock: false,
+				},
 			);
 
 			// Confirm command retrieval functions called with versions
@@ -426,12 +473,6 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			);
 			expect(mockGetPkgManagerSetCommand).toHaveBeenCalledWith(
 				PkgManager.YarnV1,
-				testPkgManagerVersion,
-			);
-			expect(mockGetPkgInstallCommand).toHaveBeenCalledWith(
-				PkgManager.YarnV1,
-				LockFileMode.None,
-				testPkgManagerOptions.installCliArgs,
 				testPkgManagerVersion,
 			);
 
@@ -505,68 +546,92 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				},
 				version: "someTsVersion",
 			};
+			const context = {
+				projectDir: testProjectUnderTestDir,
+				testProjectDir,
+				rootDir: testrootDir,
+				matchIgnore: testMatchIgnore,
+				lock: false as false,
+				entryAlias: testEntryAlias,
+				isCI: false,
+				updateLock: false,
+				config: testConfig,
+				collectLogFiles: testCollectLogFiles,
+			};
+			const testOptions = {
+				modType: modType,
+				pkgManager: PkgManager.YarnV1,
+				pkgManagerAlias: "myalias",
+				pkgManagerOptions: testPkgManagerOptions,
+				pkgManagerVersion: testPkgManagerVersion,
+				additionalFiles: testAdditionalFiles,
+				createAdditionalFiles: [],
+				fileTests: {
+					runWith: [RunWith.Node],
+					testMatch: "some**glob",
+					transforms: {
+						// Just providing typescript object will do
+						typescript: typescriptOptions,
+					},
+				},
+				scriptTests: [
+					{
+						name: "script1",
+						script: "echo $something",
+					},
+					{
+						name: "script2",
+						script: "jest",
+					},
+				],
+				timeout: testTimeout,
+				reporter: testReporter,
+			};
 			const { fileTestRunners: testRunners, binTestRunner } =
-				await createTestProject(
-					{
-						projectDir: testProjectUnderTestDir,
-						testProjectDir,
-						rootDir: testrootDir,
-						matchIgnore: testMatchIgnore,
-						lock: false,
-						entryAlias: testEntryAlias,
-						isCI: false,
-						updateLock: false,
-						config: testConfig,
-					},
-					{
-						modType: modType,
-						pkgManager: PkgManager.YarnV1,
-						pkgManagerAlias: "myalias",
-						pkgManagerOptions: testPkgManagerOptions,
-						pkgManagerVersion: testPkgManagerVersion,
-						additionalFiles: testAdditionalFiles,
-						createAdditionalFiles: [],
-						fileTests: {
-							runWith: [RunWith.Node],
-							testMatch: "some**glob",
-							transforms: {
-								// Just providing typescript object will do
-								typescript: typescriptOptions,
-							},
-						},
-						scriptTests: [
-							{
-								name: "script1",
-								script: "echo $something",
-							},
-							{
-								name: "script2",
-								script: "jest",
-							},
-						],
-						timeout: testTimeout,
-						reporter: testReporter,
-					},
-				);
+				await createTestProject(context, testOptions);
 
 			// confirm corepack use called
-			expect(mockExec).toHaveBeenCalledWith(
+			expect(controlledExec).toHaveBeenCalledWith(
 				testPkgManagerSetCmd,
 				{
 					cwd: testProjectDir,
 					env: testSanitizedEnv,
 				},
-				expect.anything(),
+				expect.any(Logger),
+				{
+					...testCollectLogFiles,
+					subFolder: "corepackSet",
+				},
 			);
 
 			// confirm pkg install command called
-			expect(mockExec).toHaveBeenCalledWith(
-				testPkgInstallCmd,
+			expect(mockPerformInstall).toHaveBeenCalledWith(
 				{
-					cwd: testProjectDir,
+					isCI: context.isCI,
+					logger: expect.any(Logger),
+					projectDir: context.projectDir,
+					testProjectDir: context.testProjectDir,
+					relPathToProject: relative(
+						context.testProjectDir,
+						context.projectDir,
+					),
+					rootDir: context.rootDir,
+					updateLock: context.updateLock,
 					env: testSanitizedEnv,
+					entryAlias: context.entryAlias,
+					collectLogFiles: {
+						...testCollectLogFiles,
+						subFolder: "install",
+					},
 				},
-				expect.anything(),
+				{
+					pkgManager: testOptions.pkgManager,
+					pkgManagerAlias: testOptions.pkgManagerAlias,
+					pkgManagerVersion: testOptions.pkgManagerVersion,
+					modType: testOptions.modType,
+					installCLiArgs: testOptions.pkgManagerOptions.installCliArgs,
+					lock: false,
+				},
 			);
 
 			// Confirm command retrieval functions called with versions
@@ -576,12 +641,6 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			);
 			expect(mockGetPkgManagerSetCommand).toHaveBeenCalledWith(
 				PkgManager.YarnV1,
-				testPkgManagerVersion,
-			);
-			expect(mockGetPkgInstallCommand).toHaveBeenCalledWith(
-				PkgManager.YarnV1,
-				LockFileMode.None,
-				testPkgManagerOptions.installCliArgs,
 				testPkgManagerVersion,
 			);
 
@@ -672,13 +731,17 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				join(testProjectDir, expectedConfigFile),
 				JSON.stringify(testTsConfig, null, 4),
 			);
-			expect(mockExec).toHaveBeenCalledWith(
+			expect(controlledExec).toHaveBeenCalledWith(
 				`${testBinCmd} tsc -p ${expectedConfigFile}`,
 				{
 					cwd: testProjectDir,
 					env: testSanitizedEnv,
 				},
-				expect.anything(), // callback
+				expect.any(Logger),
+				{
+					...testCollectLogFiles,
+					subFolder: "compile",
+				},
 			);
 			// expect we copied files
 			expect(mockCopyOverAdditionalFiles).toHaveBeenCalledWith(
@@ -708,79 +771,103 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				},
 				version: "someTsVersion",
 			};
-			const { fileTestRunners: testRunners, binTestRunner } =
-				await createTestProject(
-					{
-						projectDir: testProjectUnderTestDir,
-						testProjectDir,
-						rootDir: testrootDir,
-						matchIgnore: testMatchIgnore,
-						lock: false,
-						entryAlias: testEntryAlias,
-						isCI: false,
-						updateLock: false,
-						config: testConfig,
+			const context = {
+				projectDir: testProjectUnderTestDir,
+				testProjectDir,
+				rootDir: testrootDir,
+				matchIgnore: testMatchIgnore,
+				lock: false as false,
+				entryAlias: testEntryAlias,
+				isCI: false,
+				updateLock: false,
+				config: testConfig,
+				collectLogFiles: testCollectLogFiles,
+			};
+			const testOptions = {
+				fileTests: {
+					runWith: [RunWith.Node],
+					testMatch: "some**glob",
+					transforms: {
+						// Just providing typescript object will do
+						typescript: typescriptOptions,
 					},
-					{
-						fileTests: {
-							runWith: [RunWith.Node],
-							testMatch: "some**glob",
-							transforms: {
-								// Just providing typescript object will do
-								typescript: typescriptOptions,
+				},
+				timeout: testTimeout,
+				reporter: testReporter,
+				modType: modType,
+				pkgManager: PkgManager.YarnV1,
+				pkgManagerAlias: "myalias",
+				pkgManagerOptions: testPkgManagerOptions,
+				pkgManagerVersion: testPkgManagerVersion,
+				additionalFiles: testAdditionalFiles,
+				createAdditionalFiles: [],
+				binTests: {
+					bin1: [
+						{
+							args: "--help",
+							env: {
+								something: "here",
 							},
 						},
-						timeout: testTimeout,
-						reporter: testReporter,
-						modType: modType,
-						pkgManager: PkgManager.YarnV1,
-						pkgManagerAlias: "myalias",
-						pkgManagerOptions: testPkgManagerOptions,
-						pkgManagerVersion: testPkgManagerVersion,
-						additionalFiles: testAdditionalFiles,
-						createAdditionalFiles: [],
-						binTests: {
-							bin1: [
-								{
-									args: "--help",
-									env: {
-										something: "here",
-									},
-								},
-							],
-							bin2: [
-								{
-									args: "someArg",
-								},
-								{
-									args: "someArg",
-									env: {
-										another: "val",
-									},
-								},
-							],
+					],
+					bin2: [
+						{
+							args: "someArg",
 						},
-					},
-				);
+						{
+							args: "someArg",
+							env: {
+								another: "val",
+							},
+						},
+					],
+				},
+			};
+			const { fileTestRunners: testRunners, binTestRunner } =
+				await createTestProject(context, testOptions);
 
 			// confirm corepack use called
-			expect(mockExec).toHaveBeenCalledWith(
+			expect(controlledExec).toHaveBeenCalledWith(
 				testPkgManagerSetCmd,
 				{
 					cwd: testProjectDir,
 					env: testSanitizedEnv,
 				},
-				expect.anything(),
+				expect.any(Logger),
+				{
+					...testCollectLogFiles,
+					subFolder: "corepackSet",
+				},
 			);
 
 			// confirm pkg install command called
-			expect(mockExec).toHaveBeenCalledWith(
-				testPkgInstallCmd,
+			expect(mockPerformInstall).toHaveBeenCalledWith(
 				{
-					cwd: testProjectDir,
+					isCI: context.isCI,
+					logger: expect.any(Logger),
+					projectDir: context.projectDir,
+					testProjectDir: context.testProjectDir,
+					relPathToProject: relative(
+						context.testProjectDir,
+						context.projectDir,
+					),
+					rootDir: context.rootDir,
+					updateLock: context.updateLock,
 					env: testSanitizedEnv,
+					entryAlias: context.entryAlias,
+					collectLogFiles: {
+						...testCollectLogFiles,
+						subFolder: "install",
+					},
 				},
-				expect.anything(),
+				{
+					pkgManager: testOptions.pkgManager,
+					pkgManagerAlias: testOptions.pkgManagerAlias,
+					pkgManagerVersion: testOptions.pkgManagerVersion,
+					modType: testOptions.modType,
+					installCLiArgs: testOptions.pkgManagerOptions.installCliArgs,
+					lock: false,
+				},
 			);
 
 			// Confirm command retrieval functions called with versions
@@ -790,12 +877,6 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			);
 			expect(mockGetPkgManagerSetCommand).toHaveBeenCalledWith(
 				PkgManager.YarnV1,
-				testPkgManagerVersion,
-			);
-			expect(mockGetPkgInstallCommand).toHaveBeenCalledWith(
-				PkgManager.YarnV1,
-				LockFileMode.None,
-				testPkgManagerOptions.installCliArgs,
 				testPkgManagerVersion,
 			);
 
@@ -915,13 +996,17 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				join(testProjectDir, expectedConfigFile),
 				JSON.stringify(testTsConfig, null, 4),
 			);
-			expect(mockExec).toHaveBeenCalledWith(
+			expect(controlledExec).toHaveBeenCalledWith(
 				`${testBinCmd} tsc -p ${expectedConfigFile}`,
 				{
 					cwd: testProjectDir,
 					env: testSanitizedEnv,
 				},
-				expect.anything(), // callback
+				expect.any(Logger),
+				{
+					...testCollectLogFiles,
+					subFolder: "compile",
+				},
 			);
 			// expect we copied files
 			expect(mockCopyOverAdditionalFiles).toHaveBeenCalledWith(
@@ -952,61 +1037,85 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				},
 				version: "someTsVersion",
 			};
+			const context = {
+				projectDir: testProjectUnderTestDir,
+				testProjectDir,
+				rootDir: testrootDir,
+				matchIgnore: testMatchIgnore,
+				lock: false as false,
+				entryAlias: testEntryAlias,
+				isCI: false,
+				updateLock: false,
+				config: testConfig,
+				collectLogFiles: testCollectLogFiles,
+			};
+			const testOptions = {
+				modType,
+				pkgManager: PkgManager.YarnV1,
+				pkgManagerAlias: "myalias",
+				pkgManagerOptions: testPkgManagerOptions,
+				pkgManagerVersion: testPkgManagerVersion,
+				// Just providing typescript object will do
+				packageJson: {
+					dependencies: testAdditionalDeps,
+				},
+				additionalFiles: testAdditionalFiles,
+				createAdditionalFiles: [],
+				fileTests: {
+					runWith: allRunBy,
+					testMatch: "some**glob",
+					transforms: {
+						typescript: typescriptOptions,
+					},
+				},
+				timeout: testTimeout,
+				reporter: testReporter,
+			};
 			const { fileTestRunners: testRunners, binTestRunner } =
-				await createTestProject(
-					{
-						projectDir: testProjectUnderTestDir,
-						testProjectDir,
-						rootDir: testrootDir,
-						matchIgnore: testMatchIgnore,
-						lock: false,
-						entryAlias: testEntryAlias,
-						isCI: false,
-						updateLock: false,
-						config: testConfig,
-					},
-					{
-						modType,
-						pkgManager: PkgManager.YarnV1,
-						pkgManagerAlias: "myalias",
-						pkgManagerOptions: testPkgManagerOptions,
-						pkgManagerVersion: testPkgManagerVersion,
-						// Just providing typescript object will do
-						packageJson: {
-							dependencies: testAdditionalDeps,
-						},
-						additionalFiles: testAdditionalFiles,
-						createAdditionalFiles: [],
-						fileTests: {
-							runWith: allRunBy,
-							testMatch: "some**glob",
-							transforms: {
-								typescript: typescriptOptions,
-							},
-						},
-						timeout: testTimeout,
-						reporter: testReporter,
-					},
-				);
+				await createTestProject(context, testOptions);
 
 			// confirm corepack use called
-			expect(mockExec).toHaveBeenCalledWith(
+			expect(controlledExec).toHaveBeenCalledWith(
 				testPkgManagerSetCmd,
 				{
 					cwd: testProjectDir,
 					env: testSanitizedEnv,
 				},
-				expect.anything(),
+				expect.any(Logger),
+				{
+					...testCollectLogFiles,
+					subFolder: "corepackSet",
+				},
 			);
 
 			// confirm pkg install command called
-			expect(mockExec).toHaveBeenCalledWith(
-				testPkgInstallCmd,
+			expect(mockPerformInstall).toHaveBeenCalledWith(
 				{
-					cwd: testProjectDir,
+					isCI: context.isCI,
+					logger: expect.any(Logger),
+					projectDir: context.projectDir,
+					testProjectDir: context.testProjectDir,
+					relPathToProject: relative(
+						context.testProjectDir,
+						context.projectDir,
+					),
+					rootDir: context.rootDir,
+					updateLock: context.updateLock,
 					env: testSanitizedEnv,
+					entryAlias: context.entryAlias,
+					collectLogFiles: {
+						...testCollectLogFiles,
+						subFolder: "install",
+					},
 				},
-				expect.anything(),
+				{
+					pkgManager: testOptions.pkgManager,
+					pkgManagerAlias: testOptions.pkgManagerAlias,
+					pkgManagerVersion: testOptions.pkgManagerVersion,
+					modType: testOptions.modType,
+					installCLiArgs: testOptions.pkgManagerOptions.installCliArgs,
+					lock: false,
+				},
 			);
 
 			// Confirm command retrieval functions called with versions
@@ -1016,12 +1125,6 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			);
 			expect(mockGetPkgManagerSetCommand).toHaveBeenCalledWith(
 				PkgManager.YarnV1,
-				testPkgManagerVersion,
-			);
-			expect(mockGetPkgInstallCommand).toHaveBeenCalledWith(
-				PkgManager.YarnV1,
-				LockFileMode.None,
-				testPkgManagerOptions.installCliArgs,
 				testPkgManagerVersion,
 			);
 
@@ -1158,13 +1261,17 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				join(testProjectDir, expectedConfigFile),
 				JSON.stringify(testTsConfig, null, 4),
 			);
-			expect(mockExec).toHaveBeenCalledWith(
+			expect(controlledExec).toHaveBeenCalledWith(
 				`${testBinCmd} tsc -p ${expectedConfigFile}`,
 				{
 					cwd: testProjectDir,
 					env: testSanitizedEnv,
 				},
-				expect.anything(), // callback
+				expect.any(Logger),
+				{
+					...testCollectLogFiles,
+					subFolder: "compile",
+				},
 			);
 			// expect we copied files
 			expect(mockCopyOverAdditionalFiles).toHaveBeenCalledWith(
@@ -1188,6 +1295,7 @@ it("throws an error if the projectdir is not absolute", async () => {
 				isCI: false,
 				updateLock: false,
 				config: testConfig,
+				collectLogFiles: testCollectLogFiles,
 			},
 			{
 				modType: ModuleTypes.Commonjs,
@@ -1220,6 +1328,7 @@ it("throws an error if the testProjectDir is not absolute", async () => {
 				isCI: false,
 				updateLock: false,
 				config: testConfig,
+				collectLogFiles: testCollectLogFiles,
 			},
 			{
 				modType: ModuleTypes.Commonjs,
