@@ -1,6 +1,11 @@
 import { join, resolve } from "path";
 import camelCase from "lodash.camelcase";
-import { getPkgInstallCommand, LockFileMode, lockFiles } from "./pkgManager";
+import {
+	getLocalPackagePath,
+	getPkgInstallCommand,
+	LockFileMode,
+	lockFiles,
+} from "./pkgManager";
 import { ModuleTypes, PkgManager } from "./types";
 import { existsSync, readFileSync } from "fs";
 import { writeFile, mkdir, readFile } from "fs/promises";
@@ -58,6 +63,7 @@ export async function performInstall(
 		pkgManagerVersion,
 		installCLiArgs,
 	} = options;
+	const localPackagePath = getLocalPackagePath(pkgManager, relPathToProject);
 	let lockFileMode: LockFileMode;
 	const lockFileName = lockFiles[pkgManager];
 	const lockFileFolder = resolve(
@@ -87,13 +93,11 @@ export async function performInstall(
 				recursive: true,
 			});
 		} else {
+			const file = (await readFile(lockFilePath))
+				.toString()
+				.replaceAll(`\${${PATH_TO_PROJECT_KEY}}`, localPackagePath);
 			// Copy the found lock file to the project
-			await writeFile(
-				resolve(testProjectDir, lockFileName),
-				(await readFile(lockFilePath))
-					.toString()
-					.replaceAll(`\${${PATH_TO_PROJECT_KEY}}`, relPathToProject),
-			);
+			await writeFile(resolve(testProjectDir, lockFileName), file);
 			lockFileMode = updateLock ? LockFileMode.Update : LockFileMode.Frozen;
 		}
 	}
@@ -135,7 +139,7 @@ export async function performInstall(
 				lockFilePath,
 				nextFile
 					.toString()
-					.replaceAll(relPathToProject, `\${${PATH_TO_PROJECT_KEY}}`),
+					.replaceAll(localPackagePath, `\${${PATH_TO_PROJECT_KEY}}`),
 			);
 		}
 	}

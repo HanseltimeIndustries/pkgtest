@@ -1,3 +1,4 @@
+import { getLocalPackagePath } from "./pkgManager";
 import { tryGetDependency } from "./tryGetDependency";
 import { TypescriptOptions, RunWith, PkgManager } from "./types";
 
@@ -114,18 +115,10 @@ export function createDependencies(
 		}
 	});
 
-	let protocol: string;
-	switch (pkgManager) {
-		case PkgManager.YarnBerry:
-			// Yarn v4 does not play well with file:// since it tries zipping things it shouldn't
-			protocol = "portal:";
-			break;
-		default:
-			protocol = "file:";
-	}
+	let localPath = getLocalPackagePath(pkgManager, packageRelativePath);
 
 	return {
-		[name]: `${protocol}${packageRelativePath}`,
+		[name]: localPath,
 		...peerDependencies,
 		...specificDeps,
 		...additionalDependencies,
