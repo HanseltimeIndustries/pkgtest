@@ -137,7 +137,7 @@ That's a lot of bang for a single config file!
 
 !!! Note
 
-    Please use examples from [Getting Started](./Getting%20Started/) if you're trying to test out pkgtest.
+    Please use examples from [Getting Started](./Getting%20Started/index.md) if you're trying to test out pkgtest.
 
 Example Files:
 

@@ -1,6 +1,6 @@
 # pkgtest Design
 
-As alluded to in the overview, pkgtest is largely an repeatable abstraction of the manual package importing
+As alluded to in the overview, pkgtest is largely a repeatable abstraction of the manual package importing
 process for testing.
 
 Package test is intended to run from a viable npm package directory
@@ -23,7 +23,7 @@ flowchart TD
 
 ### Prerequisite Tools
 
-For all NodeJS package managers (TODO- bun/deno support), corepack is used to download and run the correct version of a package manager.
+For all NodeJS package managers (TODO- bun support), corepack is used to download and run the correct version of a package manager.
 
 We expect that:
 
@@ -156,5 +156,6 @@ In reality, `-p 4` leads to 5 separate processes running at a time:
     4 x test suites and their respective shells
     1 x pkgtest async blockingr on the suite calls
 
+## Log File Collection
 
-
+In order to support issues on CI machines, pkgtest will also scan any stdio 

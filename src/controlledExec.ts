@@ -34,8 +34,8 @@ export async function controlledExec(
 				if (stderr) {
 					logger.logDebug(stderr);
 				}
-				logFilesScanner?.scanOnly(stdout, cwd, ExecExit.Error);
-				logFilesScanner?.scanOnly(stderr, cwd, ExecExit.Error);
+				logFilesScanner?.scanOnly(stdout, cwd, ExecExit.Normal);
+				logFilesScanner?.scanOnly(stderr, cwd, ExecExit.Normal);
 				logFilesScanner?.collectLogFiles();
 				res(stdout.trim());
 			}

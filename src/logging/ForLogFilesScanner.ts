@@ -5,7 +5,7 @@ import { CollectLogFilesOn } from "../types";
 
 export enum ExecExit {
 	Error = 1,
-	Normal = 1,
+	Normal = 2,
 }
 
 export interface ILogFilesScanner {
