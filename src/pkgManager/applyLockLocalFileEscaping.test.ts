@@ -45,9 +45,9 @@ it.each([
 	[PkgManager.Pnpm, "win32", "/hey/there/fam", "/hey/there/fam"],
 	[
 		PkgManager.Npm,
-		"darwin",
+		"win32",
 		"C:\\\\something\\\\here\\he.txt",
-		"C:\\\\something\\\\here\\he.txt",
+		"C:/something/here/he.txt",
 	],
 	[PkgManager.Npm, "darwin", "/hey/there/fam", "/hey/there/fam"],
 ])("handles windows files for %s %s %s", (pkgManager, platform, path, exp) => {

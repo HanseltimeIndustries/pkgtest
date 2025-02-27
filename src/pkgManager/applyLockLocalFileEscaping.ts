@@ -27,7 +27,8 @@ export function applyLockLocalFileEscaping(
 			}
 			return escaped;
 		}
-		case PkgManager.YarnBerry: {
+		case PkgManager.YarnBerry:
+		case PkgManager.Npm: {
 			// Yarn berry normalizes to unix paths
 			if (process.platform === "win32") {
 				const escaped = path.replaceAll(/\\+/g, "/");
