@@ -1,6 +1,6 @@
 import { cp, readFile, writeFile } from "fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "path";
-import { getAllMatchingFiles } from "./files";
+import { createTestProjectFolderPath, getAllMatchingFiles } from "./files";
 import {
 	ModuleTypes,
 	PkgManager,
@@ -22,12 +22,12 @@ import {
 } from "./pkgManager";
 import { BinTestRunner, FileTestRunner, ScriptTestRunner } from "./runners";
 import * as yaml from "js-yaml";
-import { Logger } from "./logging";
+import { ILogFilesScanner, Logger } from "./logging";
 import { copyOverAdditionalFiles } from "./files";
 import { AdditionalFilesCopy } from "./files/types";
 import { Reporter, TestFile } from "./reporters";
 import { PackageJson } from "type-fest";
-import { CollectLogFilesOptions, controlledExec } from "./controlledExec";
+import { controlledExec } from "./controlledExec";
 import { performInstall } from "./performInstall";
 import { StandardizedTestConfig } from "./config";
 import { existsSync } from "fs";
@@ -78,10 +78,10 @@ export interface CreateTestProjectContext {
 	 */
 	config: StandardizedTestConfig;
 	/**
-	 * If we should be collecting log files to a folder
-	 * Mainly meant for CI debugging processes
+	 * If we should be collecting log files to a folder for setup execs
+	 * Mainly meant for CI debugging processes - impacts performance since we are doing console output scans
 	 */
-	collectLogFiles: CollectLogFilesOptions | false;
+	logFilesScanner?: ILogFilesScanner;
 }
 
 export interface CreateTestTestOptions<PkgManagerT extends PkgManager> {
@@ -142,7 +142,8 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		rootDir,
 		matchIgnore,
 		lock,
-		collectLogFiles,
+		entryAlias,
+		logFilesScanner: topLevelLogFilesScanner,
 	} = context;
 
 	if (!isAbsolute(projectDir)) {
@@ -167,6 +168,15 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		scriptTests,
 	} = testOptions;
 	const logPrefix = `[${context.entryAlias}, ${pkgManager}, ${pkgManagerAlias}, ${modType}, @${testProjectDir}]`;
+	// Each log file setup should be isolated by testproject config
+	const logFilesScanner = topLevelLogFilesScanner?.createNested(
+		createTestProjectFolderPath({
+			entryAlias,
+			pkgManager,
+			pkgManagerAlias,
+			modType,
+		}),
+	);
 
 	let testFiles: string[] = [];
 	if (fileTests) {
@@ -296,12 +306,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 			env: sanitizedEnv,
 		},
 		logger,
-		collectLogFiles
-			? {
-					...collectLogFiles,
-					subFolder: "corepackSet",
-				}
-			: false,
+		logFilesScanner?.createNested("corepackSet"),
 	);
 	await performInstall(
 		{
@@ -314,12 +319,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 			updateLock: context.updateLock,
 			env: sanitizedEnv,
 			entryAlias: context.entryAlias,
-			collectLogFiles: collectLogFiles
-				? {
-						...collectLogFiles,
-						subFolder: "install",
-					}
-				: false,
+			logFilesScanner: logFilesScanner?.createNested("install"),
 		},
 		{
 			pkgManager,
@@ -387,12 +387,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 					env: sanitizedEnv,
 				},
 				logger,
-				collectLogFiles
-					? {
-							...collectLogFiles,
-							subFolder: "compile",
-						}
-					: false,
+				logFilesScanner?.createNested("compile"),
 			);
 			logger.logDebug(`Compiled ${configFilePath} at ${testProjectDir}`);
 
@@ -463,6 +458,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 						timeout,
 						reporter,
 						baseEnv: sanitizedEnv,
+						entryAlias,
 					}),
 				);
 			});
@@ -492,6 +488,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 						timeout,
 						reporter,
 						baseEnv: sanitizedEnv,
+						entryAlias,
 					}),
 				);
 			});
@@ -512,6 +509,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 			failFast,
 			reporter,
 			baseEnv: sanitizedEnv,
+			entryAlias,
 		});
 	}
 
@@ -528,6 +526,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 			failFast,
 			reporter,
 			baseEnv: sanitizedEnv,
+			entryAlias,
 		});
 	}
 

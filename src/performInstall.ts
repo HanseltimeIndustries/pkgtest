@@ -1,5 +1,4 @@
 import { join, resolve } from "path";
-import camelCase from "lodash.camelcase";
 import {
 	applyLockLocalFileEscaping,
 	getLocalPackagePath,
@@ -10,8 +9,9 @@ import {
 import { ModuleTypes, PkgManager } from "./types";
 import { existsSync } from "fs";
 import { writeFile, mkdir, readFile } from "fs/promises";
-import { CollectLogFilesOptions, controlledExec } from "./controlledExec";
-import { Logger } from "./logging";
+import { controlledExec } from "./controlledExec";
+import { ILogFilesScanner, Logger } from "./logging";
+import { createTestProjectFolderPath } from "./files";
 
 export const VERSION_PROJECT_KEY = "localPathVersion";
 export const PATH_TO_PROJECT_KEY = "relPathToProject";
@@ -32,7 +32,7 @@ export async function performInstall(
 		entryAlias: string;
 		isCI: boolean;
 		logger: Logger;
-		collectLogFiles: false | CollectLogFilesOptions;
+		logFilesScanner?: ILogFilesScanner;
 	},
 	options: {
 		modType: ModuleTypes;
@@ -57,7 +57,7 @@ export async function performInstall(
 		updateLock,
 		relPathToProject: _relPathToProject,
 		entryAlias,
-		collectLogFiles,
+		logFilesScanner,
 	} = context;
 	const {
 		lock,
@@ -82,10 +82,12 @@ export async function performInstall(
 		projectDir,
 		rootDir,
 		lock === false ? "shouldnotbehere" : lock.folder,
-		camelCase(entryAlias),
-		modType,
-		pkgManager,
-		camelCase(pkgManagerAlias),
+		createTestProjectFolderPath({
+			entryAlias,
+			modType,
+			pkgManager,
+			pkgManagerAlias,
+		}),
 	);
 	const lockFilePath = join(lockFileFolder, lockFileName);
 	if (lock === false) {
@@ -127,7 +129,7 @@ export async function performInstall(
 			env,
 		},
 		logger,
-		collectLogFiles,
+		logFilesScanner,
 	);
 	if (lockFileMode === LockFileMode.Update) {
 		const writtenLockFile = resolve(testProjectDir, lockFileName);

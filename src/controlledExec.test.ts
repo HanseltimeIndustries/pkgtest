@@ -1,16 +1,8 @@
-import { join, resolve } from "path";
-import { CollectLogFilesOn, controlledExec } from "./controlledExec";
-import { Logger, ScanForLogFilesLogger } from "./logging";
+import { controlledExec } from "./controlledExec";
+import { ExecExit, ILogFilesScanner, Logger } from "./logging";
 import { exec } from "child_process";
 
 jest.mock("child_process");
-var mockScanForLogFilesLoggerConst: jest.Mock;
-jest.mock("./logging", () => {
-	mockScanForLogFilesLoggerConst = jest.fn();
-	return {
-		ScanForLogFilesLogger: mockScanForLogFilesLoggerConst,
-	};
-});
 
 const mockExec = jest.mocked(exec);
 
@@ -28,28 +20,14 @@ const testCommand = "some command that works";
 const testStdErr = "This is an error stream!  That was a bad idea! oh no!";
 const testStdOut = "This is normal stream!";
 
-const testCollectFolder = join("pkgtest", "run", "logs");
-
-let mockScanForLogFilesLoggerInstance: ScanForLogFilesLogger = {
-	log: jest.fn(),
-	logDebug: jest.fn(),
-	error: jest.fn(),
-	collectLogFiles: jest.fn(),
+const mockLogFilesScanner: ILogFilesScanner = {
 	scanOnly: jest.fn(),
-	logfiles: new Set<string>(),
-	context: "scanLogger",
-	debug: false,
-	collectUnder: "collectUnderFolder",
-	cwd: "cwdOfExec",
-	logger: testLogger,
+	collectLogFiles: jest.fn(),
+	createNested: jest.fn(),
 };
+
 beforeEach(() => {
 	jest.resetAllMocks();
-
-	// Set up the scan dummy constructor to return an "instance" for us
-	mockScanForLogFilesLoggerConst.mockReturnValue(
-		mockScanForLogFilesLoggerInstance,
-	);
 
 	mockExec.mockImplementation((command, _options, cb) => {
 		if (!cb) {
@@ -74,6 +52,7 @@ it("writes out both stdio on error", async () => {
 					cwd: "cwd",
 				},
 				testLogger,
+				mockLogFilesScanner,
 			),
 	).rejects.toThrow("Dang");
 
@@ -88,7 +67,16 @@ it("writes out both stdio on error", async () => {
 	expect(testLogger.error).toHaveBeenCalledWith(testStdErr);
 
 	// Optimization - make sure we don't scan if not collecting
-	expect(mockScanForLogFilesLoggerConst).not.toHaveBeenCalled();
+	expect(mockLogFilesScanner.scanOnly).toHaveBeenCalledWith(
+		testStdOut,
+		"cwd",
+		ExecExit.Error,
+	);
+	expect(mockLogFilesScanner.scanOnly).toHaveBeenCalledWith(
+		testStdErr,
+		"cwd",
+		ExecExit.Error,
+	);
 });
 
 it("writes out debug logs on both stdio on normal return", async () => {
@@ -99,6 +87,7 @@ it("writes out debug logs on both stdio on normal return", async () => {
 				cwd: "cwd",
 			},
 			testLogger,
+			mockLogFilesScanner,
 		),
 	).toEqual(testStdOut);
 
@@ -112,177 +101,16 @@ it("writes out debug logs on both stdio on normal return", async () => {
 	expect(testLogger.logDebug).toHaveBeenCalledWith(testStdOut);
 	expect(testLogger.logDebug).toHaveBeenCalledWith(testStdErr);
 	// Optimization - make sure we don't scan if not collecting
-	expect(mockScanForLogFilesLoggerConst).not.toHaveBeenCalled();
-});
-
-it.each([
-	[CollectLogFilesOn.Error, false],
-	[CollectLogFilesOn.Error, true],
-	[CollectLogFilesOn.All, false],
-	[CollectLogFilesOn.All, true],
-])("collects logs on error (on: %s) (subFolder: %s)", async (on, subFolder) => {
-	await expect(
-		async () =>
-			await controlledExec(
-				testErrorCommand,
-				{
-					cwd: "cwd",
-				},
-				testLogger,
-				{
-					on,
-					toFolder: testCollectFolder,
-					...(subFolder
-						? {
-								subFolder: "sf1",
-							}
-						: {}),
-				},
-			),
-	).rejects.toThrow("Dang");
-
-	// Normal returns
-	expect(mockExec).toHaveBeenCalledWith(
-		testErrorCommand,
-		{
-			cwd: "cwd",
-		},
-		expect.anything(),
-	);
-	// Since we switch to the mocked scan logger we expect that one
-	expect(mockScanForLogFilesLoggerConst).toHaveBeenCalledWith(
-		testLogger,
+	expect(mockLogFilesScanner.scanOnly).toHaveBeenCalledWith(
+		testStdOut,
 		"cwd",
-		subFolder ? resolve(testCollectFolder, "sf1") : resolve(testCollectFolder),
+		ExecExit.Normal,
 	);
-	expect(mockScanForLogFilesLoggerInstance.log).toHaveBeenCalledWith(
-		testStdOut,
-	);
-	expect(mockScanForLogFilesLoggerInstance.error).toHaveBeenCalledWith(
+	expect(mockLogFilesScanner.scanOnly).toHaveBeenCalledWith(
 		testStdErr,
-	);
-	// Make sure we collected the logs
-	expect(mockScanForLogFilesLoggerInstance.collectLogFiles).toHaveBeenCalled();
-});
-
-it("collects logs on normal return (on: All)", async () => {
-	expect(
-		await controlledExec(
-			testCommand,
-			{
-				cwd: "cwd",
-			},
-			testLogger,
-			{
-				on: CollectLogFilesOn.All,
-				toFolder: testCollectFolder,
-			},
-		),
-	).toEqual(testStdOut);
-
-	// Normal returns
-	expect(mockExec).toHaveBeenCalledWith(
-		testCommand,
-		{
-			cwd: "cwd",
-		},
-		expect.anything(),
-	);
-	// Since we switch to the mocked scan logger we expect that one
-	expect(mockScanForLogFilesLoggerConst).toHaveBeenCalledWith(
-		testLogger,
 		"cwd",
-		resolve(testCollectFolder),
+		ExecExit.Normal,
 	);
-	expect(mockScanForLogFilesLoggerInstance.logDebug).toHaveBeenCalledWith(
-		testStdOut,
-	);
-	expect(mockScanForLogFilesLoggerInstance.logDebug).toHaveBeenCalledWith(
-		testStdErr,
-	);
-	// Make sure we collected the logs
-	expect(mockScanForLogFilesLoggerInstance.collectLogFiles).toHaveBeenCalled();
-});
-
-it("does not collect logs on normal return (on: Error)", async () => {
-	expect(
-		await controlledExec(
-			testCommand,
-			{
-				cwd: "cwd",
-			},
-			testLogger,
-			{
-				on: CollectLogFilesOn.Error,
-				toFolder: testCollectFolder,
-			},
-		),
-	).toEqual(testStdOut);
-
-	// Normal returns
-	expect(mockExec).toHaveBeenCalledWith(
-		testCommand,
-		{
-			cwd: "cwd",
-		},
-		expect.anything(),
-	);
-	// Since we switch to the mocked scan logger we expect that one
-
-	expect(testLogger.logDebug).toHaveBeenCalledWith(testStdOut);
-	expect(testLogger.logDebug).toHaveBeenCalledWith(testStdErr);
-	// We have no nded to have set up collection
-	expect(mockScanForLogFilesLoggerConst).not.toHaveBeenCalled();
-	// Make sure we collected the logs
-	expect(
-		mockScanForLogFilesLoggerInstance.collectLogFiles,
-	).not.toHaveBeenCalled();
-});
-
-it("does collect logs on normal return with only return stdout", async () => {
-	expect(
-		await controlledExec(
-			testCommand,
-			{
-				cwd: "cwd",
-			},
-			testLogger,
-			{
-				on: CollectLogFilesOn.All,
-				toFolder: testCollectFolder,
-			},
-			{
-				onlyReturnStdOut: true,
-			},
-		),
-	).toEqual(testStdOut);
-
-	// Normal returns
-	expect(mockExec).toHaveBeenCalledWith(
-		testCommand,
-		{
-			cwd: "cwd",
-		},
-		expect.anything(),
-	);
-	// Since we switch to the mocked scan logger we expect that one
-	expect(mockScanForLogFilesLoggerConst).toHaveBeenCalledWith(
-		testLogger,
-		"cwd",
-		resolve(testCollectFolder),
-	);
-	expect(mockScanForLogFilesLoggerInstance.logDebug).not.toHaveBeenCalledWith(
-		testStdOut,
-	);
-	expect(mockScanForLogFilesLoggerInstance.scanOnly).toHaveBeenCalledWith(
-		testStdOut,
-	);
-	// We still debug log stderr
-	expect(mockScanForLogFilesLoggerInstance.logDebug).toHaveBeenCalledWith(
-		testStdErr,
-	);
-	// Make sure we collected the logs
-	expect(mockScanForLogFilesLoggerInstance.collectLogFiles).toHaveBeenCalled();
 });
 
 it("does not log std on normal return with only return stdout", async () => {
@@ -293,7 +121,7 @@ it("does not log std on normal return with only return stdout", async () => {
 				cwd: "cwd",
 			},
 			testLogger,
-			false,
+			mockLogFilesScanner,
 			{
 				onlyReturnStdOut: true,
 			},
@@ -309,12 +137,18 @@ it("does not log std on normal return with only return stdout", async () => {
 		expect.anything(),
 	);
 
-	expect(mockScanForLogFilesLoggerConst).not.toHaveBeenCalled();
 	expect(testLogger.logDebug).not.toHaveBeenCalledWith(testStdOut);
 	// We still debug log stderr
 	expect(testLogger.logDebug).toHaveBeenCalledWith(testStdErr);
 	// Make sure we collected the logs
-	expect(
-		mockScanForLogFilesLoggerInstance.collectLogFiles,
-	).not.toHaveBeenCalled();
+	expect(mockLogFilesScanner.scanOnly).toHaveBeenCalledWith(
+		testStdOut,
+		"cwd",
+		ExecExit.Normal,
+	);
+	expect(mockLogFilesScanner.scanOnly).toHaveBeenCalledWith(
+		testStdErr,
+		"cwd",
+		ExecExit.Normal,
+	);
 });

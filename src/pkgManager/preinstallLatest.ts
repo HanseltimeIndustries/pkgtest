@@ -1,10 +1,10 @@
 import { join } from "path";
 import { writeFile } from "fs/promises";
-import { Logger } from "../logging";
+import { ILogFilesScanner, Logger } from "../logging";
 import { PkgManager } from "../types";
 import { getPkgManagerSetCommand } from "./getPkgManagerSetCommand";
 import { sanitizeEnv } from "./sanitizeEnv";
-import { CollectLogFilesOptions, controlledExec } from "../controlledExec";
+import { controlledExec } from "../controlledExec";
 
 /**
  * The use of corepack pkgManager@latest means that pkgmanager keeps looking up the latest tags.
@@ -22,7 +22,7 @@ export async function preinstallLatest(
 	tempDir: string,
 	pkgManager: PkgManager,
 	logger: Logger,
-	collectLogsOptions: false | CollectLogFilesOptions,
+	logFilesScanner?: ILogFilesScanner,
 ) {
 	const pkgJsonPath = join(tempDir, "package.json");
 	await writeFile(
@@ -43,7 +43,7 @@ export async function preinstallLatest(
 			env: sanitizeEnv(pkgJsonPath),
 		},
 		logger,
-		collectLogsOptions,
+		logFilesScanner,
 		{
 			onlyReturnStdOut: true,
 		},

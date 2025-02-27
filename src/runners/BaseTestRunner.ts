@@ -1,6 +1,21 @@
 import { exec } from "child_process";
 import { TestGroupOverview, Reporter, TestDescriptor } from "../reporters";
-import { FailFastError } from "../types";
+import { FailFastError, ModuleTypes, PkgManager } from "../types";
+import { ExecExit, ILogFilesScanner } from "../logging";
+
+export interface BaseTestRunnerOptions {
+	projectDir: string;
+	failFast?: boolean;
+	timeout: number;
+	reporter: Reporter;
+	baseEnv: {
+		[e: string]: string | undefined;
+	};
+	pkgManager: PkgManager;
+	pkgManagerAlias: string;
+	modType: ModuleTypes;
+	entryAlias: string;
+}
 
 export abstract class BaseTestRunner<RunTArgs> {
 	readonly timeout: number;
@@ -8,24 +23,29 @@ export abstract class BaseTestRunner<RunTArgs> {
 	readonly groupOverview = new TestGroupOverview();
 	readonly failFast: boolean;
 	protected readonly reporter: Reporter;
+	readonly pkgManager: PkgManager;
+	/**
+	 * An alias for the pkg manager configuration for this test suite.
+	 *
+	 * This is valuable for multiple of 'PkgManager' types (like yarn pnp and node-modules linking)
+	 */
+	readonly pkgManagerAlias: string;
+	readonly modType: ModuleTypes;
+	readonly entryAlias: string;
 	readonly baseEnv: {
 		[e: string]: string | undefined;
 	};
 
-	constructor(options: {
-		projectDir: string;
-		failFast?: boolean;
-		timeout: number;
-		reporter: Reporter;
-		baseEnv: {
-			[e: string]: string | undefined;
-		};
-	}) {
+	constructor(options: BaseTestRunnerOptions) {
 		this.projectDir = options.projectDir;
 		this.failFast = !!options.failFast;
 		this.timeout = options.timeout;
 		this.reporter = options.reporter;
 		this.baseEnv = options.baseEnv;
+		this.pkgManager = options.pkgManager;
+		this.pkgManagerAlias = options.pkgManagerAlias;
+		this.modType = options.modType;
+		this.entryAlias = options.entryAlias;
 	}
 
 	/**
@@ -42,6 +62,7 @@ export abstract class BaseTestRunner<RunTArgs> {
 				[k: string]: string | undefined;
 			};
 		},
+		logFilesScanner?: ILogFilesScanner,
 	): Promise<boolean> {
 		try {
 			const start = new Date();
@@ -68,6 +89,16 @@ export abstract class BaseTestRunner<RunTArgs> {
 								timedout: testTimeMs >= this.timeout,
 								test: testDescriptor,
 							});
+							logFilesScanner?.scanOnly(
+								stdout,
+								this.projectDir,
+								ExecExit.Error,
+							);
+							logFilesScanner?.scanOnly(
+								stderr,
+								this.projectDir,
+								ExecExit.Error,
+							);
 							if (this.failFast) {
 								rej(new FailFastError());
 							}
@@ -80,6 +111,16 @@ export abstract class BaseTestRunner<RunTArgs> {
 								stderr,
 								test: testDescriptor,
 							});
+							logFilesScanner?.scanOnly(
+								stdout,
+								this.projectDir,
+								ExecExit.Normal,
+							);
+							logFilesScanner?.scanOnly(
+								stderr,
+								this.projectDir,
+								ExecExit.Normal,
+							);
 						}
 
 						// Always return unless we have failFast set
@@ -91,15 +132,20 @@ export abstract class BaseTestRunner<RunTArgs> {
 			// Process the unready for the summary
 			if (e instanceof FailFastError) {
 				this.groupOverview.finalize(true);
-				// if we throw an error here, then we are failing fast
 				return false;
 			} else {
 				this.groupOverview.finalize();
 				throw e;
 			}
+		} finally {
+			logFilesScanner?.collectLogFiles();
 		}
 		return true;
 	}
 
-	abstract runTests(opts: RunTArgs): Promise<TestGroupOverview>;
+	abstract runTests(
+		opts: RunTArgs & {
+			logFilesScanner?: ILogFilesScanner;
+		},
+	): Promise<TestGroupOverview>;
 }

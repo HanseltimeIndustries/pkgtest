@@ -1,4 +1,3 @@
-import { tmpdir } from "os";
 import { isAbsolute, join, resolve } from "path";
 import { getTempDir } from "./getTempDir";
 

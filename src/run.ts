@@ -1,14 +1,16 @@
 import { getConfig, StandardizedTestConfigEntry } from "./config";
 import { createTestProject } from "./createTestProject";
 import { mkdtemp } from "fs/promises";
-import { join, resolve } from "path";
+import { join } from "path";
 import { BinTestRunner, FileTestRunner, ScriptTestRunner } from "./runners";
 import { SimpleReporter } from "./reporters/SimpleReporter";
-import { Logger } from "./logging";
+import { createTopLevelLogFilesScanner, Logger } from "./logging";
 import chalk from "chalk";
 import {
 	AddFilePerTestProjectCreate,
 	AdditionalFilesEntry,
+	CollectLogFileStages,
+	CollectLogFilesOn,
 	ModuleTypes,
 	PkgManager,
 } from "./types";
@@ -23,7 +25,6 @@ import {
 import { TestGroupOverview } from "./reporters";
 import {
 	findAdditionalFilesForCopyOver,
-	getLogCollectFolder,
 	getTempProjectDirPrefix,
 } from "./files";
 import { AdditionalFilesCopy } from "./files/types";
@@ -32,12 +33,11 @@ import {
 	EntryFilterOptions,
 } from "./applyFiltersToEntries";
 import { groupSyncInstallEntries } from "./groupSyncInstallEntries";
-import { mkdirSync, readFileSync, rmSync } from "fs";
+import { readFileSync, rmSync } from "fs";
 import { PackageJson } from "type-fest";
 import { execSync } from "child_process";
 import { getTempDir } from "./files";
 import { executeRunners } from "./executeRunners";
-import { CollectLogFilesOn, CollectLogFilesOptions } from "./controlledExec";
 
 export const DEFAULT_TIMEOUT = 2000;
 
@@ -117,7 +117,8 @@ export interface RunOptions {
 	 *
 	 * Note: this is mainly meant for CI processes
 	 */
-	collectSetupLogFilesOn?: CollectLogFilesOn;
+	collectLogFilesOn?: CollectLogFilesOn;
+	collectLogFilesStages?: CollectLogFileStages[];
 	/**
 	 * The number of test suites to run in parallel
 	 */
@@ -157,7 +158,8 @@ export async function run(options: RunOptions) {
 		failFast,
 		preserveResources,
 		iPreserveResources,
-		collectSetupLogFilesOn,
+		collectLogFilesOn,
+		collectLogFilesStages,
 		filters = {},
 	} = options;
 	// Store clean up functions that can be async
@@ -183,22 +185,11 @@ export async function run(options: RunOptions) {
 		debug: !!debug,
 	});
 	// Log file collection config
-	let collectLogOptions: false | Omit<CollectLogFilesOptions, "subFolder"> =
-		false;
-	if (collectSetupLogFilesOn) {
-		const collectLogTopFolder = resolve(
-			getLogCollectFolder(),
-			"run-" + new Date().getTime(),
-		);
-		mkdirSync(collectLogTopFolder, {
-			recursive: true,
+	const { topLevelScanner: lfTopLevelScanner, collect: lfCollectOn } =
+		createTopLevelLogFilesScanner({
+			collectLogFilesOn,
+			collectLogFilesStages,
 		});
-		logger.log(`Collecting logs to ${collectLogTopFolder} for this run`);
-		collectLogOptions = {
-			on: collectSetupLogFilesOn,
-			toFolder: collectLogTopFolder,
-		};
-	}
 	try {
 		logger.logDebug("Retrieving Config...");
 		const config = await getConfig(configPath);
@@ -267,7 +258,9 @@ export async function run(options: RunOptions) {
 				context: "[resolve latest pkg manager]",
 				debug: !!debug,
 			}),
-			collectLogOptions,
+			lfCollectOn.setup
+				? lfTopLevelScanner?.createNested("corepackLatest")
+				: undefined,
 		);
 
 		const usedPkgManagers = getPkgManagers(filteredEntries);
@@ -373,7 +366,9 @@ export async function run(options: RunOptions) {
 						lock,
 						entryAlias: testConfigEntry.alias,
 						config,
-						collectLogFiles: collectLogOptions,
+						logFilesScanner: lfCollectOn.setup
+							? lfTopLevelScanner?.createNested("setup")
+							: undefined,
 					},
 					{
 						modType,
@@ -487,7 +482,7 @@ export async function run(options: RunOptions) {
 		}
 
 		try {
-			const runnerCtx = {
+			const baseRunnerCtx = {
 				logger,
 				parallel: options.parallel,
 			};
@@ -509,7 +504,12 @@ export async function run(options: RunOptions) {
 				fileTestRunners,
 				fileTestSuitesOverview,
 				fileTestsOverview,
-				runnerCtx,
+				{
+					...baseRunnerCtx,
+					logFilesScanner: lfCollectOn.fileTests
+						? lfTopLevelScanner?.createNested("fileTests")
+						: undefined,
+				},
 				{
 					testNames,
 				},
@@ -519,7 +519,12 @@ export async function run(options: RunOptions) {
 				binTestRunners,
 				binTestSuitesOverview,
 				binTestsOverview,
-				runnerCtx,
+				{
+					...baseRunnerCtx,
+					logFilesScanner: lfCollectOn.binTests
+						? lfTopLevelScanner?.createNested("binTests")
+						: undefined,
+				},
 				undefined,
 			);
 			// script Tests
@@ -527,7 +532,12 @@ export async function run(options: RunOptions) {
 				scriptTestRunners,
 				scriptTestSuitesOverview,
 				scriptTestsOverview,
-				runnerCtx,
+				{
+					...baseRunnerCtx,
+					logFilesScanner: lfCollectOn.scriptTests
+						? lfTopLevelScanner?.createNested("scriptTests")
+						: undefined,
+				},
 				undefined,
 			);
 			return fileTestsPass && scriptTestsPass && binTestsPass;

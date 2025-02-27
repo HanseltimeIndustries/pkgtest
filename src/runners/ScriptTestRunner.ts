@@ -1,6 +1,13 @@
-import { ModuleTypes, PkgManager, ScriptTestConfig } from "../types";
-import { ScriptTestRunnerDescribe, Reporter } from "../reporters";
-import { BaseTestRunner } from "./BaseTestRunner";
+import { ScriptTestConfig } from "../types";
+import { ScriptTestRunnerDescribe } from "../reporters";
+import { BaseTestRunner, BaseTestRunnerOptions } from "./BaseTestRunner";
+import { ILogFilesScanner } from "../logging";
+import { createTestProjectFolderPath } from "../files";
+
+export interface ScriptTestRunnerOptions extends BaseTestRunnerOptions {
+	runCommand: string;
+	scriptTests: ScriptTestConfig[];
+}
 
 export class ScriptTestRunner
 	extends BaseTestRunner<undefined>
@@ -8,41 +15,22 @@ export class ScriptTestRunner
 {
 	readonly runCommand: string;
 	readonly scriptTests: ScriptTestConfig[];
-	readonly pkgManager: PkgManager;
-	/**
-	 * An alias for the pkg manager configuration for this test suite.
-	 *
-	 * This is valuable for multiple of 'PkgManager' types (like yarn pnp and node-modules linking)
-	 */
-	readonly pkgManagerAlias: string;
-	readonly modType: ModuleTypes;
 
-	constructor(options: {
-		runCommand: string;
-		projectDir: string;
-		scriptTests: ScriptTestConfig[];
-		pkgManager: PkgManager;
-		pkgManagerAlias: string;
-		modType: ModuleTypes;
-		failFast?: boolean;
-		timeout: number;
-		reporter: Reporter;
-		baseEnv: {
-			[e: string]: string | undefined;
-		};
-	}) {
+	constructor(options: ScriptTestRunnerOptions) {
 		super(options);
 		this.scriptTests = options.scriptTests;
 		this.runCommand = options.runCommand;
-		this.pkgManager = options.pkgManager;
-		this.pkgManagerAlias = options.pkgManagerAlias;
-		this.modType = options.modType;
 	}
 
-	async runTests() {
+	async runTests(options: {
+		logFilesScanner?: ILogFilesScanner;
+	}) {
 		this.reporter.start(this);
 		this.groupOverview.startTime();
 		this.groupOverview.addToTotal(this.scriptTests.length);
+		const testLevelScanner = options.logFilesScanner?.createNested(
+			createTestProjectFolderPath(this),
+		);
 		for (let i = 0; i < this.scriptTests.length; i++) {
 			const { name } = this.scriptTests[i];
 			const command = `${this.runCommand} ${name}`;
@@ -55,6 +43,7 @@ export class ScriptTestRunner
 					// No additional env
 					env: {},
 				},
+				testLevelScanner?.createNested(`${i}`),
 			);
 			if (!cont) {
 				break;

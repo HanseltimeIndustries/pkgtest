@@ -3,10 +3,8 @@ import { LIBRARY_NAME } from "../config";
 import { ModuleTypes, PkgManager } from "../types";
 import { preinstallLatest } from "./preinstallLatest";
 import { join } from "path";
-import { Logger } from "../logging";
+import { ILogFilesScanner, Logger } from "../logging";
 import { resolveLatestVersions } from "./resolveLatestVersions";
-import { CollectLogFilesOn } from "../controlledExec";
-import camelCase from "lodash.camelcase";
 
 jest.mock("./preinstallLatest");
 jest.mock("fs/promises");
@@ -22,13 +20,23 @@ const latestPnpm = "9.2.2";
 
 const testTempDir = "someTempDir";
 
-const testCollectLogs = {
-	on: CollectLogFilesOn.Error,
-	toFolder: "someFolder",
+const mockLogFilesScanner: ILogFilesScanner = {
+	scanOnly: jest.fn(),
+	collectLogFiles: jest.fn(),
+	createNested: jest.fn(),
+};
+
+const mockPerPkgManagerLogFilesScanner: ILogFilesScanner = {
+	scanOnly: jest.fn(),
+	collectLogFiles: jest.fn(),
+	createNested: jest.fn(),
 };
 
 beforeEach(() => {
 	jest.resetAllMocks();
+	(mockLogFilesScanner.createNested as jest.Mock).mockReturnValue(
+		mockPerPkgManagerLogFilesScanner,
+	);
 });
 
 it("applies resolution for missing versions with once and only once lookup", async () => {
@@ -105,7 +113,7 @@ it("applies resolution for missing versions with once and only once lookup", asy
 				},
 			],
 			logger,
-			testCollectLogs,
+			mockLogFilesScanner,
 		),
 	).toEqual([
 		{
@@ -163,28 +171,29 @@ it("applies resolution for missing versions with once and only once lookup", asy
 		testTempDir,
 		PkgManager.Pnpm,
 		logger,
-		{
-			...testCollectLogs,
-			subFolder: `latest${camelCase(PkgManager.Pnpm)}`,
-		},
+		mockPerPkgManagerLogFilesScanner,
 	);
 	expect(mockPreinstallLatest).toHaveBeenCalledWith(
 		testTempDir,
 		PkgManager.YarnV1,
 		logger,
-		{
-			...testCollectLogs,
-			subFolder: `latest${camelCase(PkgManager.YarnV1)}`,
-		},
+		mockPerPkgManagerLogFilesScanner,
 	);
 	expect(mockPreinstallLatest).toHaveBeenCalledWith(
 		testTempDir,
 		PkgManager.YarnBerry,
 		logger,
-		{
-			...testCollectLogs,
-			subFolder: `latest${camelCase(PkgManager.YarnBerry)}`,
-		},
+		mockPerPkgManagerLogFilesScanner,
+	);
+	// Expect that we created nested scanners of each pkg manager type that was latest
+	expect(mockLogFilesScanner.createNested).toHaveBeenCalledWith(
+		PkgManager.Pnpm,
+	);
+	expect(mockLogFilesScanner.createNested).toHaveBeenCalledWith(
+		PkgManager.YarnV1,
+	);
+	expect(mockLogFilesScanner.createNested).toHaveBeenCalledWith(
+		PkgManager.YarnBerry,
 	);
 	expect(mockMkdtemp).toHaveBeenCalledTimes(3);
 	expect(mockMkdtemp).toHaveBeenCalledWith(join("someDir", `${LIBRARY_NAME}-`));

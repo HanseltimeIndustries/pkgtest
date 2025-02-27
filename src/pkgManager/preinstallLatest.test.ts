@@ -1,56 +1,51 @@
 import { writeFile } from "fs/promises";
 import { sanitizeEnv } from "./sanitizeEnv";
-import { Logger } from "../logging";
+import { ILogFilesScanner, Logger } from "../logging";
 import { preinstallLatest } from "./preinstallLatest";
 import { PkgManager } from "../types";
-import { exec, ExecException } from "child_process";
 import { join } from "path";
+import { controlledExec } from "../controlledExec";
 
 jest.mock("fs/promises");
-jest.mock("child_process");
+jest.mock("../controlledExec");
 
 const mockWriteFile = jest.mocked(writeFile);
-const mockExec = jest.mocked(exec);
+const mockControlledExec = jest.mocked(controlledExec);
+
+const mockLogFilesScanner: ILogFilesScanner = {
+	scanOnly: jest.fn(),
+	collectLogFiles: jest.fn(),
+	createNested: jest.fn(),
+};
 
 beforeEach(() => {
 	jest.resetAllMocks();
 });
 
 it("performs the correct commands", async () => {
-	mockExec.mockImplementation(
-		(
-			_cmd: string,
-			_options: any,
-			cb:
-				| ((
-						e: ExecException | null,
-						stdout: string | Buffer,
-						stderr: string | Buffer,
-				  ) => void)
-				| undefined,
-		) => {
-			cb?.(null, "someVersion", "");
-			return undefined as any;
-		},
-	);
-
+	mockControlledExec.mockResolvedValue("someVersion");
+	const logger = new Logger({
+		context: "something",
+		debug: false,
+	});
 	await preinstallLatest(
 		"someTempDir",
 		PkgManager.YarnBerry,
-		new Logger({
-			context: "something",
-			debug: false,
-		}),
-		false,
+		logger,
+		mockLogFilesScanner,
 	);
 
-	expect(mockExec).toHaveBeenCalledWith(
+	expect(mockControlledExec).toHaveBeenCalledWith(
 		`corepack yarn@latest --version`,
 		{
 			cwd: "someTempDir",
 			env: sanitizeEnv(join("someTempDir", "package.json")),
 		},
-		expect.anything(),
+		logger,
+		mockLogFilesScanner,
+		{
+			onlyReturnStdOut: true,
+		},
 	);
 	expect(mockWriteFile).toHaveBeenCalledWith(
 		join("someTempDir", "package.json"),

@@ -345,3 +345,64 @@ export interface TestConfig {
 export class TestFailError extends Error {}
 
 export class FailFastError extends Error {}
+
+/// Log Files Collection Types
+
+/**
+ * Different stages that we can isolate and scan for log collection
+ *
+ * This is important because finding log files involves pkgtest scanning
+ * all stdio of every exec command that runs and using a regex to find log files.
+ *
+ * Then at the end of that scan, it will copy those log files over to the log collection
+ * folder.  This is valuable for ephemeral systems that you can't exec into but will slow
+ * down anything that does not need it.
+ */
+export enum CollectLogFileStages {
+	None = "none",
+	/**
+	 * All setup exec calls from corepack installation to pkgmanager installation
+	 */
+	Setup = "setup",
+	/**
+	 * All test runs will be scanned
+	 *
+	 * Note: this takes precednece over file tests if both specified
+	 */
+	Tests = "tests",
+	/**
+	 * Just file tests
+	 */
+	FileTests = "file",
+	/**
+	 * Just bin tests
+	 */
+	BinTests = "bin",
+	/**
+	 * Just script tests
+	 */
+	ScriptTests = "script",
+	/**
+	 * All stages - this will take precedence over any other stages
+	 */
+	All = "all",
+}
+
+/**
+ * Since pkgtest is scanning all stdio from exec processes when collecting log files,
+ * it is important to be able to limit when that scanning and saving happens.
+ *
+ * It is generally recommended to use "Error" when collecting log files so that you
+ * can find logs related to failed processes while minimizing the extra computation that
+ * occurs.
+ */
+export enum CollectLogFilesOn {
+	/**
+	 * Only if the exec process that we're monitoring did a non-zero exit
+	 */
+	Error = "error",
+	/**
+	 * Stdout and stderr will be scanned and collected regardless of exit code
+	 */
+	All = "all",
+}

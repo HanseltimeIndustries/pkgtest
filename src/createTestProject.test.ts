@@ -25,13 +25,9 @@ import { AdditionalFilesCopy } from "./files/types";
 import { SimpleReporter } from "./reporters/SimpleReporter";
 import { TestGroupOverview } from "./reporters";
 import { StandardizedTestConfig } from "./config";
-import {
-	CollectLogFilesOn,
-	CollectLogFilesOptions,
-	controlledExec,
-} from "./controlledExec";
+import { controlledExec } from "./controlledExec";
 import { performInstall } from "./performInstall";
-import { Logger } from "./logging";
+import { ILogFilesScanner, Logger } from "./logging";
 
 jest.mock("./createDependencies");
 jest.mock("fs/promises");
@@ -53,6 +49,22 @@ const mockGetTypescriptConfig = jest.mocked(getTypescriptConfig);
 const mockReadFile = jest.mocked(readFile);
 const mockSanitizeEnv = jest.mocked(sanitizeEnv);
 const mockPerformInstall = jest.mocked(performInstall);
+
+const mockTopLevelLogFilesScanner: ILogFilesScanner = {
+	scanOnly: jest.fn(),
+	collectLogFiles: jest.fn(),
+	createNested: jest.fn(),
+};
+const mockProjectLevelLogFilesScanner: ILogFilesScanner = {
+	scanOnly: jest.fn(),
+	collectLogFiles: jest.fn(),
+	createNested: jest.fn(),
+};
+const mockPerExecLogFilesScanner: ILogFilesScanner = {
+	scanOnly: jest.fn(),
+	collectLogFiles: jest.fn(),
+	createNested: jest.fn(),
+};
 
 const testTimeout = 3500;
 const testReporter = new SimpleReporter({
@@ -96,10 +108,6 @@ const testAdditionalFiles: AdditionalFilesCopy[] = [
 		toDir: "./",
 	},
 ];
-const testCollectLogFiles: CollectLogFilesOptions = {
-	on: CollectLogFilesOn.Error,
-	toFolder: join("testpkg", "run", "folder"),
-};
 const mockCreateAddPromise = jest.fn();
 const mockCreateAddSync = jest.fn();
 const testCreateAdditionalFiles = [mockCreateAddPromise, mockCreateAddSync];
@@ -136,6 +144,12 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			mockCreateAddSync.mockResolvedValue(["contents2", "file2.txt"]);
 			mockControlledExec.mockResolvedValue("stdout");
 			mockSanitizeEnv.mockReturnValue(testSanitizedEnv);
+			(mockTopLevelLogFilesScanner.createNested as jest.Mock).mockReturnValue(
+				mockProjectLevelLogFilesScanner,
+			);
+			(
+				mockProjectLevelLogFilesScanner.createNested as jest.Mock
+			).mockReturnValue(mockPerExecLogFilesScanner);
 		});
 
 		const expectedTypeField =
@@ -170,7 +184,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				isCI: false,
 				updateLock: false,
 				config: testConfig,
-				collectLogFiles: testCollectLogFiles,
+				logFilesScanner: mockTopLevelLogFilesScanner,
 			};
 			const testOptions = {
 				modType,
@@ -221,6 +235,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				timeout: testTimeout,
 				reporter: testReporter,
 				groupOverview: expect.any(TestGroupOverview),
+				entryAlias: testEntryAlias,
 			});
 			expect(binTestRunner).toBeUndefined();
 
@@ -232,10 +247,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					env: testSanitizedEnv,
 				},
 				expect.any(Logger),
-				{
-					...testCollectLogFiles,
-					subFolder: "corepackSet",
-				},
+				mockPerExecLogFilesScanner,
 			);
 
 			expect(mockCreateAddPromise).toHaveBeenCalledWith(testConfig, {
@@ -266,10 +278,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					updateLock: context.updateLock,
 					env: testSanitizedEnv,
 					entryAlias: context.entryAlias,
-					collectLogFiles: {
-						...testCollectLogFiles,
-						subFolder: "install",
-					},
+					logFilesScanner: mockPerExecLogFilesScanner,
 				},
 				{
 					pkgManager: testOptions.pkgManager,
@@ -361,7 +370,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				isCI: false,
 				updateLock: false,
 				config: testConfig,
-				collectLogFiles: testCollectLogFiles,
+				logFilesScanner: mockTopLevelLogFilesScanner,
 			};
 			const testOptions = {
 				modType,
@@ -419,6 +428,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				timeout: testTimeout,
 				reporter: testReporter,
 				groupOverview: expect.any(TestGroupOverview),
+				entryAlias: testEntryAlias,
 			});
 			expect(binTestRunner).toBeUndefined();
 
@@ -430,10 +440,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					env: testSanitizedEnv,
 				},
 				expect.any(Logger),
-				{
-					...testCollectLogFiles,
-					subFolder: "corepackSet",
-				},
+				mockPerExecLogFilesScanner,
 			);
 
 			// confirm pkg install command called
@@ -451,10 +458,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					updateLock: context.updateLock,
 					env: testSanitizedEnv,
 					entryAlias: context.entryAlias,
-					collectLogFiles: {
-						...testCollectLogFiles,
-						subFolder: "install",
-					},
+					logFilesScanner: mockPerExecLogFilesScanner,
 				},
 				{
 					pkgManager: testOptions.pkgManager,
@@ -556,7 +560,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				isCI: false,
 				updateLock: false,
 				config: testConfig,
-				collectLogFiles: testCollectLogFiles,
+				logFilesScanner: mockTopLevelLogFilesScanner,
 			};
 			const testOptions = {
 				modType: modType,
@@ -598,10 +602,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					env: testSanitizedEnv,
 				},
 				expect.any(Logger),
-				{
-					...testCollectLogFiles,
-					subFolder: "corepackSet",
-				},
+				mockPerExecLogFilesScanner,
 			);
 
 			// confirm pkg install command called
@@ -619,10 +620,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					updateLock: context.updateLock,
 					env: testSanitizedEnv,
 					entryAlias: context.entryAlias,
-					collectLogFiles: {
-						...testCollectLogFiles,
-						subFolder: "install",
-					},
+					logFilesScanner: mockPerExecLogFilesScanner,
 				},
 				{
 					pkgManager: testOptions.pkgManager,
@@ -681,6 +679,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				timeout: testTimeout,
 				reporter: testReporter,
 				groupOverview: expect.any(TestGroupOverview),
+				entryAlias: testEntryAlias,
 			});
 			expect(binTestRunner).toBeUndefined();
 
@@ -738,10 +737,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					env: testSanitizedEnv,
 				},
 				expect.any(Logger),
-				{
-					...testCollectLogFiles,
-					subFolder: "compile",
-				},
+				mockPerExecLogFilesScanner,
 			);
 			// expect we copied files
 			expect(mockCopyOverAdditionalFiles).toHaveBeenCalledWith(
@@ -781,7 +777,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				isCI: false,
 				updateLock: false,
 				config: testConfig,
-				collectLogFiles: testCollectLogFiles,
+				logFilesScanner: mockTopLevelLogFilesScanner,
 			};
 			const testOptions = {
 				fileTests: {
@@ -834,10 +830,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					env: testSanitizedEnv,
 				},
 				expect.any(Logger),
-				{
-					...testCollectLogFiles,
-					subFolder: "corepackSet",
-				},
+				mockPerExecLogFilesScanner,
 			);
 
 			// confirm pkg install command called
@@ -855,10 +848,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					updateLock: context.updateLock,
 					env: testSanitizedEnv,
 					entryAlias: context.entryAlias,
-					collectLogFiles: {
-						...testCollectLogFiles,
-						subFolder: "install",
-					},
+					logFilesScanner: mockPerExecLogFilesScanner,
 				},
 				{
 					pkgManager: testOptions.pkgManager,
@@ -917,6 +907,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				timeout: testTimeout,
 				reporter: testReporter,
 				groupOverview: expect.any(TestGroupOverview),
+				entryAlias: testEntryAlias,
 			});
 			expect(binTestRunner).toEqual({
 				runCommand: testBinCmd,
@@ -950,6 +941,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				timeout: testTimeout,
 				reporter: testReporter,
 				groupOverview: expect.any(TestGroupOverview),
+				entryAlias: testEntryAlias,
 			});
 
 			// Confirm correct function calls to mocks
@@ -1003,10 +995,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					env: testSanitizedEnv,
 				},
 				expect.any(Logger),
-				{
-					...testCollectLogFiles,
-					subFolder: "compile",
-				},
+				mockPerExecLogFilesScanner,
 			);
 			// expect we copied files
 			expect(mockCopyOverAdditionalFiles).toHaveBeenCalledWith(
@@ -1047,7 +1036,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				isCI: false,
 				updateLock: false,
 				config: testConfig,
-				collectLogFiles: testCollectLogFiles,
+				logFilesScanner: mockTopLevelLogFilesScanner,
 			};
 			const testOptions = {
 				modType,
@@ -1082,10 +1071,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					env: testSanitizedEnv,
 				},
 				expect.any(Logger),
-				{
-					...testCollectLogFiles,
-					subFolder: "corepackSet",
-				},
+				mockPerExecLogFilesScanner,
 			);
 
 			// confirm pkg install command called
@@ -1103,10 +1089,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					updateLock: context.updateLock,
 					env: testSanitizedEnv,
 					entryAlias: context.entryAlias,
-					collectLogFiles: {
-						...testCollectLogFiles,
-						subFolder: "install",
-					},
+					logFilesScanner: mockPerExecLogFilesScanner,
 				},
 				{
 					pkgManager: testOptions.pkgManager,
@@ -1166,6 +1149,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				timeout: testTimeout,
 				reporter: testReporter,
 				groupOverview: expect.any(TestGroupOverview),
+				entryAlias: testEntryAlias,
 			});
 			expect(testRunners).toContainEqual({
 				// Since Ts-node doesn't really work the same with esm, the command changes
@@ -1189,6 +1173,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				reporter: testReporter,
 				groupOverview: expect.any(TestGroupOverview),
 				baseEnv: testSanitizedEnv,
+				entryAlias: testEntryAlias,
 				extraEnv:
 					modType === ModuleTypes.Commonjs
 						? {}
@@ -1215,6 +1200,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				timeout: testTimeout,
 				reporter: testReporter,
 				groupOverview: expect.any(TestGroupOverview),
+				entryAlias: testEntryAlias,
 			});
 			expect(binTestRunner).toBeUndefined();
 
@@ -1268,10 +1254,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 					env: testSanitizedEnv,
 				},
 				expect.any(Logger),
-				{
-					...testCollectLogFiles,
-					subFolder: "compile",
-				},
+				mockPerExecLogFilesScanner,
 			);
 			// expect we copied files
 			expect(mockCopyOverAdditionalFiles).toHaveBeenCalledWith(
@@ -1295,7 +1278,7 @@ it("throws an error if the projectdir is not absolute", async () => {
 				isCI: false,
 				updateLock: false,
 				config: testConfig,
-				collectLogFiles: testCollectLogFiles,
+				logFilesScanner: mockTopLevelLogFilesScanner,
 			},
 			{
 				modType: ModuleTypes.Commonjs,
@@ -1328,7 +1311,7 @@ it("throws an error if the testProjectDir is not absolute", async () => {
 				isCI: false,
 				updateLock: false,
 				config: testConfig,
-				collectLogFiles: testCollectLogFiles,
+				logFilesScanner: mockTopLevelLogFilesScanner,
 			},
 			{
 				modType: ModuleTypes.Commonjs,

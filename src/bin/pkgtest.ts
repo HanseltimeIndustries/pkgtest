@@ -6,8 +6,14 @@ import {
 	InvalidArgumentError,
 } from "commander";
 import { DEFAULT_CONFIG_FILE_NAME_BASE, LIBRARY_NAME } from "../config";
-import { DEFAULT_TIMEOUT, IPreserveResourcesFn, run } from "../run";
 import {
+	DEFAULT_TIMEOUT,
+	IPreserveResourcesFn,
+	run,
+} from "../run";
+import {
+	CollectLogFilesOn,
+	CollectLogFileStages,
 	FailFastError,
 	ModuleTypes,
 	PkgManager,
@@ -15,7 +21,6 @@ import {
 	TestType,
 } from "../types";
 import { confirm } from "@inquirer/prompts";
-import { CollectLogFilesOn } from "../controlledExec";
 
 interface Options {
 	config?: string;
@@ -29,6 +34,7 @@ interface Options {
 	installOnly?: boolean;
 	noYarnv1CacheClean?: boolean;
 	collectLogFilesOn?: CollectLogFilesOn;
+	collectLogFilesStage?: CollectLogFileStages[];
 	// Filter options
 	modType?: ModuleTypes[];
 	noModType?: ModuleTypes[];
@@ -95,6 +101,12 @@ program
 			"--collectLogFilesOn <on>",
 			"pkgtest will scan all stdouts and stderrs of its process calls and will bundle any log files to the collect log files location (default: tempdir/pkgtest-logs or PKG_TEST_LOG_COLLECT_DIR)",
 		).choices(Object.values(CollectLogFilesOn)),
+	)
+	.addOption(
+		new Option(
+			"--collectLogFilesStage <stages...>",
+			"use in conjuction with collectLogFilesOn, this is required for pkgtest to know when to scan and collect stdio for log files.  Note, scanning unnecessary and long outputs will impact performance.",
+		).choices(Object.values(CollectLogFileStages)),
 	)
 	// filters
 	.addOption(
@@ -188,7 +200,8 @@ program
 				isCI: false, // TODO: change
 				installOnly: options.installOnly,
 				noYarnv1CacheClean: options.noYarnv1CacheClean,
-				collectSetupLogFilesOn: options.collectLogFilesOn,
+				collectLogFilesOn: options.collectLogFilesOn,
+				collectLogFilesStages: options.collectLogFilesStage,
 				filters: {
 					fileTestNames: testMatch ?? [],
 					moduleTypes: options.modType,

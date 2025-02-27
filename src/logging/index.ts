@@ -1,2 +1,3 @@
 export * from "./Logger";
-export * from "./ScanForLogFilesLogger";
+export * from "./ForLogFilesScanner";
+export * from "./createTopLevelLogFilesScanner";

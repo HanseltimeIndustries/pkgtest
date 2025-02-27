@@ -3,10 +3,8 @@ import { StandardizedTestConfigEntry } from "../config";
 import { PkgManager } from "../types";
 import { preinstallLatest } from "./preinstallLatest";
 import { join } from "path";
-import { Logger } from "../logging";
+import { ILogFilesScanner, Logger } from "../logging";
 import { getTempProjectDirPrefix } from "../files";
-import { CollectLogFilesOptions } from "../controlledExec";
-import camelCase from "lodash.camelcase";
 
 /**
  * Given a list of test config entries, this will evaluate any entries without explicit versioning so that
@@ -19,7 +17,7 @@ export async function resolveLatestVersions(
 	tempDir: string,
 	entries: StandardizedTestConfigEntry[],
 	logger: Logger,
-	collectLogsOptions: false | Omit<CollectLogFilesOptions, "subFolder">,
+	logFilesScanner?: ILogFilesScanner,
 ): Promise<LatestResolvedTestConfigEntry[]> {
 	const latestMap: {
 		[p in PkgManager]?: Promise<string>;
@@ -44,12 +42,7 @@ export async function resolveLatestVersions(
 										pkgManager.packageManager,
 										logger,
 										// Put each log in a folder to avoid things like yarn overwriting
-										collectLogsOptions
-											? {
-													...collectLogsOptions,
-													subFolder: `latest${camelCase(pkgManager.packageManager)}`,
-												}
-											: false,
+										logFilesScanner?.createNested(pkgManager.packageManager),
 									);
 								} finally {
 									await rm(preInstallDir, {

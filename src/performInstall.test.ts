@@ -4,11 +4,11 @@ import {
 	performInstall,
 	VERSION_PROJECT_KEY,
 } from "./performInstall";
-import { Logger } from "./logging";
+import { ILogFilesScanner, Logger } from "./logging";
 import { ModuleTypes, PkgManager } from "./types";
 import { existsSync } from "fs";
 import { writeFile, readFile } from "fs/promises";
-import { CollectLogFilesOn, controlledExec } from "./controlledExec";
+import { controlledExec } from "./controlledExec";
 import {
 	applyLockLocalFileEscaping,
 	getPkgInstallCommand,
@@ -42,9 +42,11 @@ const testLogger = new Logger({
 	context: "testLogger",
 	debug: false,
 });
-const testCollectLogFiles = {
-	on: CollectLogFilesOn.Error,
-	toFolder: "someLogFolder",
+
+const mockLogFilesScanner: ILogFilesScanner = {
+	scanOnly: jest.fn(),
+	collectLogFiles: jest.fn(),
+	createNested: jest.fn(),
 };
 
 const testBaseContext = {
@@ -58,7 +60,7 @@ const testBaseContext = {
 	 */
 	entryAlias: testEntryAlias,
 	logger: testLogger,
-	collectLogFiles: testCollectLogFiles,
+	logFilesScanner: mockLogFilesScanner,
 };
 
 const testBaseOptions = {
@@ -144,7 +146,7 @@ it("peforms an install without locks", async () => {
 			env: testEnv,
 		},
 		testLogger,
-		testCollectLogFiles,
+		mockLogFilesScanner,
 	);
 	expect(mockWriteFile).not.toHaveBeenCalled();
 });
@@ -181,7 +183,7 @@ it("auto-writes missing lock file", async () => {
 			env: testEnv,
 		},
 		testLogger,
-		testCollectLogFiles,
+		mockLogFilesScanner,
 	);
 	// The file was written back
 	expect(mockExistsSync).toHaveBeenCalledWith(expectedLockFileInProject);
@@ -232,7 +234,7 @@ it("auto-writes lock file if changes to existing", async () => {
 			env: testEnv,
 		},
 		testLogger,
-		testCollectLogFiles,
+		mockLogFilesScanner,
 	);
 	// The file was copied over
 	// The resolved substitution was written
@@ -294,7 +296,7 @@ it("does not write a lock file if no updateLock", async () => {
 			env: testEnv,
 		},
 		testLogger,
-		testCollectLogFiles,
+		mockLogFilesScanner,
 	);
 	// The file was copied over
 	expect(writeFile).toHaveBeenNthCalledWith(
@@ -347,7 +349,7 @@ it("does not write a lock file if no change", async () => {
 			env: testEnv,
 		},
 		testLogger,
-		testCollectLogFiles,
+		mockLogFilesScanner,
 	);
 	// The file was copied over
 	expect(writeFile).toHaveBeenNthCalledWith(

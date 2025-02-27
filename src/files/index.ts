@@ -6,3 +6,4 @@ export * from "./getTempProjectDirPrefix";
 export * from "./findPkgTestProjectsByPrefix";
 export * from "./scanOutForLogFiles";
 export * from "./getLogCollectFolder";
+export * from "./createTestProjectFolderPath";
