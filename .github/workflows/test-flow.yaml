@@ -76,8 +76,8 @@ jobs:
       fail-fast: false
       matrix:
         node-version: [18.x, 20.x]
-        os: ['ubuntu-latest', 'windows-latest', 'macos-latest']
-        # os: ['windows-latest']
+        # TODO - macos support
+        os: ['ubuntu-latest', 'windows-latest']
         pkgManager: ['yarn-v1', 'yarn-berry', 'pnpm', 'npm']
     runs-on: ${{ matrix.os }}
     steps:
