@@ -10,17 +10,24 @@ import { PkgManager } from "../types";
 export function getPkgBinaryRunnerCommand(
 	pkgManager: PkgManager,
 	version: string = "latest",
-) {
+): BinRunCommand {
 	switch (pkgManager) {
 		case PkgManager.Npm:
-			return `corepack npx@${version}`;
+			return (cmd: string) => `corepack npx@${version} -c "${cmd.replaceAll(/(?<!\\)"/g, '\\"')}"`;
 		case PkgManager.Pnpm:
 		case PkgManager.YarnV1:
 		case PkgManager.YarnBerry:
-			return getPkgManagerCommand(pkgManager, version);
+			const preCmd = getPkgManagerCommand(pkgManager, version);
+			return (cmd: string) => `${preCmd} ${cmd}`;
 		default:
 			throw new Error(
 				`Unimplemented pkg binary runner command for ${pkgManager}`,
 			);
 	}
 }
+
+/**
+ * In the event of things like npx, that seem to lose track of the binary, 
+ * we provide a function that wraps the call.
+ */
+export type BinRunCommand = (binCmd: string) => string

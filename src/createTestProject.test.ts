@@ -70,7 +70,7 @@ const testTimeout = 3500;
 const testReporter = new SimpleReporter({
 	debug: false,
 });
-const testBinCmd = "corepack npx@latest";
+const testBinCmd = (cmd: string) => `corepack npx@latest ${cmd}`;
 const testPkgManagerSetCmd = "corepack use npm@latest";
 const testPkgInstallCmd = "corepack use npm@latest install conditional";
 const testDeps = {
@@ -217,7 +217,8 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			});
 			expect(testRunners).toHaveLength(1);
 			expect(testRunners[0]).toEqual({
-				runCommand: `${testBinCmd} ${RunWith.Node}`,
+				baseCommand: testBinCmd,
+				runCommand: `${RunWith.Node}`,
 				runBy: RunWith.Node,
 				testFiles: expectedCopyOver.map((e) => {
 					return {
@@ -410,7 +411,8 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			});
 			expect(testRunners).toHaveLength(1);
 			expect(testRunners[0]).toEqual({
-				runCommand: `${testBinCmd} ${RunWith.Node}`,
+				baseCommand: testBinCmd,
+				runCommand: `${RunWith.Node}`,
 				runBy: RunWith.Node,
 				testFiles: expectedCopyOver.map((e) => {
 					return {
@@ -661,7 +663,8 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			});
 			expect(testRunners).toHaveLength(1);
 			expect(testRunners[0]).toEqual({
-				runCommand: `${testBinCmd} ${RunWith.Node}`,
+				baseCommand: testBinCmd,
+				runCommand: `${RunWith.Node}`,
 				runBy: RunWith.Node,
 				testFiles: expectedCopyOver.map((e) => {
 					return {
@@ -731,7 +734,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				JSON.stringify(testTsConfig, null, 4),
 			);
 			expect(controlledExec).toHaveBeenCalledWith(
-				`${testBinCmd} tsc -p ${expectedConfigFile}`,
+				testBinCmd(`tsc -p ${expectedConfigFile}`),
 				{
 					cwd: testProjectDir,
 					env: testSanitizedEnv,
@@ -889,7 +892,8 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			});
 			expect(testRunners).toHaveLength(1);
 			expect(testRunners[0]).toEqual({
-				runCommand: `${testBinCmd} ${RunWith.Node}`,
+				baseCommand: testBinCmd,
+				runCommand: `${RunWith.Node}`,
 				runBy: RunWith.Node,
 				testFiles: expectedCopyOver.map((e) => {
 					return {
@@ -989,7 +993,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				JSON.stringify(testTsConfig, null, 4),
 			);
 			expect(controlledExec).toHaveBeenCalledWith(
-				`${testBinCmd} tsc -p ${expectedConfigFile}`,
+				testBinCmd(`tsc -p ${expectedConfigFile}`),
 				{
 					cwd: testProjectDir,
 					env: testSanitizedEnv,
@@ -1131,7 +1135,8 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 			const expectedConfigFile = `tsconfig.${modType}.json`;
 			expect(testRunners).toHaveLength(Object.values(RunWith).length);
 			expect(testRunners).toContainEqual({
-				runCommand: `${testBinCmd} ${RunWith.Node}`,
+				baseCommand: testBinCmd,
+				runCommand: `${RunWith.Node}`,
 				runBy: RunWith.Node,
 				testFiles: expectedCopyOver.map((e) => {
 					return {
@@ -1152,11 +1157,12 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				entryAlias: testEntryAlias,
 			});
 			expect(testRunners).toContainEqual({
+				baseCommand: testBinCmd,
 				// Since Ts-node doesn't really work the same with esm, the command changes
 				runCommand:
 					modType === ModuleTypes.Commonjs
-						? `${testBinCmd} ts-node --project ${expectedConfigFile}`
-						: `${testBinCmd} node --loader ts-node/esm`,
+						? `ts-node --project ${expectedConfigFile}`
+						: `node --loader ts-node/esm`,
 				runBy: RunWith.TsNode,
 				testFiles: expectedCopyOver.map((e) => {
 					return {
@@ -1182,7 +1188,8 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 							},
 			});
 			expect(testRunners).toContainEqual({
-				runCommand: `${testBinCmd} tsx --tsconfig ${expectedConfigFile}`,
+				baseCommand: testBinCmd,
+				runCommand: `tsx --tsconfig ${expectedConfigFile}`,
 				runBy: RunWith.Tsx,
 				testFiles: expectedCopyOver.map((e) => {
 					return {
@@ -1248,7 +1255,7 @@ describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 				JSON.stringify(testTsConfig, null, 4),
 			);
 			expect(controlledExec).toHaveBeenCalledWith(
-				`${testBinCmd} tsc -p ${expectedConfigFile}`,
+				testBinCmd(`tsc -p ${expectedConfigFile}`),
 				{
 					cwd: testProjectDir,
 					env: testSanitizedEnv,

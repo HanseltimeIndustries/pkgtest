@@ -61,6 +61,10 @@ const testStdOutOnErr = "normal std out on err";
 const testStdErr = "normal std err";
 const testStdOutNormal = "normal std out";
 const testEntryAlias = "entry1";
+// The run command is loosley coupled to runWith but changes depending on context (i.e. ts-node in esm can't be called by ts-node)
+const testRunCommand = 'tsx';
+const fakeBaseCommand = 'corepacke npm@something'
+const testBaseCommand = (cmd: string) => `${fakeBaseCommand} ${cmd}`
 
 beforeEach(() => {
 	jest.resetAllMocks();
@@ -114,7 +118,8 @@ describe.each([[true], [false]])(
 				},
 			];
 			const runner = new FileTestRunner({
-				runCommand: "npx",
+				baseCommand: testBaseCommand,
+				runCommand: testRunCommand,
 				runBy: RunWith.Node,
 				testFiles,
 				projectDir: testProjectDir,
@@ -144,7 +149,7 @@ describe.each([[true], [false]])(
 			// Ensure the exec options match our expectation
 			for (const testFile of testFiles) {
 				expect(mockExec).toHaveBeenCalledWith(
-					`npx ${testFile.actual}`,
+					testBaseCommand(`${testRunCommand} ${testFile.actual}`),
 					{
 						cwd: testProjectDir,
 						timeout: 5000,
@@ -156,9 +161,9 @@ describe.each([[true], [false]])(
 
 			expect(mockReporter.start).toHaveBeenCalledWith(runner);
 			expect(mockReporter.passed).toHaveBeenCalledWith({
-				testCmd: `npx test1a`,
+				testCmd: testBaseCommand(`${testRunCommand} test1a`),
 				test: {
-					command: `npx test1a`,
+					command: testBaseCommand(`${testRunCommand} test1a`),
 					orig: "test1",
 					actual: "test1a",
 				},
@@ -167,9 +172,9 @@ describe.each([[true], [false]])(
 				stderr: "",
 			});
 			expect(mockReporter.failed).toHaveBeenCalledWith({
-				testCmd: `npx test2a`,
+				testCmd: testBaseCommand(`${testRunCommand} test2a`),
 				test: {
-					command: `npx test2a`,
+					command: testBaseCommand(`${testRunCommand} test2a`),
 					orig: "test2",
 					actual: "test2a",
 				},
@@ -179,9 +184,9 @@ describe.each([[true], [false]])(
 				timedout: false,
 			});
 			expect(mockReporter.passed).toHaveBeenCalledWith({
-				testCmd: `npx test3a`,
+				testCmd: testBaseCommand(`${testRunCommand} test3a`),
 				test: {
-					command: `npx test3a`,
+					command: testBaseCommand(`${testRunCommand} test3a`),
 					orig: "test3",
 					actual: "test3a",
 				},
@@ -261,7 +266,8 @@ describe.each([[true], [false]])(
 				},
 			];
 			const runner = new FileTestRunner({
-				runCommand: "npx",
+				baseCommand: testBaseCommand,
+				runCommand: testRunCommand,
 				runBy: RunWith.Node,
 				testFiles,
 				projectDir: testProjectDir,
@@ -292,7 +298,7 @@ describe.each([[true], [false]])(
 			// Ensure the exec options match our expectation
 			for (const testFile of testFiles.slice(0, 2)) {
 				expect(mockExec).toHaveBeenCalledWith(
-					`npx ${testFile.actual}`,
+					testBaseCommand(`${testRunCommand} ${testFile.actual}`),
 					{
 						cwd: testProjectDir,
 						timeout: 5000,
@@ -305,9 +311,9 @@ describe.each([[true], [false]])(
 			expect(mockReporter.start).toHaveBeenCalledWith(runner);
 			expect(mockReporter.passed).toHaveBeenCalledTimes(1);
 			expect(mockReporter.passed).toHaveBeenCalledWith({
-				testCmd: `npx test1a`,
+				testCmd: testBaseCommand(`${testRunCommand} test1a`),
 				test: {
-					command: `npx test1a`,
+					command: testBaseCommand(`${testRunCommand} test1a`),
 					orig: "test1",
 					actual: "test1a",
 				},
@@ -317,9 +323,9 @@ describe.each([[true], [false]])(
 			});
 			expect(mockReporter.failed).toHaveBeenCalledTimes(1);
 			expect(mockReporter.failed).toHaveBeenCalledWith({
-				testCmd: `npx test2a`,
+				testCmd: testBaseCommand(`${testRunCommand} test2a`),
 				test: {
-					command: `npx test2a`,
+					command: testBaseCommand(`${testRunCommand} test2a`),
 					orig: "test2",
 					actual: "test2a",
 				},
@@ -402,7 +408,8 @@ describe.each([[true], [false]])(
 				},
 			];
 			const runner = new FileTestRunner({
-				runCommand: "npx",
+				baseCommand: testBaseCommand,
+				runCommand: testRunCommand,
 				runBy: RunWith.Node,
 				testFiles,
 				projectDir: testProjectDir,
@@ -433,7 +440,7 @@ describe.each([[true], [false]])(
 			// Ensure the exec options match our expectation
 			for (const testFile of testFiles) {
 				expect(mockExec).toHaveBeenCalledWith(
-					`npx ${testFile.actual}`,
+					testBaseCommand(`${testRunCommand} ${testFile.actual}`),
 					{
 						cwd: testProjectDir,
 						timeout: 50,
@@ -446,9 +453,9 @@ describe.each([[true], [false]])(
 			expect(mockReporter.start).toHaveBeenCalledWith(runner);
 			expect(mockReporter.passed).toHaveBeenCalledTimes(2);
 			expect(mockReporter.passed).toHaveBeenCalledWith({
-				testCmd: `npx test1a`,
+				testCmd: testBaseCommand(`${testRunCommand} test1a`),
 				test: {
-					command: `npx test1a`,
+					command: testBaseCommand(`${testRunCommand} test1a`),
 					orig: "test1",
 					actual: "test1a",
 				},
@@ -457,9 +464,9 @@ describe.each([[true], [false]])(
 				stderr: "",
 			});
 			expect(mockReporter.passed).toHaveBeenCalledWith({
-				testCmd: `npx test3a`,
+				testCmd: testBaseCommand(`${testRunCommand} test3a`),
 				test: {
-					command: `npx test3a`,
+					command: testBaseCommand(`${testRunCommand} test3a`),
 					orig: "test3",
 					actual: "test3a",
 				},
@@ -469,9 +476,9 @@ describe.each([[true], [false]])(
 			});
 			expect(mockReporter.failed).toHaveBeenCalledTimes(1);
 			expect(mockReporter.failed).toHaveBeenCalledWith({
-				testCmd: `npx test2a`,
+				testCmd: testBaseCommand(`${testRunCommand} test2a`),
 				test: {
-					command: `npx test2a`,
+					command: testBaseCommand(`${testRunCommand} test2a`),
 					orig: "test2",
 					actual: "test2a",
 				},
@@ -551,7 +558,8 @@ describe.each([[true], [false]])(
 				},
 			];
 			const runner = new FileTestRunner({
-				runCommand: "npx",
+				baseCommand: testBaseCommand,
+				runCommand: testRunCommand,
 				runBy: RunWith.Node,
 				testFiles,
 				projectDir: testProjectDir,
@@ -584,7 +592,7 @@ describe.each([[true], [false]])(
 				tf.orig.endsWith(".ts"),
 			)) {
 				expect(mockExec).toHaveBeenCalledWith(
-					`npx ${testFile.actual}`,
+					testBaseCommand(`${testRunCommand} ${testFile.actual}`),
 					{
 						cwd: testProjectDir,
 						timeout: 1000,
@@ -597,9 +605,9 @@ describe.each([[true], [false]])(
 			expect(mockReporter.start).toHaveBeenCalledWith(runner);
 			expect(mockReporter.passed).toHaveBeenCalledTimes(2);
 			expect(mockReporter.passed).toHaveBeenCalledWith({
-				testCmd: `npx something/test1a.ts`,
+				testCmd: testBaseCommand(`${testRunCommand} something/test1a.ts`),
 				test: {
-					command: `npx something/test1a.ts`,
+					command: testBaseCommand(`${testRunCommand} something/test1a.ts`),
 					orig: "something/test1.ts",
 					actual: "something/test1a.ts",
 				},
@@ -608,9 +616,9 @@ describe.each([[true], [false]])(
 				stderr: "",
 			});
 			expect(mockReporter.passed).toHaveBeenCalledWith({
-				testCmd: `npx test3a.ts`,
+				testCmd: testBaseCommand(`${testRunCommand} test3a.ts`),
 				test: {
-					command: `npx test3a.ts`,
+					command: testBaseCommand(`${testRunCommand} test3a.ts`),
 					orig: "test3.ts",
 					actual: "test3a.ts",
 				},
@@ -621,9 +629,9 @@ describe.each([[true], [false]])(
 			expect(mockReporter.failed).not.toHaveBeenCalled();
 			expect(mockReporter.skipped).toHaveBeenCalledTimes(1);
 			expect(mockReporter.skipped).toHaveBeenCalledWith({
-				testCmd: `npx else/test2a.ts`,
+				testCmd: testBaseCommand(`${testRunCommand} else/test2a.ts`),
 				test: {
-					command: `npx else/test2a.ts`,
+					command: testBaseCommand(`${testRunCommand} else/test2a.ts`),
 					orig: "else/test2.js",
 					actual: "else/test2a.ts",
 				},

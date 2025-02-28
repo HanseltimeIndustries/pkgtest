@@ -58,6 +58,7 @@ const testStdOutOnErr = "normal std out on err";
 const testStdErr = "normal std err";
 const testStdOutNormal = "normal std out";
 const testEntryAlias = "entry1";
+const testBaseCommand = (cmd: string) => `corepack npx ${cmd}`
 
 beforeEach(() => {
 	jest.resetAllMocks();
@@ -115,7 +116,7 @@ describe.each([[true], [false]])(
 				],
 			};
 			const runner = new BinTestRunner({
-				runCommand: "npx",
+				runCommand: testBaseCommand,
 				projectDir: testProjectDir,
 				pkgManager: PkgManager.Npm,
 				pkgManagerAlias: "myalias",
@@ -144,9 +145,9 @@ describe.each([[true], [false]])(
 			for (const binCmd of Object.keys(binTestConfig)) {
 				const configs = binTestConfig[binCmd as keyof typeof binTestConfig];
 				for (const config of configs) {
-					const cmd = `npx ${binCmd} ${config.args}`;
+					const cmd = testBaseCommand(`${binCmd} ${config.args}`);
 					expect(mockExec).toHaveBeenCalledWith(
-						`npx ${binCmd} ${config.args}`,
+						testBaseCommand(`${binCmd} ${config.args}`),
 						{
 							cwd: testProjectDir,
 							timeout: 5000,
@@ -266,7 +267,7 @@ describe.each([[true], [false]])(
 				],
 			};
 			const runner = new BinTestRunner({
-				runCommand: "npx",
+				runCommand: testBaseCommand,
 				projectDir: testProjectDir,
 				pkgManager: PkgManager.Npm,
 				pkgManagerAlias: "myalias",
@@ -300,9 +301,9 @@ describe.each([[true], [false]])(
 					if (config.args === "someArg") {
 						break;
 					}
-					const cmd = `npx ${binCmd} ${config.args}`;
+					const cmd = testBaseCommand(`${binCmd} ${config.args}`);
 					expect(mockExec).toHaveBeenCalledWith(
-						`npx ${binCmd} ${config.args}`,
+						testBaseCommand(`${binCmd} ${config.args}`),
 						{
 							cwd: testProjectDir,
 							timeout: 5000,
@@ -425,7 +426,7 @@ describe.each([[true], [false]])(
 				],
 			};
 			const runner = new BinTestRunner({
-				runCommand: "npx",
+				runCommand: testBaseCommand,
 				projectDir: testProjectDir,
 				pkgManager: PkgManager.Npm,
 				pkgManagerAlias: "myalias",
@@ -459,9 +460,9 @@ describe.each([[true], [false]])(
 					if (config.args === "someArg") {
 						break;
 					}
-					const cmd = `npx ${binCmd} ${config.args}`;
+					const cmd = testBaseCommand(`${binCmd} ${config.args}`);
 					expect(mockExec).toHaveBeenCalledWith(
-						`npx ${binCmd} ${config.args}`,
+						testBaseCommand(`${binCmd} ${config.args}`),
 						{
 							cwd: testProjectDir,
 							timeout: 50,
@@ -607,7 +608,7 @@ describe.each([[true], [false]])(
 		// 	// Ensure the exec options match our expectation
 		// 	for (const testFile of testFiles.filter((tf) => tf.orig.endsWith(".ts"))) {
 		// 		expect(mockExec).toHaveBeenCalledWith(
-		// 			`npx ${testFile.actual}`,
+		// 			testBaseCommand(`${testFile.actual}`),
 		// 			{
 		// 				cwd: testProjectDir,
 		// 				timeout: 1000,
@@ -620,9 +621,9 @@ describe.each([[true], [false]])(
 		// 	expect(mockReporter.start).toHaveBeenCalledWith(runner);
 		// 	expect(mockReporter.passed).toHaveBeenCalledTimes(2);
 		// 	expect(mockReporter.passed).toHaveBeenCalledWith({
-		// 		testCmd: `npx something/test1a.ts`,
+		// 		testCmd: testBaseCommand(`something/test1a.ts`),
 		// 		test: {
-		// 			command: `npx something/test1a.ts`,
+		// 			command: testBaseCommand(`something/test1a.ts`),
 		// 			orig: "something/test1.ts",
 		// 			actual: "something/test1a.ts",
 		// 		},
@@ -631,9 +632,9 @@ describe.each([[true], [false]])(
 		// 		stderr: "",
 		// 	});
 		// 	expect(mockReporter.passed).toHaveBeenCalledWith({
-		// 		testCmd: `npx test3a.ts`,
+		// 		testCmd: testBaseCommand(`test3a.ts`),
 		// 		test: {
-		// 			command: `npx test3a.ts`,
+		// 			command: testBaseCommand(`test3a.ts`),
 		// 			orig: "test3.ts",
 		// 			actual: "test3a.ts",
 		// 		},
@@ -644,9 +645,9 @@ describe.each([[true], [false]])(
 		// 	expect(mockReporter.failed).not.toHaveBeenCalled();
 		// 	expect(mockReporter.skipped).toHaveBeenCalledTimes(1);
 		// 	expect(mockReporter.skipped).toHaveBeenCalledWith({
-		// 		testCmd: `npx else/test2a.ts`,
+		// 		testCmd: testBaseCommand(`else/test2a.ts`),
 		// 		test: {
-		// 			command: `npx else/test2a.ts`,
+		// 			command: testBaseCommand(`else/test2a.ts`),
 		// 			orig: "else/test2.js",
 		// 			actual: "else/test2a.ts",
 		// 		},

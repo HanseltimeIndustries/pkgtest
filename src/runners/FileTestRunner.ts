@@ -6,6 +6,7 @@ import { ILogFilesScanner } from "../logging";
 import { createTestProjectFolderPath } from "../files";
 import { join } from "path";
 import camelCase from "lodash.camelcase";
+import { BinRunCommand } from "../pkgManager";
 
 interface RunTestOptions {
 	/**
@@ -16,6 +17,9 @@ interface RunTestOptions {
 }
 
 export interface FileTestRunnerOptions extends BaseTestRunnerOptions {
+	/** This is a function that constructs the normal bin command surrounded by our package manager calls */
+	baseCommand: BinRunCommand
+	/** the bin command */
 	runCommand: string;
 	runBy: RunWith;
 	testFiles: TestFile[];
@@ -31,6 +35,8 @@ export class FileTestRunner
 	extends BaseTestRunner<RunTestOptions>
 	implements FileTestRunnerDescribe
 {
+	/** This is a function that constructs the normal bin command surrounded by our package manager calls */
+	readonly baseCommand: BinRunCommand
 	readonly runCommand: string;
 	readonly runBy: RunWith;
 	readonly testFiles: TestFile[];
@@ -44,6 +50,7 @@ export class FileTestRunner
 		this.runBy = options.runBy;
 		this.testFiles = options.testFiles;
 		this.extraEnv = options.extraEnv ?? {};
+		this.baseCommand = options.baseCommand;
 	}
 
 	async runTests(options: RunTestOptions) {
@@ -57,7 +64,7 @@ export class FileTestRunner
 		);
 		for (let i = 0; i < this.testFiles.length; i++) {
 			const testFile = this.testFiles[i];
-			const cmd = `${this.runCommand} ${testFile.actual}`;
+			const cmd = this.baseCommand(`${this.runCommand} ${testFile.actual}`);
 			if (testNames.length > 0) {
 				if (!micromatch.isMatch(testFile.orig, testNames)) {
 					this.groupOverview.skip(1);

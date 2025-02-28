@@ -381,7 +381,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 
 			// Transpile the typescript projects
 			await controlledExec(
-				`${binRunCmd} tsc -p ${configFilePath}`,
+				binRunCmd(`tsc -p ${configFilePath}`),
 				{
 					cwd: testProjectDir,
 					env: sanitizedEnv,
@@ -447,7 +447,8 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 				fileTestRunners.push(
 					new FileTestRunner({
 						projectDir: testProjectDir,
-						runCommand: `${binRunCmd} ${runCommand}${additionalArgs ? " " + additionalArgs : ""}`,
+						baseCommand: binRunCmd,
+						runCommand: `${runCommand}${additionalArgs ? " " + additionalArgs : ""}`,
 						testFiles,
 						runBy: rBy,
 						pkgManager,
@@ -477,7 +478,8 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 				fileTestRunners.push(
 					new FileTestRunner({
 						projectDir: testProjectDir,
-						runCommand: `${binRunCmd} ${rBy}`,
+						baseCommand: binRunCmd,
+						runCommand: `${rBy}`,
 						testFiles,
 						runBy: rBy,
 						pkgManagerAlias,

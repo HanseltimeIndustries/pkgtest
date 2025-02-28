@@ -3,9 +3,10 @@ import { BinTest, BinTestRunnerDescribe } from "../reporters";
 import { BaseTestRunner, BaseTestRunnerOptions } from "./BaseTestRunner";
 import { ILogFilesScanner } from "../logging";
 import { createTestProjectFolderPath } from "../files";
+import { BinRunCommand } from "../pkgManager";
 
 export interface BinTestRunnerOptions extends BaseTestRunnerOptions {
-	runCommand: string;
+	runCommand: BinRunCommand;
 	binTestConfig: BinTestConfig;
 	pkgManager: PkgManager;
 	pkgManagerAlias: string;
@@ -16,7 +17,7 @@ export class BinTestRunner
 	extends BaseTestRunner<undefined>
 	implements BinTestRunnerDescribe
 {
-	readonly runCommand: string;
+	readonly runCommand: BinRunCommand;
 	readonly binTestConfig: BinTestConfig;
 
 	constructor(options: BinTestRunnerOptions) {
@@ -52,7 +53,7 @@ export class BinTestRunner
 		this.groupOverview.addToTotal(flatBinTests.length);
 		for (let i = 0; i < flatBinTests.length; i++) {
 			const { args, env, bin, bindex } = flatBinTests[i];
-			const command = `${this.runCommand} ${bin} ${args}`;
+			const command = this.runCommand(`${bin} ${args}`);
 			const cont = await this.execTest(
 				command,
 				{
