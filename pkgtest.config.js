@@ -1,10 +1,22 @@
-const { join } = require("path");
+const { join, relative } = require("path");
+
+const fileTestTimeout = process.platform === "win32" ? 10000 : 4000;
 
 // Create a pkgtest.config.js file so we can test our binary and solve yarn local resolution in dependencies
-const createConfigFile = (_config, { moduleType, projectDir }) => {
+const createConfigFile = (
+	_config,
+	{ moduleType, projectDir, testProjectDir },
+) => {
 	const exportPart =
 		moduleType === "commonjs" ? "module.exports = " : "export default ";
-	const pkgtestPath = projectDir;
+	console.log("projectDir: " + projectDir);
+	console.log("testProjectDir: " + testProjectDir);
+	const pkgtestPath =
+		process.platform === "win32"
+			? relative(testProjectDir, projectDir).replaceAll("\\", "\\\\")
+			: relative(testProjectDir, projectDir);
+
+	console.log("relative path is " + pkgtestPath);
 
 	const content = `const baseEntry = {
 	fileTests: {
@@ -106,6 +118,10 @@ if (process.env.NESTED_YARN_V1_INSTALL == "true") {
 if (process.argv.includes("--noYarnv1CacheClean")) {
 	addArgs += " --noYarnv1CacheClean";
 }
+if (process.platform === "win32") {
+	// Since yarn-v1 takes so long on windows, we'll skip it
+	addArgs += " --noPkgManager yarn-v1";
+}
 
 const nonNestedTests = {
 	fileTests: {
@@ -128,7 +144,7 @@ const nonNestedTests = {
 	],
 	packageManagers,
 	moduleTypes: ["commonjs", "esm"],
-	timeout: 3000, // ts-node on yarn-berry takes about 2s (kinda pretty high compared to all the others)
+	timeout: fileTestTimeout, // ts-node on yarn-berry takes about 2s (kinda pretty high compared to all the others)
 };
 
 const cjsBinTests = {
@@ -169,7 +185,7 @@ const esmBinTests = {
 
 module.exports = {
 	rootDir: "pkgtest",
-	locks: false,
+	locks: true,
 	matchIgnore: ["fixtures/**"],
 	entries: [nonNestedTests, cjsBinTests, esmBinTests],
 };
