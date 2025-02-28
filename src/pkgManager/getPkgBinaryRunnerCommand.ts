@@ -13,7 +13,8 @@ export function getPkgBinaryRunnerCommand(
 ): BinRunCommand {
 	switch (pkgManager) {
 		case PkgManager.Npm:
-			return (cmd: string) => `corepack npx@${version} -c "${cmd.replaceAll(/(?<!\\)"/g, '\\"')}"`;
+			return (cmd: string) =>
+				`corepack npx@${version} -c "${cmd.replaceAll(/(?<!\\)"/g, '\\"')}"`;
 		case PkgManager.Pnpm:
 		case PkgManager.YarnV1:
 		case PkgManager.YarnBerry:
@@ -27,7 +28,7 @@ export function getPkgBinaryRunnerCommand(
 }
 
 /**
- * In the event of things like npx, that seem to lose track of the binary, 
+ * In the event of things like npx, that seem to lose track of the binary,
  * we provide a function that wraps the call.
  */
-export type BinRunCommand = (binCmd: string) => string
+export type BinRunCommand = (binCmd: string) => string;

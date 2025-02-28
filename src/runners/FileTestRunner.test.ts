@@ -62,9 +62,9 @@ const testStdErr = "normal std err";
 const testStdOutNormal = "normal std out";
 const testEntryAlias = "entry1";
 // The run command is loosley coupled to runWith but changes depending on context (i.e. ts-node in esm can't be called by ts-node)
-const testRunCommand = 'tsx';
-const fakeBaseCommand = 'corepacke npm@something'
-const testBaseCommand = (cmd: string) => `${fakeBaseCommand} ${cmd}`
+const testRunCommand = "tsx";
+const fakeBaseCommand = "corepacke npm@something";
+const testBaseCommand = (cmd: string) => `${fakeBaseCommand} ${cmd}`;
 
 beforeEach(() => {
 	jest.resetAllMocks();

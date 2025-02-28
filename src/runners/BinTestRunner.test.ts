@@ -58,7 +58,7 @@ const testStdOutOnErr = "normal std out on err";
 const testStdErr = "normal std err";
 const testStdOutNormal = "normal std out";
 const testEntryAlias = "entry1";
-const testBaseCommand = (cmd: string) => `corepack npx ${cmd}`
+const testBaseCommand = (cmd: string) => `corepack npx ${cmd}`;
 
 beforeEach(() => {
 	jest.resetAllMocks();

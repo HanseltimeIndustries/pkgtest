@@ -18,7 +18,7 @@ interface RunTestOptions {
 
 export interface FileTestRunnerOptions extends BaseTestRunnerOptions {
 	/** This is a function that constructs the normal bin command surrounded by our package manager calls */
-	baseCommand: BinRunCommand
+	baseCommand: BinRunCommand;
 	/** the bin command */
 	runCommand: string;
 	runBy: RunWith;
@@ -36,7 +36,7 @@ export class FileTestRunner
 	implements FileTestRunnerDescribe
 {
 	/** This is a function that constructs the normal bin command surrounded by our package manager calls */
-	readonly baseCommand: BinRunCommand
+	readonly baseCommand: BinRunCommand;
 	readonly runCommand: string;
 	readonly runBy: RunWith;
 	readonly testFiles: TestFile[];
