@@ -61,7 +61,7 @@ function parseIntArg(value: string, _prev?: number): number {
 
 program
 	.option(
-		`-c, --config <path>', 'The location of the config file for ${LIBRARY_NAME}.  Defaults to looking for ${DEFAULT_CONFIG_FILE_NAME_BASE}.([mc]?js|ts)`,
+		'-c, --config <path>', `The location of the config file for ${LIBRARY_NAME}.  Defaults to looking for ${DEFAULT_CONFIG_FILE_NAME_BASE}.([mc]?js|ts)`,
 	)
 	.option("--debug", "Adds more logging for each test that runs")
 	.option("--failFast", "Immediately stops test execution on the first failure")
