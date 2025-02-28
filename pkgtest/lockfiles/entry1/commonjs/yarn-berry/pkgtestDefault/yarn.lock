@@ -9,15 +9,15 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@dummy-test-package/test-commonjs@workspace:."
   dependencies:
-    "@hanseltime/pkgtest": "portal:${relPathToProject}"
+    "@hanseltime/pkgtest": "${localPathVersion}"
     get-tsconfig: "npm:^4.10.0"
     type-fest: "npm:^4.35.0"
   languageName: unknown
   linkType: soft
 
-"@hanseltime/pkgtest@portal:${relPathToProject}::locator=%40dummy-test-package%2Ftest-commonjs%40workspace%3A.":
+"@hanseltime/pkgtest@${localPathVersion}::locator=%40dummy-test-package%2Ftest-commonjs%40workspace%3A.":
   version: 0.0.0-use.local
-  resolution: "@hanseltime/pkgtest@portal:${relPathToProject}::locator=%40dummy-test-package%2Ftest-commonjs%40workspace%3A."
+  resolution: "@hanseltime/pkgtest@${localPathVersion}::locator=%40dummy-test-package%2Ftest-commonjs%40workspace%3A."
   dependencies:
     "@inquirer/prompts": "npm:^7.3.2"
     chalk: "npm:^5.4.1"
