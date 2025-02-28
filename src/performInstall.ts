@@ -93,6 +93,7 @@ export async function performInstall(
 	if (lock === false) {
 		logger.log("Running with no considerations for lock files!");
 		lockFileMode = LockFileMode.None;
+		await writeFile(resolve(testProjectDir, lockFileName), "");
 	} else {
 		if (!existsSync(lockFilePath)) {
 			if (isCI && !updateLock) {
