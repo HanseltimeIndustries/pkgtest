@@ -1,6 +1,6 @@
 import { cp, readFile, writeFile } from "fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "path";
-import { getAllMatchingFiles } from "./files";
+import { createTestProjectFolderPath, getAllMatchingFiles } from "./files";
 import {
 	ModuleTypes,
 	PkgManager,
@@ -22,7 +22,7 @@ import {
 } from "./pkgManager";
 import { BinTestRunner, FileTestRunner, ScriptTestRunner } from "./runners";
 import * as yaml from "js-yaml";
-import { Logger } from "./Logger";
+import { ILogFilesScanner, Logger } from "./logging";
 import { copyOverAdditionalFiles } from "./files";
 import { AdditionalFilesCopy } from "./files/types";
 import { Reporter, TestFile } from "./reporters";
@@ -74,9 +74,14 @@ export interface CreateTestProjectContext {
 	debug?: boolean;
 	failFast?: boolean;
 	/**
-	 * JUST USED FOR LAMBDA CALLS
+	 * JUST USED FOR LAMBDA CALL context - do not refind things in this method
 	 */
 	config: StandardizedTestConfig;
+	/**
+	 * If we should be collecting log files to a folder for setup execs
+	 * Mainly meant for CI debugging processes - impacts performance since we are doing console output scans
+	 */
+	logFilesScanner?: ILogFilesScanner;
 }
 
 export interface CreateTestTestOptions<PkgManagerT extends PkgManager> {
@@ -137,6 +142,8 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		rootDir,
 		matchIgnore,
 		lock,
+		entryAlias,
+		logFilesScanner: topLevelLogFilesScanner,
 	} = context;
 
 	if (!isAbsolute(projectDir)) {
@@ -161,6 +168,15 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 		scriptTests,
 	} = testOptions;
 	const logPrefix = `[${context.entryAlias}, ${pkgManager}, ${pkgManagerAlias}, ${modType}, @${testProjectDir}]`;
+	// Each log file setup should be isolated by testproject config
+	const logFilesScanner = topLevelLogFilesScanner?.createNested(
+		createTestProjectFolderPath({
+			entryAlias,
+			pkgManager,
+			pkgManagerAlias,
+			modType,
+		}),
+	);
 
 	let testFiles: string[] = [];
 	if (fileTests) {
@@ -290,6 +306,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 			env: sanitizedEnv,
 		},
 		logger,
+		logFilesScanner?.createNested("corepackSet"),
 	);
 	await performInstall(
 		{
@@ -302,6 +319,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 			updateLock: context.updateLock,
 			env: sanitizedEnv,
 			entryAlias: context.entryAlias,
+			logFilesScanner: logFilesScanner?.createNested("install"),
 		},
 		{
 			pkgManager,
@@ -363,12 +381,13 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 
 			// Transpile the typescript projects
 			await controlledExec(
-				`${binRunCmd} tsc -p ${configFilePath}`,
+				binRunCmd(`tsc -p ${configFilePath}`),
 				{
 					cwd: testProjectDir,
 					env: sanitizedEnv,
 				},
 				logger,
+				logFilesScanner?.createNested("compile"),
 			);
 			logger.logDebug(`Compiled ${configFilePath} at ${testProjectDir}`);
 
@@ -428,7 +447,8 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 				fileTestRunners.push(
 					new FileTestRunner({
 						projectDir: testProjectDir,
-						runCommand: `${binRunCmd} ${runCommand}${additionalArgs ? " " + additionalArgs : ""}`,
+						baseCommand: binRunCmd,
+						runCommand: `${runCommand}${additionalArgs ? " " + additionalArgs : ""}`,
 						testFiles,
 						runBy: rBy,
 						pkgManager,
@@ -439,6 +459,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 						timeout,
 						reporter,
 						baseEnv: sanitizedEnv,
+						entryAlias,
 					}),
 				);
 			});
@@ -457,7 +478,8 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 				fileTestRunners.push(
 					new FileTestRunner({
 						projectDir: testProjectDir,
-						runCommand: `${binRunCmd} ${rBy}`,
+						baseCommand: binRunCmd,
+						runCommand: `${rBy}`,
 						testFiles,
 						runBy: rBy,
 						pkgManagerAlias,
@@ -468,6 +490,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 						timeout,
 						reporter,
 						baseEnv: sanitizedEnv,
+						entryAlias,
 					}),
 				);
 			});
@@ -488,6 +511,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 			failFast,
 			reporter,
 			baseEnv: sanitizedEnv,
+			entryAlias,
 		});
 	}
 
@@ -504,6 +528,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 			failFast,
 			reporter,
 			baseEnv: sanitizedEnv,
+			entryAlias,
 		});
 	}
 

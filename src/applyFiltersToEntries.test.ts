@@ -3,9 +3,19 @@ import {
 	EntryFilterOptions,
 } from "./applyFiltersToEntries";
 import { StandardizedTestConfig, StandardizedTestConfigEntry } from "./config";
-import { Logger } from "./Logger";
+import { Logger } from "./logging";
 import { TestGroupOverview } from "./reporters";
-import { ModuleTypes, PkgManager, RunWith, TestType } from "./types";
+import { isWindowsProblem } from "./isWindowsProblem";
+import {
+	ModuleTypes,
+	OnWindowsProblemsAction,
+	PkgManager,
+	RunWith,
+	TestType,
+} from "./types";
+
+jest.mock("./isWindowsProblem");
+const mockIsWindowsProblem = jest.mocked(isWindowsProblem);
 
 const testEntryAllTypes: StandardizedTestConfigEntry = {
 	alias: "alias1",
@@ -76,6 +86,13 @@ const testLogger: Logger = {
 
 beforeEach(() => {
 	jest.resetAllMocks();
+	// Set it up so that yarnv1 is skipped
+	mockIsWindowsProblem.mockImplementation(({ packageManager }) => {
+		if (packageManager === PkgManager.YarnV1) {
+			return true;
+		}
+		return false;
+	});
 });
 
 it.each([[undefined], [{}]])("returns same with %s filter", (f) => {
@@ -425,6 +442,52 @@ it.each(
 			// There's only 1 test (yarn-berry + 1 runWith) * 2 entries => 24 - 2 = 22
 			[22, 8, 6],
 		],
+		// Windows skip
+		[
+			{
+				noTestTypes: [TestType.Bin],
+				noModuleTypes: [ModuleTypes.Commonjs],
+				// This will skip yarnv1 due to the mock
+				onWindowsProblems: OnWindowsProblemsAction.Skip,
+				noRunWith: [RunWith.TsNode, RunWith.Tsx],
+			},
+			[testEntryAllTypes, testFileTestOnly, testBinTestOnly, scriptTestOnly],
+			[
+				{
+					...testEntryAllTypes,
+					moduleTypes: [ModuleTypes.ESM],
+					packageManagers: testEntryAllTypes.packageManagers.filter((pm) => {
+						return pm.packageManager !== PkgManager.YarnV1;
+					}),
+					fileTests: {
+						...testFileTestOnly.fileTests,
+						runWith: [RunWith.Node],
+					},
+					binTests: undefined,
+				},
+				{
+					...testFileTestOnly,
+					moduleTypes: [ModuleTypes.ESM],
+					packageManagers: testFileTestOnly.packageManagers.filter((pm) => {
+						return pm.packageManager !== PkgManager.YarnV1;
+					}),
+					fileTests: {
+						...testFileTestOnly.fileTests,
+						runWith: [RunWith.Node],
+					},
+				},
+				{
+					...scriptTestOnly,
+					moduleTypes: [ModuleTypes.ESM],
+					packageManagers: scriptTestOnly.packageManagers.filter((pm) => {
+						return pm.packageManager !== PkgManager.YarnV1;
+					}),
+				},
+			],
+			// All bin tests
+			// There's only 1 test (yarn-berry + 1 runWith) * 2 entries => 24 - 2 = 22
+			[22, 8, 6],
+		],
 	].map((e) => {
 		// Serialize the filter for test clarity
 		return [JSON.stringify(e[0]), ...e] as unknown as [
@@ -471,3 +534,25 @@ it.each(
 		expect(scriptTestSuitesOverview.total).toBe(totalScriptTestSuites);
 	},
 );
+
+it("throws an error if windows problems detected", () => {
+	const binTestSuitesOverview = new TestGroupOverview();
+	const fileTestSuitesOverview = new TestGroupOverview();
+	const scriptTestSuitesOverview = new TestGroupOverview();
+	expect(() =>
+		applyFiltersToEntries(
+			[testEntryAllTypes],
+			{
+				logger: testLogger,
+				binTestSuitesOverview,
+				fileTestSuitesOverview,
+				scriptTestSuitesOverview,
+			},
+			{
+				onWindowsProblems: OnWindowsProblemsAction.Error,
+			},
+		),
+	).toThrow(
+		"is problematic on windows!  Make sure it is not configured for process.platform === 'win32'",
+	);
+});

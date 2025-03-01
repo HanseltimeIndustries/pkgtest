@@ -3,7 +3,7 @@ import { StandardizedTestConfigEntry } from "../config";
 import { PkgManager } from "../types";
 import { preinstallLatest } from "./preinstallLatest";
 import { join } from "path";
-import { Logger } from "../Logger";
+import { ILogFilesScanner, Logger } from "../logging";
 import { getTempProjectDirPrefix } from "../files";
 
 /**
@@ -17,6 +17,7 @@ export async function resolveLatestVersions(
 	tempDir: string,
 	entries: StandardizedTestConfigEntry[],
 	logger: Logger,
+	logFilesScanner?: ILogFilesScanner,
 ): Promise<LatestResolvedTestConfigEntry[]> {
 	const latestMap: {
 		[p in PkgManager]?: Promise<string>;
@@ -40,6 +41,8 @@ export async function resolveLatestVersions(
 										preInstallDir,
 										pkgManager.packageManager,
 										logger,
+										// Put each log in a folder to avoid things like yarn overwriting
+										logFilesScanner?.createNested(pkgManager.packageManager),
 									);
 								} finally {
 									await rm(preInstallDir, {

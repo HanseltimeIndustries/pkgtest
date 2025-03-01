@@ -1,4 +1,4 @@
-import { Logger } from "./Logger";
+import { ILogFilesScanner, Logger } from "./logging";
 import { TestGroupOverview } from "./reporters";
 import { BaseTestRunner } from "./runners/BaseTestRunner";
 import { FailFastError } from "./types";
@@ -24,17 +24,24 @@ export async function executeRunners<T>(
 		 * The max number of suites to run at a time
 		 */
 		parallel: number;
+		/**
+		 * If we are going to collect log files
+		 */
+		logFilesScanner?: ILogFilesScanner;
 	},
 	runArgs: T,
 ) {
-	const { logger, parallel } = context;
+	const { logger, parallel, logFilesScanner } = context;
 	const promisesToRun: (() => Promise<void>)[] = [];
 	let pass = true;
 	suitesOverview.startTime();
 	testsOverview.startTime();
 	for (const runner of runners) {
 		promisesToRun.push(async () => {
-			const summary = await runner.runTests(runArgs);
+			const summary = await runner.runTests({
+				...runArgs,
+				logFilesScanner,
+			});
 			// Do all tests updating
 			if (summary.failed > 0) {
 				suitesOverview.fail(1);

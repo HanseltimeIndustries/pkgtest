@@ -8,12 +8,15 @@ import {
 } from "./reporters";
 import {
 	ModuleTypes,
+	OnWindowsProblemsAction,
 	PkgManager,
 	RunWith,
 	TestConfigEntry,
 	TestType,
 } from "./types";
-import { Logger } from "./Logger";
+import { Logger } from "./logging";
+import chalk from "chalk";
+import { isWindowsProblem } from "./isWindowsProblem";
 
 export interface ContextOptions {
 	logger: Logger;
@@ -33,6 +36,7 @@ export interface EntryFilterOptions {
 	noPkgManagerAlias?: string[];
 	testTypes?: TestType[];
 	noTestTypes?: TestType[];
+	onWindowsProblems?: OnWindowsProblemsAction;
 }
 
 /**
@@ -247,6 +251,38 @@ export function applyFiltersToEntries(
 								);
 							});
 							return false;
+						}
+						// Apply Windows exclusion last
+						if (filters.onWindowsProblems) {
+							if (isWindowsProblem(_pkgManager)) {
+								if (
+									filters.onWindowsProblems === OnWindowsProblemsAction.Error
+								) {
+									throw new Error(
+										`${pkgManager} ${pkgManagerAlias} is problematic on windows!  Make sure it is not configured for process.platform === 'win32'`,
+									);
+								}
+								logger.log(
+									chalk.yellow(
+										`Skipping ${pkgManager} (${pkgManagerAlias}) Due to Problematic Windows Setup`,
+									),
+								);
+								filteredModTypes.forEach((modType) => {
+									testEntryProjectLevelSkip(
+										logger,
+										{
+											modType,
+											pkgManager,
+											pkgManagerAlias,
+										},
+										filteredTestTypeConfigEntry,
+										fileTestSuitesOverview,
+										binTestSuitesOverview,
+										scriptTestSuitesOverview,
+									);
+								});
+								return false;
+							}
 						}
 						return true;
 					},

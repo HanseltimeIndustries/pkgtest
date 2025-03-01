@@ -1,63 +1,59 @@
 import { BinTestConfig, ModuleTypes, PkgManager } from "../types";
-import { BinTest, BinTestRunnerDescribe, Reporter } from "../reporters";
-import { BaseTestRunner } from "./BaseTestRunner";
+import { BinTest, BinTestRunnerDescribe } from "../reporters";
+import { BaseTestRunner, BaseTestRunnerOptions } from "./BaseTestRunner";
+import { ILogFilesScanner } from "../logging";
+import { createTestProjectFolderPath } from "../files";
+import { BinRunCommand } from "../pkgManager";
+
+export interface BinTestRunnerOptions extends BaseTestRunnerOptions {
+	runCommand: BinRunCommand;
+	binTestConfig: BinTestConfig;
+	pkgManager: PkgManager;
+	pkgManagerAlias: string;
+	modType: ModuleTypes;
+}
 
 export class BinTestRunner
 	extends BaseTestRunner<undefined>
 	implements BinTestRunnerDescribe
 {
-	readonly runCommand: string;
+	readonly runCommand: BinRunCommand;
 	readonly binTestConfig: BinTestConfig;
-	readonly pkgManager: PkgManager;
-	/**
-	 * An alias for the pkg manager configuration for this test suite.
-	 *
-	 * This is valuable for multiple of 'PkgManager' types (like yarn pnp and node-modules linking)
-	 */
-	readonly pkgManagerAlias: string;
-	readonly modType: ModuleTypes;
 
-	constructor(options: {
-		runCommand: string;
-		projectDir: string;
-		binTestConfig: BinTestConfig;
-		pkgManager: PkgManager;
-		pkgManagerAlias: string;
-		modType: ModuleTypes;
-		failFast?: boolean;
-		timeout: number;
-		reporter: Reporter;
-		baseEnv: {
-			[e: string]: string | undefined;
-		};
-	}) {
+	constructor(options: BinTestRunnerOptions) {
 		super(options);
 		this.binTestConfig = options.binTestConfig;
 		this.runCommand = options.runCommand;
-		this.pkgManager = options.pkgManager;
-		this.pkgManagerAlias = options.pkgManagerAlias;
-		this.modType = options.modType;
 	}
 
-	async runTests() {
+	async runTests(options: {
+		logFilesScanner?: ILogFilesScanner;
+	}) {
 		this.reporter.start(this);
 		this.groupOverview.startTime();
+		const testLevelScanner = options.logFilesScanner?.createNested(
+			createTestProjectFolderPath(this),
+		);
 		const binCmds = Object.keys(this.binTestConfig);
-		const flatBinTests = binCmds.reduce((flat, binCmd) => {
-			flat.push(
-				...this.binTestConfig[binCmd].map((config) => {
-					return {
-						...config,
-						bin: binCmd,
-					};
-				}),
-			);
-			return flat;
-		}, [] as BinTest[]);
+		const flatBinTests = binCmds.reduce(
+			(flat, binCmd) => {
+				flat.push(
+					...this.binTestConfig[binCmd].map((config, index) => {
+						return {
+							...config,
+							bin: binCmd,
+							bindex: index,
+						};
+					}),
+				);
+				return flat;
+			},
+			[] as (BinTest & { bindex: number })[],
+		);
 		this.groupOverview.addToTotal(flatBinTests.length);
 		for (let i = 0; i < flatBinTests.length; i++) {
-			const { args, env, bin } = flatBinTests[i];
-			const command = `${this.runCommand} ${bin} ${args}`;
+			const { args, env, bin, bindex } = flatBinTests[i];
+			const command = this.runCommand(`${bin} ${args}`);
 			const cont = await this.execTest(
 				command,
 				{
@@ -68,6 +64,7 @@ export class BinTestRunner
 				{
 					env: env ?? {},
 				},
+				testLevelScanner?.createNested(`${bin}${bindex}`),
 			);
 			if (!cont) {
 				break;

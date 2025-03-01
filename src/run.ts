@@ -4,11 +4,13 @@ import { mkdtemp } from "fs/promises";
 import { join } from "path";
 import { BinTestRunner, FileTestRunner, ScriptTestRunner } from "./runners";
 import { SimpleReporter } from "./reporters/SimpleReporter";
-import { Logger } from "./Logger";
+import { createTopLevelLogFilesScanner, Logger } from "./logging";
 import chalk from "chalk";
 import {
 	AddFilePerTestProjectCreate,
 	AdditionalFilesEntry,
+	CollectLogFileStages,
+	CollectLogFilesOn,
 	ModuleTypes,
 	PkgManager,
 } from "./types";
@@ -107,6 +109,17 @@ export interface RunOptions {
 	 */
 	timeout?: number;
 	/**
+	 * If set, pkgtest will scan logs during setup calls for any detected log files and then copy them to the
+	 * log collection folder on the system when:
+	 *
+	 * - Error - only an error triggers a failure of an exec
+	 * - All - any time we see a log file mentioned regardless of failure
+	 *
+	 * Note: this is mainly meant for CI processes
+	 */
+	collectLogFilesOn?: CollectLogFilesOn;
+	collectLogFilesStages?: CollectLogFileStages[];
+	/**
 	 * The number of test suites to run in parallel
 	 */
 	parallel: number;
@@ -145,6 +158,8 @@ export async function run(options: RunOptions) {
 		failFast,
 		preserveResources,
 		iPreserveResources,
+		collectLogFilesOn,
+		collectLogFilesStages,
 		filters = {},
 	} = options;
 	// Store clean up functions that can be async
@@ -169,6 +184,12 @@ export async function run(options: RunOptions) {
 		context: "[runner]",
 		debug: !!debug,
 	});
+	// Log file collection config
+	const { topLevelScanner: lfTopLevelScanner, collect: lfCollectOn } =
+		createTopLevelLogFilesScanner({
+			collectLogFilesOn,
+			collectLogFilesStages,
+		});
 	try {
 		logger.logDebug("Retrieving Config...");
 		const config = await getConfig(configPath);
@@ -237,6 +258,9 @@ export async function run(options: RunOptions) {
 				context: "[resolve latest pkg manager]",
 				debug: !!debug,
 			}),
+			lfCollectOn.setup
+				? lfTopLevelScanner?.createNested("corepackLatest")
+				: undefined,
 		);
 
 		const usedPkgManagers = getPkgManagers(filteredEntries);
@@ -342,6 +366,9 @@ export async function run(options: RunOptions) {
 						lock,
 						entryAlias: testConfigEntry.alias,
 						config,
+						logFilesScanner: lfCollectOn.setup
+							? lfTopLevelScanner?.createNested("setup")
+							: undefined,
 					},
 					{
 						modType,
@@ -455,7 +482,7 @@ export async function run(options: RunOptions) {
 		}
 
 		try {
-			const runnerCtx = {
+			const baseRunnerCtx = {
 				logger,
 				parallel: options.parallel,
 			};
@@ -477,7 +504,12 @@ export async function run(options: RunOptions) {
 				fileTestRunners,
 				fileTestSuitesOverview,
 				fileTestsOverview,
-				runnerCtx,
+				{
+					...baseRunnerCtx,
+					logFilesScanner: lfCollectOn.fileTests
+						? lfTopLevelScanner?.createNested("fileTests")
+						: undefined,
+				},
 				{
 					testNames,
 				},
@@ -487,7 +519,12 @@ export async function run(options: RunOptions) {
 				binTestRunners,
 				binTestSuitesOverview,
 				binTestsOverview,
-				runnerCtx,
+				{
+					...baseRunnerCtx,
+					logFilesScanner: lfCollectOn.binTests
+						? lfTopLevelScanner?.createNested("binTests")
+						: undefined,
+				},
 				undefined,
 			);
 			// script Tests
@@ -495,7 +532,12 @@ export async function run(options: RunOptions) {
 				scriptTestRunners,
 				scriptTestSuitesOverview,
 				scriptTestsOverview,
-				runnerCtx,
+				{
+					...baseRunnerCtx,
+					logFilesScanner: lfCollectOn.scriptTests
+						? lfTopLevelScanner?.createNested("scriptTests")
+						: undefined,
+				},
 				undefined,
 			);
 			return fileTestsPass && scriptTestsPass && binTestsPass;

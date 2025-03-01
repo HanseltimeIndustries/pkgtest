@@ -16,6 +16,9 @@ if (!pkgJson.bin) {
 } else {
 	// Add hashbangs
 	function addHashBang(cmd, compiledPath) {
+		if (process.platform === "win32") {
+			compiledPath = compiledPath.replaceAll("/", "\\");
+		}
 		if (!existsSync(compiledPath)) {
 			console.error(
 				`Unable to find compiled bin script for ${cmd} as ${compiledPath}`,
@@ -37,19 +40,7 @@ if (!pkgJson.bin) {
 		);
 	} else {
 		Object.keys(pkgJson.bin).forEach((cmd) => {
-			const compiledPath = pkgJson.bin[cmd];
-			if (!existsSync(compiledPath)) {
-				console.error(
-					`Unable to find compiled bin script for ${cmd} as ${compiledPath}`,
-				);
-				process.exit(3);
-			}
-			const compiledBin = readFileSync(compiledPath).toString();
-			const hashbang = "#!/usr/bin/env node\n";
-			if (!compiledBin.startsWith(hashbang)) {
-				writeFileSync(compiledPath, hashbang + compiledBin);
-				console.log("Added hashbang to " + compiledPath);
-			}
+			addHashBang(cmd, pkgJson.bin[cmd]);
 		});
 	}
 }

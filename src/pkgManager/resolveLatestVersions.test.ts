@@ -3,7 +3,7 @@ import { LIBRARY_NAME } from "../config";
 import { ModuleTypes, PkgManager } from "../types";
 import { preinstallLatest } from "./preinstallLatest";
 import { join } from "path";
-import { Logger } from "../Logger";
+import { ILogFilesScanner, Logger } from "../logging";
 import { resolveLatestVersions } from "./resolveLatestVersions";
 
 jest.mock("./preinstallLatest");
@@ -20,8 +20,23 @@ const latestPnpm = "9.2.2";
 
 const testTempDir = "someTempDir";
 
+const mockLogFilesScanner: ILogFilesScanner = {
+	scanOnly: jest.fn(),
+	collectLogFiles: jest.fn(),
+	createNested: jest.fn(),
+};
+
+const mockPerPkgManagerLogFilesScanner: ILogFilesScanner = {
+	scanOnly: jest.fn(),
+	collectLogFiles: jest.fn(),
+	createNested: jest.fn(),
+};
+
 beforeEach(() => {
 	jest.resetAllMocks();
+	(mockLogFilesScanner.createNested as jest.Mock).mockReturnValue(
+		mockPerPkgManagerLogFilesScanner,
+	);
 });
 
 it("applies resolution for missing versions with once and only once lookup", async () => {
@@ -98,6 +113,7 @@ it("applies resolution for missing versions with once and only once lookup", asy
 				},
 			],
 			logger,
+			mockLogFilesScanner,
 		),
 	).toEqual([
 		{
@@ -155,16 +171,29 @@ it("applies resolution for missing versions with once and only once lookup", asy
 		testTempDir,
 		PkgManager.Pnpm,
 		logger,
+		mockPerPkgManagerLogFilesScanner,
 	);
 	expect(mockPreinstallLatest).toHaveBeenCalledWith(
 		testTempDir,
 		PkgManager.YarnV1,
 		logger,
+		mockPerPkgManagerLogFilesScanner,
 	);
 	expect(mockPreinstallLatest).toHaveBeenCalledWith(
 		testTempDir,
 		PkgManager.YarnBerry,
 		logger,
+		mockPerPkgManagerLogFilesScanner,
+	);
+	// Expect that we created nested scanners of each pkg manager type that was latest
+	expect(mockLogFilesScanner.createNested).toHaveBeenCalledWith(
+		PkgManager.Pnpm,
+	);
+	expect(mockLogFilesScanner.createNested).toHaveBeenCalledWith(
+		PkgManager.YarnV1,
+	);
+	expect(mockLogFilesScanner.createNested).toHaveBeenCalledWith(
+		PkgManager.YarnBerry,
 	);
 	expect(mockMkdtemp).toHaveBeenCalledTimes(3);
 	expect(mockMkdtemp).toHaveBeenCalledWith(join("someDir", `${LIBRARY_NAME}-`));

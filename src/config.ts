@@ -258,6 +258,10 @@ export async function getConfig(configFile?: string, cwd = process.cwd()) {
 	const ext = extname(resolvedFile);
 	let rawConfig: TestConfig;
 	try {
+		// windows loading requires file://
+		if (process.platform === "win32") {
+			resolvedFile = `file://${resolvedFile}`;
+		}
 		if (ext === ".json") {
 			rawConfig = TestConfigValidated.parse(
 				JSON.parse(readFileSync(resolvedFile).toString()),

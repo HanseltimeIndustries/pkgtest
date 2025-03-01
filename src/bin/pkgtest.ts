@@ -8,8 +8,11 @@ import {
 import { DEFAULT_CONFIG_FILE_NAME_BASE, LIBRARY_NAME } from "../config";
 import { DEFAULT_TIMEOUT, IPreserveResourcesFn, run } from "../run";
 import {
+	CollectLogFilesOn,
+	CollectLogFileStages,
 	FailFastError,
 	ModuleTypes,
+	OnWindowsProblemsAction,
 	PkgManager,
 	RunWith,
 	TestType,
@@ -27,6 +30,8 @@ interface Options {
 	updateLockfiles?: boolean;
 	installOnly?: boolean;
 	noYarnv1CacheClean?: boolean;
+	collectLogFilesOn?: CollectLogFilesOn;
+	collectLogFilesStage?: CollectLogFileStages[];
 	// Filter options
 	modType?: ModuleTypes[];
 	noModType?: ModuleTypes[];
@@ -38,6 +43,7 @@ interface Options {
 	noPkgManagerAlias?: string[];
 	testType?: TestType[];
 	noTestType?: TestType[];
+	onWindowsProblems?: OnWindowsProblemsAction;
 }
 
 function parseIntArg(value: string, _prev?: number): number {
@@ -53,7 +59,8 @@ function parseIntArg(value: string, _prev?: number): number {
 
 program
 	.option(
-		`-c, --config <path>', 'The location of the config file for ${LIBRARY_NAME}.  Defaults to looking for ${DEFAULT_CONFIG_FILE_NAME_BASE}.([mc]?js|ts)`,
+		"-c, --config <path>",
+		`The location of the config file for ${LIBRARY_NAME}.  Defaults to looking for ${DEFAULT_CONFIG_FILE_NAME_BASE}.([mc]?js|ts)`,
 	)
 	.option("--debug", "Adds more logging for each test that runs")
 	.option("--failFast", "Immediately stops test execution on the first failure")
@@ -87,6 +94,18 @@ program
 	.option(
 		"--noYarnv1CacheClean",
 		"This is an optimization that should only be done on machines that will be fully cleaned.  yarnv1 will blow up your cache with local file installs if not cleaned.  This will save time though.",
+	)
+	.addOption(
+		new Option(
+			"--collectLogFilesOn <on>",
+			"pkgtest will scan all stdouts and stderrs of its process calls and will bundle any log files to the collect log files location (default: tempdir/pkgtest-logs or PKG_TEST_LOG_COLLECT_DIR)",
+		).choices(Object.values(CollectLogFilesOn)),
+	)
+	.addOption(
+		new Option(
+			"--collectLogFilesStage <stages...>",
+			"use in conjuction with collectLogFilesOn, this is required for pkgtest to know when to scan and collect stdio for log files.  Note, scanning unnecessary and long outputs will impact performance.",
+		).choices(Object.values(CollectLogFileStages)),
 	)
 	// filters
 	.addOption(
@@ -149,6 +168,12 @@ program
 			"Limits the tests that run to any that don't have the type of test",
 		).choices(Object.values(TestType)),
 	)
+	.addOption(
+		new Option(
+			"--onWindowsProblems <onProblem>",
+			"If we want pkgtest to detect and do something when trying to set up a problematic windows test project",
+		).choices(Object.values(OnWindowsProblemsAction)),
+	)
 	.addArgument(
 		new Argument(
 			"<testMatch...>",
@@ -180,6 +205,8 @@ program
 				isCI: false, // TODO: change
 				installOnly: options.installOnly,
 				noYarnv1CacheClean: options.noYarnv1CacheClean,
+				collectLogFilesOn: options.collectLogFilesOn,
+				collectLogFilesStages: options.collectLogFilesStage,
 				filters: {
 					fileTestNames: testMatch ?? [],
 					moduleTypes: options.modType,
@@ -192,6 +219,7 @@ program
 					noPkgManagerAlias: options.noPkgManagerAlias,
 					testTypes: options.testType,
 					noTestTypes: options.noTestType,
+					onWindowsProblems: options.onWindowsProblems,
 				},
 				parallel: options.parallel,
 			});

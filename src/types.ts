@@ -345,3 +345,82 @@ export interface TestConfig {
 export class TestFailError extends Error {}
 
 export class FailFastError extends Error {}
+
+/// Log Files Collection Types
+
+/**
+ * Different stages that we can isolate and scan for log collection
+ *
+ * This is important because finding log files involves pkgtest scanning
+ * all stdio of every exec command that runs and using a regex to find log files.
+ *
+ * Then at the end of that scan, it will copy those log files over to the log collection
+ * folder.  This is valuable for ephemeral systems that you can't exec into but will slow
+ * down anything that does not need it.
+ */
+export enum CollectLogFileStages {
+	None = "none",
+	/**
+	 * All setup exec calls from corepack installation to pkgmanager installation
+	 */
+	Setup = "setup",
+	/**
+	 * All test runs will be scanned
+	 *
+	 * Note: this takes precednece over file tests if both specified
+	 */
+	Tests = "tests",
+	/**
+	 * Just file tests
+	 */
+	FileTests = "file",
+	/**
+	 * Just bin tests
+	 */
+	BinTests = "bin",
+	/**
+	 * Just script tests
+	 */
+	ScriptTests = "script",
+	/**
+	 * All stages - this will take precedence over any other stages
+	 */
+	All = "all",
+}
+
+/**
+ * Since pkgtest is scanning all stdio from exec processes when collecting log files,
+ * it is important to be able to limit when that scanning and saving happens.
+ *
+ * It is generally recommended to use "Error" when collecting log files so that you
+ * can find logs related to failed processes while minimizing the extra computation that
+ * occurs.
+ */
+export enum CollectLogFilesOn {
+	/**
+	 * Only if the exec process that we're monitoring did a non-zero exit
+	 */
+	Error = "error",
+	/**
+	 * Stdout and stderr will be scanned and collected regardless of exit code
+	 */
+	All = "all",
+}
+
+/**
+ * Since windows has some historical installation problems with local packages,
+ * this says what to do if the platform is windows and we encounter a test project
+ * that would be problematic.
+ */
+export enum OnWindowsProblemsAction {
+	/**
+	 * This will just leave a notice in the stdout and skip the test as if it was filtered
+	 */
+	Skip = "skip",
+	/**
+	 * This will throw an error to let you know that this test would be run and is problematic.
+	 * This is good if you want to keep a dynamic pkgtest.config.js file where you actively
+	 * don't provide configurations for problematic tests.
+	 */
+	Error = "error",
+}

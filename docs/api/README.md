@@ -6,7 +6,10 @@
 
 ## Enumerations
 
+- [CollectLogFilesOn](enumerations/CollectLogFilesOn.md)
+- [CollectLogFileStages](enumerations/CollectLogFileStages.md)
 - [ModuleTypes](enumerations/ModuleTypes.md)
+- [OnWindowsProblemsAction](enumerations/OnWindowsProblemsAction.md)
 - [PkgManager](enumerations/PkgManager.md)
 - [RunWith](enumerations/RunWith.md)
 - [TestType](enumerations/TestType.md)

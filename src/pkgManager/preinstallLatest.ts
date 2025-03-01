@@ -1,10 +1,10 @@
 import { join } from "path";
 import { writeFile } from "fs/promises";
-import { Logger } from "../Logger";
-import { exec } from "child_process";
+import { ILogFilesScanner, Logger } from "../logging";
 import { PkgManager } from "../types";
 import { getPkgManagerSetCommand } from "./getPkgManagerSetCommand";
 import { sanitizeEnv } from "./sanitizeEnv";
+import { controlledExec } from "../controlledExec";
 
 /**
  * The use of corepack pkgManager@latest means that pkgmanager keeps looking up the latest tags.
@@ -22,6 +22,7 @@ export async function preinstallLatest(
 	tempDir: string,
 	pkgManager: PkgManager,
 	logger: Logger,
+	logFilesScanner?: ILogFilesScanner,
 ) {
 	const pkgJsonPath = join(tempDir, "package.json");
 	await writeFile(
@@ -35,22 +36,16 @@ export async function preinstallLatest(
 		),
 	);
 	const pkgCommand = getPkgManagerSetCommand(pkgManager);
-	return new Promise<string>((res, rej) => {
-		exec(
-			pkgCommand,
-			{
-				cwd: tempDir,
-				env: sanitizeEnv(pkgJsonPath),
-			},
-			(error, stdout, stderr) => {
-				if (error) {
-					logger.log(stdout);
-					logger.error(stderr);
-					rej(error);
-				} else {
-					res(stdout.trim());
-				}
-			},
-		);
-	});
+	return await controlledExec(
+		pkgCommand,
+		{
+			cwd: tempDir,
+			env: sanitizeEnv(pkgJsonPath),
+		},
+		logger,
+		logFilesScanner,
+		{
+			onlyReturnStdOut: true,
+		},
+	);
 }

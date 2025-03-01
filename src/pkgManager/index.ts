@@ -1,3 +1,4 @@
+export * from "./applyLockLocalFileEscaping";
 export * from "./getPkgBinaryRunnerCommand";
 export * from "./getPkgManagerCommand";
 export * from "./getPkgManagerSetCommand";
@@ -9,3 +10,4 @@ export * from "./getPkgManagers";
 export * from "./preinstallLatest";
 export * from "./resolveLatestVersions";
 export * from "./sanitizeEnv";
+export * from "./getLocalPackagePath";
