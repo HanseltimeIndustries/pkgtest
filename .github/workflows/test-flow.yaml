@@ -52,22 +52,22 @@ jobs:
       - name: build
         run: |
           yarn build
-      # - name: linting
-      #   run: |
-      #     yarn lint
-      # - name: formatting
-      #   run: |
-      #     yarn format
-      # - name: testing
-      #   run: |
-      #     yarn test
+      - name: linting
+        run: |
+          yarn lint
+      - name: formatting
+        run: |
+          yarn format
+      - name: testing
+        run: |
+          yarn test
       # TODO - disable this after tswc support for windows instead of cache issues
       - name: Save dist
         uses: actions/cache/save@v4
         with:
           path: |
             dist/
-          key: dist2-${{ github.ref }}
+          key: dist2-${{ github.sha }}
           enableCrossOsArchive: true
   pkg-test:
     needs:
@@ -96,7 +96,7 @@ jobs:
         with:
           path: |
             dist/
-          key: dist2-${{ github.ref }}
+          key: dist2-${{ github.sha }}
           enableCrossOsArchive: true
       # TODO - reenable this after tswc support for windows instead of cache issues
       # - name: build
@@ -118,14 +118,12 @@ jobs:
           $absoluteTempDir = Resolve-Path $tempDir
           $logsDir = Join-Path $absoluteTempDir "pkgtest-logs"
           echo "LOG_DIR_TO_ARCHIVE=$logsDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Handle Windows pkgtest setup
+      - name: Handle Non-Windows pkgtest setup
         if: ${{ matrix.os != 'windows-latest' }}
         run: |
           echo "PKG_TEST_TEMP_DIR=${{ env.RUNNER_TEMP }}" >> $GITHUB_ENV
           echo "LOG_DIR_TO_ARCHIVE=${{ env.RUNNER_TEMP }}/pkgtest-logs" >> $GITHUB_ENV
       - name: pkgtest ${{ matrix.pkgManager }}
-        # env:
-        #   PKG_TEST_TEMP_DIR: ${{ env.RUNNER_TEMP }}
         run: |
           # This avoids yarnv1 level failures due to global cache lock issues
           # Just preps by filling the cache in a synchronous manner

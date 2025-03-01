@@ -119,8 +119,8 @@ if (process.argv.includes("--noYarnv1CacheClean")) {
 	addArgs += " --noYarnv1CacheClean";
 }
 if (process.platform === "win32") {
-	// Since yarn-v1 takes so long on windows, we'll skip it
-	addArgs += " --noPkgManager yarn-v1";
+	// Skip the problems when we run pkgtest that will trigger huge time outs
+	addArgs += " --onWindowsProblems skip";
 }
 
 const nonNestedTests = {

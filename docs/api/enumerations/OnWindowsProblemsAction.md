@@ -6,7 +6,7 @@
 
 # Enumeration: OnWindowsProblemsAction
 
-Since windows has some historical installation problems with local packages, 
+Since windows has some historical installation problems with local packages,
 this says what to do if the platform is windows and we encounter a test project
 that would be problematic.
 

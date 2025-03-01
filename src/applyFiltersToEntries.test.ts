@@ -6,9 +6,15 @@ import { StandardizedTestConfig, StandardizedTestConfigEntry } from "./config";
 import { Logger } from "./logging";
 import { TestGroupOverview } from "./reporters";
 import { isWindowsProblem } from "./isWindowsProblem";
-import { ModuleTypes, OnWindowsProblemsAction, PkgManager, RunWith, TestType } from "./types";
+import {
+	ModuleTypes,
+	OnWindowsProblemsAction,
+	PkgManager,
+	RunWith,
+	TestType,
+} from "./types";
 
-jest.mock('./isWindowsProblem');
+jest.mock("./isWindowsProblem");
 const mockIsWindowsProblem = jest.mocked(isWindowsProblem);
 
 const testEntryAllTypes: StandardizedTestConfigEntry = {
@@ -81,14 +87,12 @@ const testLogger: Logger = {
 beforeEach(() => {
 	jest.resetAllMocks();
 	// Set it up so that yarnv1 is skipped
-	mockIsWindowsProblem.mockImplementation(({
-		packageManager
-	}) => {
+	mockIsWindowsProblem.mockImplementation(({ packageManager }) => {
 		if (packageManager === PkgManager.YarnV1) {
-			return true
+			return true;
 		}
-		return false
-	})
+		return false;
+	});
 });
 
 it.each([[undefined], [{}]])("returns same with %s filter", (f) => {
@@ -483,7 +487,7 @@ it.each(
 			// All bin tests
 			// There's only 1 test (yarn-berry + 1 runWith) * 2 entries => 24 - 2 = 22
 			[22, 8, 6],
-		]
+		],
 	].map((e) => {
 		// Serialize the filter for test clarity
 		return [JSON.stringify(e[0]), ...e] as unknown as [
@@ -531,15 +535,13 @@ it.each(
 	},
 );
 
-it('throws an error if windows problems detected', () => {
+it("throws an error if windows problems detected", () => {
 	const binTestSuitesOverview = new TestGroupOverview();
 	const fileTestSuitesOverview = new TestGroupOverview();
 	const scriptTestSuitesOverview = new TestGroupOverview();
-	expect(() => 
+	expect(() =>
 		applyFiltersToEntries(
-			[
-				testEntryAllTypes,
-			],
+			[testEntryAllTypes],
 			{
 				logger: testLogger,
 				binTestSuitesOverview,
@@ -550,5 +552,7 @@ it('throws an error if windows problems detected', () => {
 				onWindowsProblems: OnWindowsProblemsAction.Error,
 			},
 		),
-	).toThrow("is problematic on windows!  Make sure it is not configured for process.platform === 'win32'");
-})
+	).toThrow(
+		"is problematic on windows!  Make sure it is not configured for process.platform === 'win32'",
+	);
+});

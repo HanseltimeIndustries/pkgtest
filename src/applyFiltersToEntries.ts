@@ -13,7 +13,6 @@ import {
 	RunWith,
 	TestConfigEntry,
 	TestType,
-	YarnV4Options,
 } from "./types";
 import { Logger } from "./logging";
 import chalk from "chalk";
@@ -192,7 +191,7 @@ export function applyFiltersToEntries(
 				// reassign pkg managers to reduced set
 				filteredPkgManagers = testConfigEntry.packageManagers.filter(
 					(_pkgManager) => {
-						const { packageManager: pkgManager, alias: pkgManagerAlias, options } =
+						const { packageManager: pkgManager, alias: pkgManagerAlias } =
 							_pkgManager;
 
 						if (packageManagers && !packageManagers.includes(pkgManager)) {
@@ -256,10 +255,18 @@ export function applyFiltersToEntries(
 						// Apply Windows exclusion last
 						if (filters.onWindowsProblems) {
 							if (isWindowsProblem(_pkgManager)) {
-								if (filters.onWindowsProblems === OnWindowsProblemsAction.Error) {
-									throw new Error(`${pkgManager} ${pkgManagerAlias} is problematic on windows!  Make sure it is not configured for process.platform === 'win32'`)
+								if (
+									filters.onWindowsProblems === OnWindowsProblemsAction.Error
+								) {
+									throw new Error(
+										`${pkgManager} ${pkgManagerAlias} is problematic on windows!  Make sure it is not configured for process.platform === 'win32'`,
+									);
 								}
-								logger.log(chalk.yellow(`Skipping ${pkgManager} (${pkgManagerAlias}) Due to Problematic Windows Setup`))
+								logger.log(
+									chalk.yellow(
+										`Skipping ${pkgManager} (${pkgManagerAlias}) Due to Problematic Windows Setup`,
+									),
+								);
 								filteredModTypes.forEach((modType) => {
 									testEntryProjectLevelSkip(
 										logger,

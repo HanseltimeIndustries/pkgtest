@@ -17,9 +17,10 @@ export function getPkgBinaryRunnerCommand(
 				`corepack npx@${version} -c "${cmd.replaceAll(/(?<!\\)"/g, '\\"')}"`;
 		case PkgManager.Pnpm:
 		case PkgManager.YarnV1:
-		case PkgManager.YarnBerry:
+		case PkgManager.YarnBerry: {
 			const preCmd = getPkgManagerCommand(pkgManager, version);
 			return (cmd: string) => `${preCmd} ${cmd}`;
+		}
 		default:
 			throw new Error(
 				`Unimplemented pkg binary runner command for ${pkgManager}`,
