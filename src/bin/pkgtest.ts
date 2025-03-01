@@ -12,6 +12,7 @@ import {
 	CollectLogFileStages,
 	FailFastError,
 	ModuleTypes,
+	OnWindowsProblemsAction,
 	PkgManager,
 	RunWith,
 	TestType,
@@ -42,6 +43,7 @@ interface Options {
 	noPkgManagerAlias?: string[];
 	testType?: TestType[];
 	noTestType?: TestType[];
+	onWindowsProblems?: OnWindowsProblemsAction;
 }
 
 function parseIntArg(value: string, _prev?: number): number {
@@ -166,6 +168,12 @@ program
 			"Limits the tests that run to any that don't have the type of test",
 		).choices(Object.values(TestType)),
 	)
+	.addOption(
+		new Option(
+			"--onWindowsProblems <onProblem>",
+			"If we want pkgtest to detect and do something when trying to set up a problematic windows test project",
+		).choices(Object.values(OnWindowsProblemsAction)),
+	)
 	.addArgument(
 		new Argument(
 			"<testMatch...>",
@@ -211,6 +219,7 @@ program
 					noPkgManagerAlias: options.noPkgManagerAlias,
 					testTypes: options.testType,
 					noTestTypes: options.noTestType,
+					onWindowsProblems: options.onWindowsProblems,
 				},
 				parallel: options.parallel,
 			});

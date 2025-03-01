@@ -148,7 +148,8 @@ it("peforms an install without locks", async () => {
 		testLogger,
 		mockLogFilesScanner,
 	);
-	expect(mockWriteFile).not.toHaveBeenCalled();
+	// We wrote an empty lock file to avoid package managers looking for parents
+	expect(mockWriteFile).toHaveBeenCalledWith(expectedLockFileInProject, '');
 });
 
 it("auto-writes missing lock file", async () => {
