@@ -8,6 +8,26 @@
 
 ## Properties
 
+### collectLogFilesOn?
+
+> `optional` **collectLogFilesOn**: [`CollectLogFilesOn`](../enumerations/CollectLogFilesOn.md)
+
+If set, pkgtest will scan logs during setup calls for any detected log files and then copy them to the
+log collection folder on the system when:
+
+- Error - only an error triggers a failure of an exec
+- All - any time we see a log file mentioned regardless of failure
+
+Note: this is mainly meant for CI processes
+
+***
+
+### collectLogFilesStages?
+
+> `optional` **collectLogFilesStages**: [`CollectLogFileStages`](../enumerations/CollectLogFileStages.md)[]
+
+***
+
 ### configPath?
 
 > `optional` **configPath**: `string`

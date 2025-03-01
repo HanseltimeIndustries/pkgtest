@@ -88,3 +88,58 @@ pkgtest --update-lockfiles
 
 Without that option, if you add new dependencies to the project, pkgtest will fail on install because it will run install with the
 equivalent of `--frozen-lockfile`.
+
+# Windows Caveats
+
+While we do recommend running pkgtest against all types of OS'es (particularly if you are doing file path operations, etc.), windows has a few things
+that make it harder to run pkgtests.
+
+## Corepack in a runner
+
+Depending on how your node version was installed in your runner, the suggested npm upgrade of corepack may not be enough.  
+In our experience, Windows Github actions runners do not seem to honor the npx path over node.
+
+You can add your npm global root to the PATH variable for the run using something like:
+
+```shell
+npm install -g corepack@latest
+$npmBinDir = Split-Path (npm -g root)
+$env:PATH = "$npmBinDir;$env:PATH"
+```
+
+## Other drives
+
+If you are running a package from a folder in `C:\` and want to set up all your test projects in another drive like `D:\`, at this point, the underlying
+package managers will not support that.
+
+While some may do okay, pnpm resolves those as if they're relative paths and other exotic behavior with lock files occur.
+
+!!! Tip Takeaway
+
+    Make sure that you are running with PKG_TEST_TEMP_DIR set to somewhere on the same drive as your test package
+
+## Windows defender
+
+You may experience very slow tests and installation times, you may want
+to consider checking to see if Windows Defender is scanning all IO operations in the test projects or package manager caches.
+Since pkgtest is doing fresh file creation, that can lead to expanding installation times for pkgtest.
+
+This is is an example of adding an exclusion path to defender to opt out of the temp directory and the package you're testing.
+
+```shell
+    powershell -inputformat none -outputformat none -NonInteractive -Command Add-MpPreference -ExclusionPath $tempDir
+    powershell -inputformat none -outputformat none -NonInteractive -Command Add-MpPreference -ExclusionPath $packageDir
+```
+
+## Using --onWindowsProblems skip
+
+As discussed in [Windows And Package Manager Problems](./92-windows.md#windows-and-package-manager-problems), you may find
+that your `pkgtest` runs take a really long time on windows runners while being performant on unix runners.
+
+Some of the issues identified are unfixable parts of the package managers or of certain versions of node.  On a normal
+development machine, these problems might be painful, but installs don't happen all that often, unlike in pkgtest.
+
+A simple compromise that pkgtest provides, is for you to have it skip any projects that we know are problematic on windows.
+Therefore, you can add `--onWindowsProblems skip` to your pkgtest call, and then as long as the package managers work on a
+unix runner, consider that enough.  (Please note that, pkgtest has been able to run all package managers on Github actions
+windows runners, so it is possible, just very ineffient for things like yarn plug'n'play and yarn-v1).
