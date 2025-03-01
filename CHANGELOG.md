@@ -1,3 +1,25 @@
+# [1.3.0](https://github.com/HanseltimeIndustries/pkgtest/compare/v1.2.0...v1.3.0) (2025-03-01)
+
+
+### Bug Fixes
+
+* add log insufficient corepack version ([f25a0c6](https://github.com/HanseltimeIndustries/pkgtest/commit/f25a0c61304466fac0d3bf2c45c6e523833742ee))
+* adding onWindowProblems skip action ([c7efbc3](https://github.com/HanseltimeIndustries/pkgtest/commit/c7efbc3789a29c433dc14918f2cd12e66b744ac7))
+* amending onWindowsProblems during tests ([b37da8f](https://github.com/HanseltimeIndustries/pkgtest/commit/b37da8ffbf058788361b5378039db5b24e237652))
+* config cli argument ([2053434](https://github.com/HanseltimeIndustries/pkgtest/commit/205343429747cd850e2dd95c36a723ba6030fefc))
+* enable windows file loading ([359dc5a](https://github.com/HanseltimeIndustries/pkgtest/commit/359dc5a8df9461d259450263df55bfa4542f63a8))
+* install empty lock files on no lock ([72f3173](https://github.com/HanseltimeIndustries/pkgtest/commit/72f317302f8bf2c1a47ef47f0dbbcb2de22cc80f))
+* resolve lockfile for npm on windows ([2c854a8](https://github.com/HanseltimeIndustries/pkgtest/commit/2c854a80bcdf02f72d6c5473cc6fcbf84c9c9b2c))
+* switch to npm -c to avoid node downloads ([e0f56af](https://github.com/HanseltimeIndustries/pkgtest/commit/e0f56afc21e93b4b0bde515095d43123fadea6e1))
+* sync install yarn-berry on windows ([7ffaeaa](https://github.com/HanseltimeIndustries/pkgtest/commit/7ffaeaa2c542bec03f87b7654ef8c8f86e929c6e))
+* use npx -c to avoid windows path issues ([be49337](https://github.com/HanseltimeIndustries/pkgtest/commit/be49337398c5dec20c026c1ab2866d0b03beb4eb))
+
+
+### Features
+
+* adding setup log file collection ([6302c7b](https://github.com/HanseltimeIndustries/pkgtest/commit/6302c7b3fb4e632820e4fe0cf3c0aa540c34f5f0))
+* allowing log file collection in stages ([43586cd](https://github.com/HanseltimeIndustries/pkgtest/commit/43586cdb4742ec57cee41d0bb3c8e3830b11aabc))
+
 # [1.2.0](https://github.com/HanseltimeIndustries/pkgtest/compare/v1.1.0...v1.2.0) (2025-02-24)
 
 
