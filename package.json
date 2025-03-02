@@ -13,9 +13,7 @@
 		"import": "./dist/esm/index.mjs",
 		"default": "./dist/esm/index.mjs"
 	},
-	"files": [
-		"dist"
-	],
+	"files": ["dist"],
 	"dependencies": {
 		"@inquirer/prompts": "^7.3.2",
 		"chalk": "^5.4.1",
