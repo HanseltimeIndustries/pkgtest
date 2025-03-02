@@ -77,7 +77,7 @@ jobs:
       matrix:
         node-version: [18.x, 20.x]
         # TODO - macos support
-        os: ['ubuntu-latest', 'windows-latest']
+        os: ['ubuntu-latest', 'windows-latest', 'macos-latest']
         pkgManager: ['yarn-v1', 'yarn-berry', 'pnpm', 'npm']
     runs-on: ${{ matrix.os }}
     steps:
@@ -121,8 +121,10 @@ jobs:
       - name: Handle Non-Windows pkgtest setup
         if: ${{ matrix.os != 'windows-latest' }}
         run: |
-          echo "PKG_TEST_TEMP_DIR=${{ env.RUNNER_TEMP }}" >> $GITHUB_ENV
-          echo "LOG_DIR_TO_ARCHIVE=${{ env.RUNNER_TEMP }}/pkgtest-logs" >> $GITHUB_ENV
+          mkdir ../pkgtest-temp/
+          PKG_TEST_TEMP_DIR=$(readlink -f ../pkgtest-temp)
+          echo "PKG_TEST_TEMP_DIR=${PKG_TEST_TEMP_DIR}" >> $GITHUB_ENV
+          echo "LOG_DIR_TO_ARCHIVE=${PKG_TEST_TEMP_DIR}/pkgtest-logs" >> $GITHUB_ENV
       - name: pkgtest ${{ matrix.pkgManager }}
         run: |
           # This avoids yarnv1 level failures due to global cache lock issues
