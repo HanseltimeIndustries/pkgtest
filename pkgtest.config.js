@@ -1,6 +1,8 @@
 const { join, relative } = require("path");
 
 const fileTestTimeout = process.platform === "win32" ? 10000 : 4000;
+// This is way longer because we're literally running a nested pkgtest
+const binTestTimeout = process.platform === "darwin" ? 200000 : 140000;
 
 // Create a pkgtest.config.js file so we can test our binary and solve yarn local resolution in dependencies
 const createConfigFile = (
@@ -162,7 +164,7 @@ const cjsBinTests = {
 	},
 	packageManagers,
 	moduleTypes: ["commonjs"],
-	timeout: 140000, // Make it about 2 minutes since we're literally running another pkgtest
+	timeout: binTestTimeout,
 };
 
 const esmBinTests = {
@@ -180,7 +182,7 @@ const esmBinTests = {
 	},
 	packageManagers,
 	moduleTypes: ["esm"],
-	timeout: 140000, // Make it about 2 minutes since we're literally running another pkgtest
+	timeout: binTestTimeout,
 };
 
 module.exports = {
