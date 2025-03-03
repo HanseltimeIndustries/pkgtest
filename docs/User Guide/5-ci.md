@@ -8,7 +8,16 @@ with some additional challenges though (including some tools like `yarn` auto-de
     pkgtest uses itself to test that it works.  Because of this, you can check pkgtest's test-flow.yaml to see a working
     example of pkgtest in Github Actions.
 
-## Setting up your pkgtest call
+## A Prepackaged Github Action
+
+If you are using Github Actions, then you can use the same setup action that pkgtest uses to simplify handling multiple
+different OS's.
+
+[Pkgtest Setup Action](https://github.com/HanseltimeIndustries/pkgtest-setup-action)
+
+## General CI Notes:
+
+### Setting up your pkgtest call
 
 pkgtest relies on corepack and NodeJs already being on your machine so that it can download and run scripts.
 
@@ -20,6 +29,7 @@ The general steps in any CI are:
 3. If your CI environment locks down its normal temp dir,
    1. `export PKG_TEST_TEMP_DIR=<whatever dir you make that should be "temp">`
    2. In github actions, this can look like: `export PKG_TEST_TEMP_DIR="${RUNNER_TEMP}"`
+   3. Please make sure the temp directory is on the same volume/drive
 4. `corepack enable`
 5. `<your pkg manager> pkgtest`
 
