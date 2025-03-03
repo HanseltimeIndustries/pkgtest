@@ -976,7 +976,7 @@ __metadata:
     semantic-release: "npm:^22.0.12"
     semver: "npm:^7.7.1"
     ts-jest: "npm:^29.1.1"
-    tswc: "npm:^1.4.0"
+    tswc: "npm:^1.5.0"
     tsx: "npm:^4.19.2"
     type-fest: "npm:^4.35.0"
     typedoc: "npm:^0.27.6"
@@ -10662,9 +10662,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tswc@npm:^1.4.0":
-  version: 1.4.0
-  resolution: "tswc@npm:1.4.0"
+"tswc@npm:^1.5.0":
+  version: 1.5.0
+  resolution: "tswc@npm:1.5.0"
   dependencies:
     cac: "npm:^6.7.14"
     jsonc-parser: "npm:^3.3.1"
@@ -10674,7 +10674,7 @@ __metadata:
     "@swc/core": ">= 1.3.38"
   bin:
     tswc: dist/cli.js
-  checksum: 10/a1c69a58f46896671897dbbf8ffea886045ad9c9ea2bf4c6258c967c9af00e58f721bf7da795830d3011a90ba667c3d42f5088406a23837f84cb38ef004db3d0
+  checksum: 10/9cfe9b73b15eecf51a3249e3455f73f5c78d8ac47e89b7b85ec742c05766e68707a8750ebf776367db5e923586caa84907d9fe31390df76c129379b8689a8b3d
   languageName: node
   linkType: hard
 
