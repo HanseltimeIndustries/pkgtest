@@ -98,45 +98,21 @@ jobs:
             dist/
           key: dist2-${{ github.sha }}
           enableCrossOsArchive: true
-      # TODO - reenable this after tswc support for windows instead of cache issues
-      # - name: build
-      #   run: |
-      #     yarn build
-      - name: Handle Windows pkgtest setup
-        if: ${{ matrix.os == 'windows-latest' }}
-        run: |
-          # Corepack updates do not work on windows so we have to update paths
-          echo "C:\npm\prefix\" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          New-Item -ItemType Directory -Path ..\temp
-          # Temporary directory in windows is basically mandatory given package manager issues with being on a separate drive
-          $tempDir = Join-Path -Path $env:GITHUB_WORKSPACE -ChildPath "..\temp"
-          echo "PKG_TEST_TEMP_DIR=$tempDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          .\bin\disable-defender.ps1 -off
-          powershell -inputformat none -outputformat none -NonInteractive -Command Add-MpPreference -ExclusionPath $tempDir
-          powershell -inputformat none -outputformat none -NonInteractive -Command Add-MpPreference -ExclusionPath $env:GITHUB_WORKSPACE
-          # Artifact storage requires an aleady fully resolved url
-          $absoluteTempDir = Resolve-Path $tempDir
-          $logsDir = Join-Path $absoluteTempDir "pkgtest-logs"
-          echo "LOG_DIR_TO_ARCHIVE=$logsDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Handle Non-Windows pkgtest setup
-        if: ${{ matrix.os != 'windows-latest' }}
-        run: |
-          mkdir ../pkgtest-temp/
-          PKG_TEST_TEMP_DIR=$(readlink -f ../pkgtest-temp)
-          echo "PKG_TEST_TEMP_DIR=${PKG_TEST_TEMP_DIR}" >> $GITHUB_ENV
-          echo "LOG_DIR_TO_ARCHIVE=${PKG_TEST_TEMP_DIR}/pkgtest-logs" >> $GITHUB_ENV
+      - id: pkgtest-setup
+        uses: hanseltimeindustries/pkgtest-setup-action@v1
       - name: pkgtest ${{ matrix.pkgManager }}
         run: |
           # This avoids yarnv1 level failures due to global cache lock issues
           # Just preps by filling the cache in a synchronous manner
           # No need to clean up since the container will do that on close
           yarn pkgtest -p 1 --noYarnv1CacheClean --pkgManager ${{ matrix.pkgManager }} --collectLogFilesOn error --collectLogFilesStage tests --onWindowsProblems skip
+        # Collect any logs from the --collectLogFilesOn error to troubleshoot failures
       - name: Archive logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: pkgtest-log-files-${{ matrix.pkgManager }}-${{ matrix.os }}-${{ matrix.node-version }}
-          path: ${{ env.LOG_DIR_TO_ARCHIVE }}
+          path: ${{ steps.pkgtest-setup.outputs.collet_log_file_folder }}
           retention-days: 1
           include-hidden-files: true
   ensure-docs:
