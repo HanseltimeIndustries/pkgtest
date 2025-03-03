@@ -617,11 +617,35 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#a-prepackaged-github-action" class="md-nav__link">
+    <span class="md-ellipsis">
+      A Prepackaged Github Action
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#general-ci-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      General CI Notes:
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="General CI Notes:">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#setting-up-your-pkgtest-call" class="md-nav__link">
     <span class="md-ellipsis">
       Setting up your pkgtest call
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2089,11 +2113,35 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#a-prepackaged-github-action" class="md-nav__link">
+    <span class="md-ellipsis">
+      A Prepackaged Github Action
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#general-ci-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      General CI Notes:
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="General CI Notes:">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#setting-up-your-pkgtest-call" class="md-nav__link">
     <span class="md-ellipsis">
       Setting up your pkgtest call
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2181,7 +2229,12 @@ with some additional challenges though (including some tools like <code>yarn</co
 <p>pkgtest uses itself to test that it works.  Because of this, you can check pkgtest's test-flow.yaml to see a working
 example of pkgtest in Github Actions.</p>
 </div>
-<h2 id="setting-up-your-pkgtest-call">Setting up your pkgtest call</h2>
+<h2 id="a-prepackaged-github-action">A Prepackaged Github Action</h2>
+<p>If you are using Github Actions, then you can use the same setup action that pkgtest uses to simplify handling multiple
+different OS's.</p>
+<p><a href="https://github.com/HanseltimeIndustries/pkgtest-setup-action">Pkgtest Setup Action</a></p>
+<h2 id="general-ci-notes">General CI Notes:</h2>
+<h3 id="setting-up-your-pkgtest-call">Setting up your pkgtest call</h3>
 <p>pkgtest relies on corepack and NodeJs already being on your machine so that it can download and run scripts.</p>
 <p>The general steps in any CI are:</p>
 <ol>
@@ -2191,6 +2244,7 @@ example of pkgtest in Github Actions.</p>
 <li>If your CI environment locks down its normal temp dir,</li>
 <li><code>export PKG_TEST_TEMP_DIR=&lt;whatever dir you make that should be "temp"&gt;</code></li>
 <li>In github actions, this can look like: <code>export PKG_TEST_TEMP_DIR="${RUNNER_TEMP}"</code></li>
+<li>Please make sure the temp directory is on the same volume/drive</li>
 <li><code>corepack enable</code></li>
 <li><code>&lt;your pkg manager&gt; pkgtest</code></li>
 </ol>
