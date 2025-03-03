@@ -61,7 +61,6 @@ jobs:
       - name: testing
         run: |
           yarn test
-      # TODO - disable this after tswc support for windows instead of cache issues
       - name: Save dist
         uses: actions/cache/save@v4
         with:
