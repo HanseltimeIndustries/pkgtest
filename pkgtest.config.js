@@ -1,8 +1,8 @@
 const { join, relative } = require("path");
 
 const fileTestTimeout = process.platform === "win32" ? 10000 : 4000;
-// This is way longer because we're literally running a nested pkgtest
-const binTestTimeout = process.platform === "darwin" ? 200000 : 140000;
+// This is way longer because we're literally running a nested pkgtest - macos runners seem to not play well with this
+const binTestTimeout = process.platform === "darwin" ? 240000 : 140000;
 
 // Create a pkgtest.config.js file so we can test our binary and solve yarn local resolution in dependencies
 const createConfigFile = (
