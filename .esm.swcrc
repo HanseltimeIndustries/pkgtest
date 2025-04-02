@@ -2,10 +2,6 @@
     "$schema": "https://swc.rs/schema.json",
     "jsc": {
         "baseUrl": "./",
-        "target": "es6",
-        "parser": {
-            "syntax": "typescript",
-        },
         "experimental": {
             "plugins": [["@hanseltime/swc-plugin-node-globals-inject", {}]]
         },

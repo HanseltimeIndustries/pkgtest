@@ -1,7 +1,6 @@
 import { program, Command } from "commander";
 import { confirm } from "@inquirer/prompts";
 import { findPkgTestProjectsByPrefix, getTempDir } from "../files";
-import chalk from "chalk";
 import { resolve } from "path";
 import { rm } from "fs/promises";
 
@@ -25,6 +24,7 @@ program
 		"If added, the delete operation will perform a rm -f style removal of any folders",
 	)
 	.action(async (options: Options, _command: Command) => {
+		const chalk = (await import("chalk")).default;
 		const tempDir = getTempDir();
 		const folders = findPkgTestProjectsByPrefix(tempDir);
 		console.log(`Found in ${tempDir}:\n`);

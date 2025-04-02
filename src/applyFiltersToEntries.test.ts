@@ -13,6 +13,7 @@ import {
 	RunWith,
 	TestType,
 } from "./types";
+import type { ChalkInstance } from "chalk" with { "resolution-mode": "import" };
 
 jest.mock("./isWindowsProblem");
 const mockIsWindowsProblem = jest.mocked(isWindowsProblem);
@@ -84,6 +85,12 @@ const testLogger: Logger = {
 	debug: false,
 };
 
+let chalk: ChalkInstance;
+
+beforeAll(async () => {
+	chalk = (await import("chalk")).default;
+})
+
 beforeEach(() => {
 	jest.resetAllMocks();
 	// Set it up so that yarnv1 is skipped
@@ -110,6 +117,7 @@ it.each([[undefined], [{}]])("returns same with %s filter", (f) => {
 				binTestSuitesOverview: new TestGroupOverview(),
 				fileTestSuitesOverview: new TestGroupOverview(),
 				scriptTestSuitesOverview: new TestGroupOverview(),
+				chalk,
 			},
 			f,
 		),
@@ -518,6 +526,7 @@ it.each(
 					binTestSuitesOverview,
 					fileTestSuitesOverview,
 					scriptTestSuitesOverview,
+					chalk,
 				},
 				f,
 			),
@@ -547,6 +556,7 @@ it("throws an error if windows problems detected", () => {
 				binTestSuitesOverview,
 				fileTestSuitesOverview,
 				scriptTestSuitesOverview,
+				chalk,
 			},
 			{
 				onWindowsProblems: OnWindowsProblemsAction.Error,
