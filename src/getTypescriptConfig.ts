@@ -19,11 +19,11 @@ export function getTypescriptConfig(
 	switch (modType) {
 		case "commonjs":
 			moduleTsConfigProps.target = "es2020";
-			moduleTsConfigProps.module = "commonjs";
+			moduleTsConfigProps.module = "nodenext"; // This will work with a package.json that doesn't have type: "module"
 			moduleTsConfigProps.outDir = join(tsBuildDir, "cjs");
 			break;
 		case "esm":
-			moduleTsConfigProps.module = "esnext";
+			moduleTsConfigProps.module = "nodenext"; // This will work with a package.json that has type: "module"
 			moduleTsConfigProps.target = "esnext";
 			moduleTsConfigProps.outDir = join(tsBuildDir, "esm");
 			break;
@@ -43,7 +43,7 @@ export function getTypescriptConfig(
 		compilerOptions: {
 			...softProps,
 			strict: true,
-			moduleResolution: "node" as TsConfigJson.CompilerOptions.ModuleResolution,
+			moduleResolution: "nodenext" as TsConfigJson.CompilerOptions.ModuleResolution,
 			sourceMap: true,
 			rootDir: tsSrcDir,
 			isolatedModules: true,

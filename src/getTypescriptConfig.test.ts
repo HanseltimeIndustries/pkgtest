@@ -19,10 +19,10 @@ it("applies a default base config for commonjs", () => {
 	).toEqual({
 		compilerOptions: {
 			target: "es2020",
-			module: "commonjs",
+			module: "nodenext",
 			outDir: expectedOutDir,
 			strict: true,
-			moduleResolution: "node",
+			moduleResolution: "nodenext",
 			sourceMap: true,
 			rootDir: testSrcDir,
 			isolatedModules: true,
@@ -46,10 +46,10 @@ it("applies a default base config for esm", () => {
 	).toEqual({
 		compilerOptions: {
 			target: "esnext",
-			module: "esnext",
+			module: "nodenext",
 			outDir: expectedOutDir,
 			strict: true,
-			moduleResolution: "node",
+			moduleResolution: "nodenext",
 			sourceMap: true,
 			rootDir: testSrcDir,
 			isolatedModules: true,
@@ -89,9 +89,9 @@ it("Overrides the default config for commonjs with config", () => {
 	).toEqual({
 		...rest,
 		compilerOptions: {
-			module: "commonjs",
+			module: "nodenext",
 			outDir: expectedOutDir,
-			moduleResolution: "node",
+			moduleResolution: "nodenext",
 			sourceMap: true,
 			rootDir: testSrcDir,
 			isolatedModules: true,
@@ -131,9 +131,9 @@ it("Overrides the default config for commonjs with config", () => {
 	).toEqual({
 		...rest,
 		compilerOptions: {
-			module: "esnext",
+			module: "nodenext",
 			outDir: expectedOutDir,
-			moduleResolution: "node",
+			moduleResolution: "nodenext",
 			sourceMap: true,
 			rootDir: testSrcDir,
 			isolatedModules: true,
