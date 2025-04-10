@@ -3,8 +3,8 @@ import {
 	EntryFilterOptions,
 } from "./applyFiltersToEntries";
 import { StandardizedTestConfig, StandardizedTestConfigEntry } from "./config";
-import { Logger } from "./logging";
-import { TestGroupOverview } from "./reporters";
+import { Logger } from "./logging/index";
+import { TestGroupOverview } from "./reporters/index";
 import { isWindowsProblem } from "./isWindowsProblem";
 import {
 	ModuleTypes,
@@ -13,6 +13,7 @@ import {
 	RunWith,
 	TestType,
 } from "./types";
+// biome-ignore syntax/correctness/noTypeOnlyImportAttributes: bug
 import type { ChalkInstance } from "chalk" with { "resolution-mode": "import" };
 
 jest.mock("./isWindowsProblem");
@@ -89,7 +90,7 @@ let chalk: ChalkInstance;
 
 beforeAll(async () => {
 	chalk = (await import("chalk")).default;
-})
+});
 
 beforeEach(() => {
 	jest.resetAllMocks();

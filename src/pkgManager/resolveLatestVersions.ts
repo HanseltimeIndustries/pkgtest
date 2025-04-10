@@ -27,7 +27,7 @@ export async function resolveLatestVersions(
 		entries.map(async (fentry) => {
 			const { packageManagers, ...rest } = fentry;
 			const resolvedPackageManagers = await Promise.all(
-				fentry.packageManagers.map(async (pkgManager) => {
+				packageManagers.map(async (pkgManager) => {
 					if (!pkgManager.version) {
 						if (!latestMap[pkgManager.packageManager]) {
 							// Create a directory

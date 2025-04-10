@@ -3,6 +3,7 @@ import {
 	FileTestRunnerDescribe,
 	TestRunnerDescribes,
 } from "./types";
+// biome-ignore syntax/correctness/noTypeOnlyImportAttributes: known bug
 import type { ChalkInstance } from "chalk" with { "resolution-mode": "import" };
 
 export function testSuiteDescribe(

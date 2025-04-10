@@ -16,6 +16,7 @@ import {
 } from "./types";
 import { Logger } from "./logging";
 import { isWindowsProblem } from "./isWindowsProblem";
+// biome-ignore syntax/correctness/noTypeOnlyImportAttributes: bug
 import type { ChalkInstance } from "chalk" with { "resolution-mode": "import" };
 
 export interface ContextOptions {
@@ -24,7 +25,7 @@ export interface ContextOptions {
 	binTestSuitesOverview: TestGroupOverview;
 	scriptTestSuitesOverview: TestGroupOverview;
 	// This is because chalk is an esm module that needs explicit async importing
-	chalk: ChalkInstance
+	chalk: ChalkInstance;
 }
 
 export interface EntryFilterOptions {
@@ -313,13 +314,16 @@ export function applyFiltersToEntries(
 												alias: pkgManagerAlias,
 											}) => {
 												fileTestSuitesOverview.addSkippedToTotal(
-													skipFileSuitesNotice(logger, {
-														runWith: [rw],
-														modType,
-														pkgManager,
-														pkgManagerAlias,
-													},
-												chalk),
+													skipFileSuitesNotice(
+														logger,
+														{
+															runWith: [rw],
+															modType,
+															pkgManager,
+															pkgManagerAlias,
+														},
+														chalk,
+													),
 												);
 											},
 										);
@@ -368,10 +372,13 @@ function skipFileSuitesNotice(
 	const { runWith, ...rest } = opts;
 	runWith.forEach((runBy) => {
 		logger.log(
-			skipSuiteDescribe({
-				...rest,
-				runBy,
-			} as FileTestRunnerDescribe, chalk),
+			skipSuiteDescribe(
+				{
+					...rest,
+					runBy,
+				} as FileTestRunnerDescribe,
+				chalk,
+			),
 		);
 	});
 	return runWith.length;
@@ -390,10 +397,13 @@ function binTestsSkip(
 ) {
 	binTestsSuiteOverview.addSkippedToTotal(1);
 	logger.log(
-		skipSuiteDescribe({
-			...context,
-			binTestConfig: config.binTests!,
-		} as BinTestRunnerDescribe, chalk),
+		skipSuiteDescribe(
+			{
+				...context,
+				binTestConfig: config.binTests!,
+			} as BinTestRunnerDescribe,
+			chalk,
+		),
 	);
 }
 
@@ -409,10 +419,14 @@ function fileTestsSkip(
 	chalk: ChalkInstance,
 ) {
 	fileTestsSuiteOverview.addSkippedToTotal(
-		skipFileSuitesNotice(logger, {
-			runWith: config.fileTests!.runWith,
-			...context,
-		}, chalk),
+		skipFileSuitesNotice(
+			logger,
+			{
+				runWith: config.fileTests!.runWith,
+				...context,
+			},
+			chalk,
+		),
 	);
 }
 
@@ -429,10 +443,13 @@ function scriptTestsSkip(
 ) {
 	scriptTestsSuiteOverview.addSkippedToTotal(1);
 	logger.log(
-		skipSuiteDescribe({
-			...context,
-			scriptTests: config.scriptTests!,
-		} as ScriptTestRunnerDescribe, chalk),
+		skipSuiteDescribe(
+			{
+				...context,
+				scriptTests: config.scriptTests!,
+			} as ScriptTestRunnerDescribe,
+			chalk,
+		),
 	);
 }
 

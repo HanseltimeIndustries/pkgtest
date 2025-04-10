@@ -37,6 +37,7 @@ import { PackageJson } from "type-fest";
 import { execSync } from "child_process";
 import { getTempDir } from "./files";
 import { executeRunners } from "./executeRunners";
+// biome-ignore syntax/correctness/noTypeOnlyImportAttributes: known bug
 import type { ChalkInstance } from "chalk" with { "resolution-mode": "import" };
 
 export const DEFAULT_TIMEOUT = 2000;
@@ -162,7 +163,7 @@ export async function run(options: RunOptions) {
 		collectLogFilesStages,
 		filters = {},
 	} = options;
-	const chalk = (await import('chalk')).default;
+	const chalk = (await import("chalk")).default;
 	// Store clean up functions that can be async
 	const asyncCleanUps: (() => Promise<void>)[] = [];
 	// Signal handling cleanup is only guaranteed with sync
@@ -576,19 +577,19 @@ export async function run(options: RunOptions) {
 				logger,
 				"Bin Tests:".padEnd(labelLength, " "),
 				binTestsOverview,
-				chalk
+				chalk,
 			);
 			overviewNotice(
 				logger,
 				"Script Test Suites:".padEnd(labelLength, " "),
 				scriptTestSuitesOverview,
-				chalk
+				chalk,
 			);
 			overviewNotice(
 				logger,
 				"Script Tests:".padEnd(labelLength, " "),
 				scriptTestsOverview,
-				chalk
+				chalk,
 			);
 			logger.log(`${"Setup Time:".padEnd(labelLength)} ${setupTime / 1000} s`);
 			logger.log(
@@ -614,7 +615,12 @@ export async function run(options: RunOptions) {
 	}
 }
 
-function overviewNotice(logger: Logger, prefix: string, overview: Overview, chalk: ChalkInstance) {
+function overviewNotice(
+	logger: Logger,
+	prefix: string,
+	overview: Overview,
+	chalk: ChalkInstance,
+) {
 	logger.log(
 		`${prefix}${
 			overview.failed ? chalk.red(overview.failed + " failed") + ", " : ""

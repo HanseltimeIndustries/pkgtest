@@ -1,3 +1,4 @@
+// biome-ignore syntax/correctness/noTypeOnlyImportAttributes: known bug
 import type { ChalkInstance } from "chalk" with { "resolution-mode": "import" };
 import { TestGroupOverview } from "./TestGroupOverview";
 import { testSuiteDescribe } from "./testSuiteDescribe";

@@ -129,9 +129,9 @@ beforeAll(async () => {
 	const chalk = (await import("chalk")).default;
 	testReporter = new SimpleReporter({
 		debug: false,
-		chalk
+		chalk,
 	});
-})
+});
 
 describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 	"For module type %s",

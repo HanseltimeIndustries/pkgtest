@@ -9,9 +9,7 @@ import { LIBRARY_NAME } from "../config";
 
 export const MIN_COREPACK = ">=0.31.0";
 
-export function ensureMinimumCorepack(options: {
-	cwd: string;
-}) {
+export function ensureMinimumCorepack(options: { cwd: string }) {
 	let version: string;
 	try {
 		version = execSync("corepack --version", {

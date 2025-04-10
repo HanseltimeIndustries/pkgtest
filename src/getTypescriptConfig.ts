@@ -43,7 +43,8 @@ export function getTypescriptConfig(
 		compilerOptions: {
 			...softProps,
 			strict: true,
-			moduleResolution: "nodenext" as TsConfigJson.CompilerOptions.ModuleResolution,
+			moduleResolution:
+				"nodenext" as TsConfigJson.CompilerOptions.ModuleResolution,
 			sourceMap: true,
 			rootDir: tsSrcDir,
 			isolatedModules: true,
