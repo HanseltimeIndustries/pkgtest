@@ -407,6 +407,7 @@ it("handles binTests only", async () => {
 							}
 						: pm;
 				}),
+				fileTests: undefined,
 				binTests: {
 					cmd1: [
 						{
@@ -479,6 +480,7 @@ it("handles scriptTests only", async () => {
 						: pm;
 				}),
 				binTests: undefined,
+				fileTests: undefined,
 				scriptTests: [
 					{
 						name: "s1",
