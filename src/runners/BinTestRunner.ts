@@ -26,9 +26,7 @@ export class BinTestRunner
 		this.runCommand = options.runCommand;
 	}
 
-	async runTests(options: {
-		logFilesScanner?: ILogFilesScanner;
-	}) {
+	async runTests(options: { logFilesScanner?: ILogFilesScanner }) {
 		this.reporter.start(this);
 		this.groupOverview.startTime();
 		const testLevelScanner = options.logFilesScanner?.createNested(

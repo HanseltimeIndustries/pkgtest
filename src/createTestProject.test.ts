@@ -67,9 +67,7 @@ const mockPerExecLogFilesScanner: ILogFilesScanner = {
 };
 
 const testTimeout = 3500;
-const testReporter = new SimpleReporter({
-	debug: false,
-});
+let testReporter: SimpleReporter;
 const testBinCmd = (cmd: string) => `corepack npx@latest ${cmd}`;
 const testPkgManagerSetCmd = "corepack use npm@latest";
 const testPkgInstallCmd = "corepack use npm@latest install conditional";
@@ -125,6 +123,15 @@ const testSanitizedEnv = {
 	NODE_OPTIONS: "",
 	npm_package_json: join(testProjectDir, "package.json"),
 };
+
+beforeAll(async () => {
+	// Since chalk is esm, we need to import it here
+	const chalk = (await import("chalk")).default;
+	testReporter = new SimpleReporter({
+		debug: false,
+		chalk,
+	});
+});
 
 describe.each([[ModuleTypes.Commonjs], [ModuleTypes.ESM]])(
 	"For module type %s",

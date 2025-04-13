@@ -1,14 +1,14 @@
 {
-	// Given that we need to transpile esm node_modules, we need to override some preferred strict options from the base
-	// to cover the general node_modules case
-	"extends": "./tsconfig.json",
-	"compilerOptions": {
-		"allowJs": true,
-		// Remove the rootDir restriction so that we can transpile whatever lib dir in node_modules might need it
-		"rootDir": null,
-		"inlineSourceMap": true,
-		"declaration": false,
-		"declarationMap": false,
-		"emitDeclarationOnly": false
-	}
+  // Given that we need to transpile esm node_modules, we need to override some preferred strict options from the base
+  // to cover the general node_modules case
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    // Remove the rootDir restriction so that we can transpile whatever lib dir in node_modules might need it
+    "rootDir": null,
+    "inlineSourceMap": true,
+    "declaration": false,
+    "declarationMap": false,
+    "emitDeclarationOnly": false
+  }
 }

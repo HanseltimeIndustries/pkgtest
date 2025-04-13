@@ -22,9 +22,7 @@ export class ScriptTestRunner
 		this.runCommand = options.runCommand;
 	}
 
-	async runTests(options: {
-		logFilesScanner?: ILogFilesScanner;
-	}) {
+	async runTests(options: { logFilesScanner?: ILogFilesScanner }) {
 		this.reporter.start(this);
 		this.groupOverview.startTime();
 		this.groupOverview.addToTotal(this.scriptTests.length);

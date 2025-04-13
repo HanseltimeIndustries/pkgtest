@@ -5,7 +5,6 @@ import { join } from "path";
 import { BinTestRunner, FileTestRunner, ScriptTestRunner } from "./runners";
 import { SimpleReporter } from "./reporters/SimpleReporter";
 import { createTopLevelLogFilesScanner, Logger } from "./logging";
-import chalk from "chalk";
 import {
 	AddFilePerTestProjectCreate,
 	AdditionalFilesEntry,
@@ -38,6 +37,8 @@ import { PackageJson } from "type-fest";
 import { execSync } from "child_process";
 import { getTempDir } from "./files";
 import { executeRunners } from "./executeRunners";
+// biome-ignore syntax/correctness/noTypeOnlyImportAttributes: known bug
+import type { ChalkInstance } from "chalk" with { "resolution-mode": "import" };
 
 export const DEFAULT_TIMEOUT = 2000;
 
@@ -162,6 +163,7 @@ export async function run(options: RunOptions) {
 		collectLogFilesStages,
 		filters = {},
 	} = options;
+	const chalk = (await import("chalk")).default;
 	// Store clean up functions that can be async
 	const asyncCleanUps: (() => Promise<void>)[] = [];
 	// Signal handling cleanup is only guaranteed with sync
@@ -240,6 +242,7 @@ export async function run(options: RunOptions) {
 		const scriptTestsOverview = new TestGroupOverview();
 		const reporter = new SimpleReporter({
 			debug,
+			chalk,
 		});
 		const startSetup = new Date();
 		const filteredEntries = await resolveLatestVersions(
@@ -251,6 +254,7 @@ export async function run(options: RunOptions) {
 					binTestSuitesOverview,
 					scriptTestSuitesOverview,
 					logger,
+					chalk,
 				},
 				filters,
 			),
@@ -555,31 +559,37 @@ export async function run(options: RunOptions) {
 				logger,
 				"File Test Suites:".padEnd(labelLength, " "),
 				fileTestSuitesOverview,
+				chalk,
 			);
 			overviewNotice(
 				logger,
 				"File Tests:".padEnd(labelLength, " "),
 				fileTestsOverview,
+				chalk,
 			);
 			overviewNotice(
 				logger,
 				"Bin Test Suites:".padEnd(labelLength, " "),
 				binTestSuitesOverview,
+				chalk,
 			);
 			overviewNotice(
 				logger,
 				"Bin Tests:".padEnd(labelLength, " "),
 				binTestsOverview,
+				chalk,
 			);
 			overviewNotice(
 				logger,
 				"Script Test Suites:".padEnd(labelLength, " "),
 				scriptTestSuitesOverview,
+				chalk,
 			);
 			overviewNotice(
 				logger,
 				"Script Tests:".padEnd(labelLength, " "),
 				scriptTestsOverview,
+				chalk,
 			);
 			logger.log(`${"Setup Time:".padEnd(labelLength)} ${setupTime / 1000} s`);
 			logger.log(
@@ -605,7 +615,12 @@ export async function run(options: RunOptions) {
 	}
 }
 
-function overviewNotice(logger: Logger, prefix: string, overview: Overview) {
+function overviewNotice(
+	logger: Logger,
+	prefix: string,
+	overview: Overview,
+	chalk: ChalkInstance,
+) {
 	logger.log(
 		`${prefix}${
 			overview.failed ? chalk.red(overview.failed + " failed") + ", " : ""

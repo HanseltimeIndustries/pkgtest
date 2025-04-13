@@ -391,8 +391,7 @@ it("handles binTests only", async () => {
 			},
 		}),
 	);
-	const { fileTests, packageManagers, ...expEntry } =
-		defaultDetectedConfig.entries[0];
+	const { packageManagers, ...expEntry } = defaultDetectedConfig.entries[0];
 	expect(await getConfig(file, testDir)).toEqual({
 		...defaultDetectedConfig,
 		entries: [
@@ -408,6 +407,7 @@ it("handles binTests only", async () => {
 							}
 						: pm;
 				}),
+				fileTests: undefined,
 				binTests: {
 					cmd1: [
 						{
@@ -463,8 +463,7 @@ it("handles scriptTests only", async () => {
 			},
 		}),
 	);
-	const { fileTests, packageManagers, ...expEntry } =
-		defaultDetectedConfig.entries[0];
+	const { packageManagers, ...expEntry } = defaultDetectedConfig.entries[0];
 	expect(await getConfig(file, testDir)).toEqual({
 		...defaultDetectedConfig,
 		entries: [
@@ -481,6 +480,7 @@ it("handles scriptTests only", async () => {
 						: pm;
 				}),
 				binTests: undefined,
+				fileTests: undefined,
 				scriptTests: [
 					{
 						name: "s1",

@@ -3,10 +3,12 @@ import {
 	FileTestRunnerDescribe,
 	TestRunnerDescribes,
 } from "./types";
-import chalk from "chalk";
+// biome-ignore syntax/correctness/noTypeOnlyImportAttributes: known bug
+import type { ChalkInstance } from "chalk" with { "resolution-mode": "import" };
 
 export function testSuiteDescribe(
 	opts: Omit<TestRunnerDescribes, "projectDir">,
+	chalk: ChalkInstance,
 ) {
 	const postfix = (opts as FileTestRunnerDescribe).runBy
 		? `Run with ${(opts as FileTestRunnerDescribe).runBy}`

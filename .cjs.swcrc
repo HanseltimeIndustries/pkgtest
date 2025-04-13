@@ -3,7 +3,8 @@
     // Since we use tswc most of the other options are mapped from tsconfig.  
     // We just override differences or exotic properties here
     "module": {
+        "type": "commonjs",
         // Need this since some external dependencies will require dynamic imports
-        "lazy": true
+        "ignoreDynamic": true,
     }
 }

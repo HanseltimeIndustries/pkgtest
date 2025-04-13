@@ -15,14 +15,17 @@ import {
 	TestType,
 } from "./types";
 import { Logger } from "./logging";
-import chalk from "chalk";
 import { isWindowsProblem } from "./isWindowsProblem";
+// biome-ignore syntax/correctness/noTypeOnlyImportAttributes: bug
+import type { ChalkInstance } from "chalk" with { "resolution-mode": "import" };
 
 export interface ContextOptions {
 	logger: Logger;
 	fileTestSuitesOverview: TestGroupOverview;
 	binTestSuitesOverview: TestGroupOverview;
 	scriptTestSuitesOverview: TestGroupOverview;
+	// This is because chalk is an esm module that needs explicit async importing
+	chalk: ChalkInstance;
 }
 
 export interface EntryFilterOptions {
@@ -53,6 +56,7 @@ export function applyFiltersToEntries(
 		fileTestSuitesOverview,
 		binTestSuitesOverview,
 		scriptTestSuitesOverview,
+		chalk,
 	} = context;
 	// No need to do any filtering if there's no options
 	if (!filters || Object.keys(filters).length === 0) {
@@ -113,6 +117,7 @@ export function applyFiltersToEntries(
 										{ modType, pkgManager, pkgManagerAlias },
 										testConfigEntry,
 										binTestSuitesOverview,
+										chalk,
 									);
 								},
 							);
@@ -130,6 +135,7 @@ export function applyFiltersToEntries(
 										{ modType, pkgManager, pkgManagerAlias },
 										testConfigEntry,
 										fileTestSuitesOverview,
+										chalk,
 									);
 								},
 							);
@@ -147,6 +153,7 @@ export function applyFiltersToEntries(
 										{ modType, pkgManager, pkgManagerAlias },
 										testConfigEntry,
 										scriptTestSuitesOverview,
+										chalk,
 									);
 								},
 							);
@@ -179,6 +186,7 @@ export function applyFiltersToEntries(
 									fileTestSuitesOverview,
 									binTestSuitesOverview,
 									scriptTestSuitesOverview,
+									chalk,
 								);
 							},
 						);
@@ -207,6 +215,7 @@ export function applyFiltersToEntries(
 									fileTestSuitesOverview,
 									binTestSuitesOverview,
 									scriptTestSuitesOverview,
+									chalk,
 								);
 							});
 							return false;
@@ -227,6 +236,7 @@ export function applyFiltersToEntries(
 									fileTestSuitesOverview,
 									binTestSuitesOverview,
 									scriptTestSuitesOverview,
+									chalk,
 								);
 							});
 							return false;
@@ -248,6 +258,7 @@ export function applyFiltersToEntries(
 									fileTestSuitesOverview,
 									binTestSuitesOverview,
 									scriptTestSuitesOverview,
+									chalk,
 								);
 							});
 							return false;
@@ -279,6 +290,7 @@ export function applyFiltersToEntries(
 										fileTestSuitesOverview,
 										binTestSuitesOverview,
 										scriptTestSuitesOverview,
+										chalk,
 									);
 								});
 								return false;
@@ -302,12 +314,16 @@ export function applyFiltersToEntries(
 												alias: pkgManagerAlias,
 											}) => {
 												fileTestSuitesOverview.addSkippedToTotal(
-													skipFileSuitesNotice(logger, {
-														runWith: [rw],
-														modType,
-														pkgManager,
-														pkgManagerAlias,
-													}),
+													skipFileSuitesNotice(
+														logger,
+														{
+															runWith: [rw],
+															modType,
+															pkgManager,
+															pkgManagerAlias,
+														},
+														chalk,
+													),
 												);
 											},
 										);
@@ -351,14 +367,18 @@ function skipFileSuitesNotice(
 		pkgManager: PkgManager;
 		pkgManagerAlias: string;
 	},
+	chalk: ChalkInstance,
 ): number {
 	const { runWith, ...rest } = opts;
 	runWith.forEach((runBy) => {
 		logger.log(
-			skipSuiteDescribe({
-				...rest,
-				runBy,
-			} as FileTestRunnerDescribe),
+			skipSuiteDescribe(
+				{
+					...rest,
+					runBy,
+				} as FileTestRunnerDescribe,
+				chalk,
+			),
 		);
 	});
 	return runWith.length;
@@ -373,13 +393,17 @@ function binTestsSkip(
 	},
 	config: TestConfigEntry,
 	binTestsSuiteOverview: TestGroupOverview,
+	chalk: ChalkInstance,
 ) {
 	binTestsSuiteOverview.addSkippedToTotal(1);
 	logger.log(
-		skipSuiteDescribe({
-			...context,
-			binTestConfig: config.binTests!,
-		} as BinTestRunnerDescribe),
+		skipSuiteDescribe(
+			{
+				...context,
+				binTestConfig: config.binTests!,
+			} as BinTestRunnerDescribe,
+			chalk,
+		),
 	);
 }
 
@@ -392,12 +416,17 @@ function fileTestsSkip(
 	},
 	config: TestConfigEntry,
 	fileTestsSuiteOverview: TestGroupOverview,
+	chalk: ChalkInstance,
 ) {
 	fileTestsSuiteOverview.addSkippedToTotal(
-		skipFileSuitesNotice(logger, {
-			runWith: config.fileTests!.runWith,
-			...context,
-		}),
+		skipFileSuitesNotice(
+			logger,
+			{
+				runWith: config.fileTests!.runWith,
+				...context,
+			},
+			chalk,
+		),
 	);
 }
 
@@ -410,13 +439,17 @@ function scriptTestsSkip(
 	},
 	config: TestConfigEntry,
 	scriptTestsSuiteOverview: TestGroupOverview,
+	chalk: ChalkInstance,
 ) {
 	scriptTestsSuiteOverview.addSkippedToTotal(1);
 	logger.log(
-		skipSuiteDescribe({
-			...context,
-			scriptTests: config.scriptTests!,
-		} as ScriptTestRunnerDescribe),
+		skipSuiteDescribe(
+			{
+				...context,
+				scriptTests: config.scriptTests!,
+			} as ScriptTestRunnerDescribe,
+			chalk,
+		),
 	);
 }
 
@@ -434,15 +467,16 @@ function testEntryProjectLevelSkip(
 	fileTestsSuiteOverview: TestGroupOverview,
 	binTestsSuiteOverview: TestGroupOverview,
 	scriptTestsOverview: TestGroupOverview,
+	chalk: ChalkInstance,
 ) {
 	if (config.fileTests) {
-		fileTestsSkip(logger, context, config, fileTestsSuiteOverview);
+		fileTestsSkip(logger, context, config, fileTestsSuiteOverview, chalk);
 	}
 	if (config.binTests) {
-		binTestsSkip(logger, context, config, binTestsSuiteOverview);
+		binTestsSkip(logger, context, config, binTestsSuiteOverview, chalk);
 	}
 	if (config.scriptTests) {
-		scriptTestsSkip(logger, context, config, scriptTestsOverview);
+		scriptTestsSkip(logger, context, config, scriptTestsOverview, chalk);
 	}
 }
 
