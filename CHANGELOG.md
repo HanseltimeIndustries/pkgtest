@@ -1,3 +1,15 @@
+# [1.4.0](https://github.com/HanseltimeIndustries/pkgtest/compare/v1.3.0...v1.4.0) (2025-04-13)
+
+
+### Bug Fixes
+
+* dynamic import of chalk to support commonjs ([04bbc23](https://github.com/HanseltimeIndustries/pkgtest/commit/04bbc23621c36420bf7d37050a9b55fe56765c5a))
+
+
+### Features
+
+* change default tsconfig to use nodenext and package.json type ([d870930](https://github.com/HanseltimeIndustries/pkgtest/commit/d870930350030a8cc0d75deb6d8b5210573b872a))
+
 # [1.3.0](https://github.com/HanseltimeIndustries/pkgtest/compare/v1.2.0...v1.3.0) (2025-03-01)
 
 
