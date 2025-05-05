@@ -1,4 +1,4 @@
-import { exec } from "child_process";
+import { exec, ExecException } from "child_process";
 import { TestGroupOverview, Reporter, TestDescriptor } from "../reporters";
 import { FailFastError, ModuleTypes, PkgManager } from "../types";
 import { ExecExit, ILogFilesScanner } from "../logging";
@@ -61,11 +61,18 @@ export abstract class BaseTestRunner<RunTArgs> {
 			env: {
 				[k: string]: string | undefined;
 			};
+			/**
+			 * The passing exitCode
+			 */
+			exitCode?: number
+			stdoutMatch?: (stdout: string) => boolean
+			stderrMatch?: (stderr: string) => boolean
 		},
 		logFilesScanner?: ILogFilesScanner,
 	): Promise<boolean> {
 		try {
 			const start = new Date();
+			const { exitCode, stderrMatch, stdoutMatch } = opts;
 			await new Promise<void>((res, rej) => {
 				exec(
 					binCmd,
@@ -79,7 +86,28 @@ export abstract class BaseTestRunner<RunTArgs> {
 					},
 					(err, stdout, stderr) => {
 						const testTimeMs = new Date().getTime() - start.getTime();
+						// Advanced pass-fail
+						let shouldFail: boolean = false;
 						if (err) {
+							if (exitCode) {
+								if (exitCode && (err as ExecException).code !== exitCode) {
+									shouldFail = true;
+								}
+							} else {
+								shouldFail = true;
+							}
+						}
+						if (!shouldFail) {
+							if (stdoutMatch) {
+								shouldFail = !stdoutMatch(stdout);
+							}
+						}
+						if (!shouldFail) {
+							if (stderrMatch) {
+								shouldFail = !stderrMatch(stderr);
+							}
+						}
+						if (shouldFail) {
 							this.groupOverview.fail(1);
 							this.reporter.failed({
 								testCmd: binCmd,
