@@ -106,6 +106,11 @@ export abstract class BaseTestRunner<RunTArgs> {
 						}
 						if (!shouldFail) {
 							if (stdoutMatch) {
+								if (process.platform === "win32") {
+									console.warn(
+										"WARNING: Windows bug does not get stdout and stderr on (p)npm run some times for stdoutMatch",
+									);
+								}
 								if (this.stdioPrefixFilter) {
 									shouldFail = !stdoutMatch(
 										stdout.substring(this.stdioPrefixFilter(stdout)),
@@ -117,7 +122,11 @@ export abstract class BaseTestRunner<RunTArgs> {
 						}
 						if (!shouldFail) {
 							if (stderrMatch) {
-								shouldFail = !stderrMatch(stderr);
+								if (process.platform === "win32") {
+									console.warn(
+										"WARNING: Windows bug does not get stdout and stderr on (p)npm run some times for stdoutMatch",
+									);
+								}
 								if (this.stdioPrefixFilter) {
 									shouldFail = !stderrMatch(
 										stderr.substring(this.stdioPrefixFilter(stderr)),

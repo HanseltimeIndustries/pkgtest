@@ -40,6 +40,8 @@ The expected exit code this script should yield
 If supplied, this will check to see if the stderr of the script matches the provided
 Regex string or lambda and will only pass if it returns true
 
+WARNING - Does not work on Windows. It eats output from stdout and stderr on npm and pnpm run
+
 ***
 
 ### stdoutMatch?
@@ -48,3 +50,5 @@ Regex string or lambda and will only pass if it returns true
 
 If supplied, this will check to see if the stdout of the script matches the provided
 Regex string or lambda and will only pass if it returns true
+
+WARNING - Does not work on Windows. It eats output from stdout and stderr on npm and pnpm run
