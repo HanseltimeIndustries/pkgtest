@@ -11,3 +11,4 @@ export * from "./preinstallLatest";
 export * from "./resolveLatestVersions";
 export * from "./sanitizeEnv";
 export * from "./getLocalPackagePath";
+export * from "./getStdioPrefilter";

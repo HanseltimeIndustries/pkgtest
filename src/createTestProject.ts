@@ -18,6 +18,7 @@ import {
 	getPkgBinaryRunnerCommand,
 	getPkgManagerSetCommand,
 	getPkgScriptRunnerCommand,
+	getStdioPrefilter,
 	sanitizeEnv,
 } from "./pkgManager";
 import { BinTestRunner, FileTestRunner, ScriptTestRunner } from "./runners";
@@ -334,6 +335,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 
 	const fileTestRunners: FileTestRunner[] = [];
 	const binRunCmd = getPkgBinaryRunnerCommand(pkgManager, pkgManagerVersion);
+	const stdioPrefixFilter = getStdioPrefilter(pkgManager);
 
 	// Create fileTests if necessary
 	if (fileTests) {
@@ -460,6 +462,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 						reporter,
 						baseEnv: sanitizedEnv,
 						entryAlias,
+						stdioPrefixFilter,
 					}),
 				);
 			});
@@ -491,6 +494,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 						reporter,
 						baseEnv: sanitizedEnv,
 						entryAlias,
+						stdioPrefixFilter,
 					}),
 				);
 			});
@@ -512,6 +516,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 			reporter,
 			baseEnv: sanitizedEnv,
 			entryAlias,
+			stdioPrefixFilter,
 		});
 	}
 
@@ -529,6 +534,7 @@ export async function createTestProject<PkgManagerT extends PkgManager>(
 			reporter,
 			baseEnv: sanitizedEnv,
 			entryAlias,
+			stdioPrefixFilter,
 		});
 	}
 

@@ -467,6 +467,282 @@ describe.each([[true], [false]])(
 			}
 		});
 
+		it("evaluates exitCode tests", async () => {
+			mockExec.mockImplementation((cmd, _opts, cb) => {
+				if (!cb) {
+					throw new Error("Did not expect an undefined callback!");
+				}
+				setTimeout(() => {
+					cb(
+						new MockExecException({
+							message: "failure",
+							code: 2,
+						}),
+						testStdOutOnErr,
+						testStdErr,
+					);
+				}, 10);
+				// Return null for now since we don't use the return process value
+				return null as any;
+			});
+			const script = "something";
+			const runner = new ScriptTestRunner({
+				runCommand: "npm run",
+				projectDir: testProjectDir,
+				pkgManager: PkgManager.Npm,
+				pkgManagerAlias: "myalias",
+				modType: ModuleTypes.Commonjs,
+				scriptTests: [
+					{
+						name: "test1",
+						script,
+						exitCode: 1,
+					},
+					{
+						name: "test2",
+						script,
+						exitCode: 2,
+					},
+				],
+				timeout: 5000,
+				reporter: mockReporter,
+				baseEnv: process.env,
+				entryAlias: testEntryAlias,
+			});
+
+			const overview = await runner.runTests({
+				logFilesScanner,
+			});
+			overviewEqual(overview, {
+				passed: 1,
+				failed: 1,
+				skipped: 0,
+				notReached: 0,
+				total: 2,
+				failedFast: false,
+			});
+			expect(overview.time).toBeGreaterThan(1);
+
+			// One should have passed, one failed
+			expect(mockReporter.failed).toHaveBeenCalledWith({
+				testCmd: `npm run test1`,
+				test: {
+					name: "test1",
+				},
+				time: expect.any(Number),
+				stdout: testStdOutOnErr,
+				stderr: testStdErr,
+				timedout: false,
+			});
+			expect(mockReporter.passed).toHaveBeenCalledWith({
+				testCmd: `npm run test2`,
+				test: {
+					name: "test2",
+				},
+				time: expect.any(Number),
+				stdout: testStdOutOnErr,
+				stderr: testStdErr,
+			});
+		});
+
+		it("evaluates stdoutMatch tests", async () => {
+			mockExec.mockImplementation((cmd, _opts, cb) => {
+				if (!cb) {
+					throw new Error("Did not expect an undefined callback!");
+				}
+				setTimeout(() => {
+					cb(null, testStdOutNormal, "");
+				}, 10);
+				// Return null for now since we don't use the return process value
+				return null as any;
+			});
+			const script = "something";
+			const runner = new ScriptTestRunner({
+				runCommand: "npm run",
+				projectDir: testProjectDir,
+				pkgManager: PkgManager.Npm,
+				pkgManagerAlias: "myalias",
+				modType: ModuleTypes.Commonjs,
+				scriptTests: [
+					{
+						name: "test1",
+						script,
+						stdoutMatch: "norma.+",
+					},
+					{
+						name: "test2",
+						script,
+						stdoutMatch: (log: string) => log.includes("normal"),
+					},
+					{
+						name: "test3",
+						script,
+						stdoutMatch: "abnorma.+",
+					},
+					{
+						name: "test4",
+						script,
+						stdoutMatch: (log: string) => log.includes("abnormal"),
+					},
+				],
+				timeout: 5000,
+				reporter: mockReporter,
+				baseEnv: process.env,
+				entryAlias: testEntryAlias,
+			});
+
+			const overview = await runner.runTests({
+				logFilesScanner,
+			});
+			overviewEqual(overview, {
+				passed: 2,
+				failed: 2,
+				skipped: 0,
+				notReached: 0,
+				total: 4,
+				failedFast: false,
+			});
+			expect(overview.time).toBeGreaterThan(1);
+
+			expect(mockReporter.passed).toHaveBeenCalledWith({
+				testCmd: `npm run test1`,
+				test: {
+					name: "test1",
+				},
+				time: expect.any(Number),
+				stdout: testStdOutNormal,
+				stderr: "",
+			});
+			expect(mockReporter.passed).toHaveBeenCalledWith({
+				testCmd: `npm run test2`,
+				test: {
+					name: "test2",
+				},
+				time: expect.any(Number),
+				stdout: testStdOutNormal,
+				stderr: "",
+			});
+			expect(mockReporter.failed).toHaveBeenCalledWith({
+				testCmd: `npm run test3`,
+				test: {
+					name: "test3",
+				},
+				time: expect.any(Number),
+				stdout: testStdOutNormal,
+				stderr: "",
+				timedout: false,
+			});
+			expect(mockReporter.failed).toHaveBeenCalledWith({
+				testCmd: `npm run test4`,
+				test: {
+					name: "test4",
+				},
+				time: expect.any(Number),
+				stdout: testStdOutNormal,
+				stderr: "",
+				timedout: false,
+			});
+		});
+
+		it("evaluates stderrMatch tests", async () => {
+			mockExec.mockImplementation((cmd, _opts, cb) => {
+				if (!cb) {
+					throw new Error("Did not expect an undefined callback!");
+				}
+				setTimeout(() => {
+					cb(null, "", testStdOutNormal);
+				}, 10);
+				// Return null for now since we don't use the return process value
+				return null as any;
+			});
+			const script = "something";
+			const runner = new ScriptTestRunner({
+				runCommand: "npm run",
+				projectDir: testProjectDir,
+				pkgManager: PkgManager.Npm,
+				pkgManagerAlias: "myalias",
+				modType: ModuleTypes.Commonjs,
+				scriptTests: [
+					{
+						name: "test1",
+						script,
+						stderrMatch: "norma.+",
+					},
+					{
+						name: "test2",
+						script,
+						stderrMatch: (log: string) => log.includes("normal"),
+					},
+					{
+						name: "test3",
+						script,
+						stderrMatch: "abnorma.+",
+					},
+					{
+						name: "test4",
+						script,
+						stderrMatch: (log: string) => log.includes("abnormal"),
+					},
+				],
+				timeout: 5000,
+				reporter: mockReporter,
+				baseEnv: process.env,
+				entryAlias: testEntryAlias,
+			});
+
+			const overview = await runner.runTests({
+				logFilesScanner,
+			});
+			overviewEqual(overview, {
+				passed: 2,
+				failed: 2,
+				skipped: 0,
+				notReached: 0,
+				total: 4,
+				failedFast: false,
+			});
+			expect(overview.time).toBeGreaterThan(1);
+
+			expect(mockReporter.passed).toHaveBeenCalledWith({
+				testCmd: `npm run test1`,
+				test: {
+					name: "test1",
+				},
+				time: expect.any(Number),
+				stdout: "",
+				stderr: testStdOutNormal,
+			});
+			expect(mockReporter.passed).toHaveBeenCalledWith({
+				testCmd: `npm run test2`,
+				test: {
+					name: "test2",
+				},
+				time: expect.any(Number),
+				stdout: "",
+				stderr: testStdOutNormal,
+			});
+			expect(mockReporter.failed).toHaveBeenCalledWith({
+				testCmd: `npm run test3`,
+				test: {
+					name: "test3",
+				},
+				time: expect.any(Number),
+				stdout: "",
+				stderr: testStdOutNormal,
+				timedout: false,
+			});
+			expect(mockReporter.failed).toHaveBeenCalledWith({
+				testCmd: `npm run test4`,
+				test: {
+					name: "test4",
+				},
+				time: expect.any(Number),
+				stdout: "",
+				stderr: testStdOutNormal,
+				timedout: false,
+			});
+		});
+
 		function overviewEqual(
 			overview: TestGroupOverview,
 			eq: {

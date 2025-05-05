@@ -1,4 +1,4 @@
-import { exec } from "child_process";
+import { exec, ExecException } from "child_process";
 import { TestGroupOverview, Reporter, TestDescriptor } from "../reporters";
 import { FailFastError, ModuleTypes, PkgManager } from "../types";
 import { ExecExit, ILogFilesScanner } from "../logging";
@@ -15,6 +15,7 @@ export interface BaseTestRunnerOptions {
 	pkgManagerAlias: string;
 	modType: ModuleTypes;
 	entryAlias: string;
+	stdioPrefixFilter?: (s: string) => number;
 }
 
 export abstract class BaseTestRunner<RunTArgs> {
@@ -24,6 +25,11 @@ export abstract class BaseTestRunner<RunTArgs> {
 	readonly failFast: boolean;
 	protected readonly reporter: Reporter;
 	readonly pkgManager: PkgManager;
+	/**
+	 * This is used because corepack adds additional information at the beginning of stdout that
+	 * could cause false positives
+	 */
+	protected readonly stdioPrefixFilter?: (s: string) => number;
 	/**
 	 * An alias for the pkg manager configuration for this test suite.
 	 *
@@ -46,6 +52,7 @@ export abstract class BaseTestRunner<RunTArgs> {
 		this.pkgManagerAlias = options.pkgManagerAlias;
 		this.modType = options.modType;
 		this.entryAlias = options.entryAlias;
+		this.stdioPrefixFilter = options.stdioPrefixFilter;
 	}
 
 	/**
@@ -61,11 +68,18 @@ export abstract class BaseTestRunner<RunTArgs> {
 			env: {
 				[k: string]: string | undefined;
 			};
+			/**
+			 * The passing exitCode
+			 */
+			exitCode?: number;
+			stdoutMatch?: (stdout: string) => boolean;
+			stderrMatch?: (stderr: string) => boolean;
 		},
 		logFilesScanner?: ILogFilesScanner,
 	): Promise<boolean> {
 		try {
 			const start = new Date();
+			const { exitCode, stderrMatch, stdoutMatch } = opts;
 			await new Promise<void>((res, rej) => {
 				exec(
 					binCmd,
@@ -79,7 +93,50 @@ export abstract class BaseTestRunner<RunTArgs> {
 					},
 					(err, stdout, stderr) => {
 						const testTimeMs = new Date().getTime() - start.getTime();
+						// Advanced pass-fail
+						let shouldFail: boolean = false;
 						if (err) {
+							if (exitCode) {
+								if (exitCode && (err as ExecException).code !== exitCode) {
+									shouldFail = true;
+								}
+							} else {
+								shouldFail = true;
+							}
+						}
+						if (!shouldFail) {
+							if (stdoutMatch) {
+								if (process.platform === "win32") {
+									console.warn(
+										"WARNING: Windows bug does not get stdout and stderr on (p)npm run some times for stdoutMatch",
+									);
+								}
+								if (this.stdioPrefixFilter) {
+									shouldFail = !stdoutMatch(
+										stdout.substring(this.stdioPrefixFilter(stdout)),
+									);
+								} else {
+									shouldFail = !stdoutMatch(stdout);
+								}
+							}
+						}
+						if (!shouldFail) {
+							if (stderrMatch) {
+								if (process.platform === "win32") {
+									console.warn(
+										"WARNING: Windows bug does not get stdout and stderr on (p)npm run some times for stdoutMatch",
+									);
+								}
+								if (this.stdioPrefixFilter) {
+									shouldFail = !stderrMatch(
+										stderr.substring(this.stdioPrefixFilter(stderr)),
+									);
+								} else {
+									shouldFail = !stderrMatch(stderr);
+								}
+							}
+						}
+						if (shouldFail) {
 							this.groupOverview.fail(1);
 							this.reporter.failed({
 								testCmd: binCmd,

@@ -244,6 +244,25 @@ export interface FileTestConfig {
 export interface ScriptTestConfig {
 	name: string;
 	script: string;
+	/**
+	 * The expected exit code this script should yield
+	 * (defaults to 0)
+	 */
+	exitCode?: number;
+	/**
+	 * If supplied, this will check to see if the stdout of the script matches the provided
+	 * Regex string or lambda and will only pass if it returns true
+	 *
+	 * WARNING - Does not work on Windows. It eats output from stdout and stderr on npm and pnpm run
+	 */
+	stdoutMatch?: string | ((stdout: string) => boolean);
+	/**
+	 * If supplied, this will check to see if the stderr of the script matches the provided
+	 * Regex string or lambda and will only pass if it returns true
+	 *
+	 * WARNING - Does not work on Windows. It eats output from stdout and stderr on npm and pnpm run
+	 */
+	stderrMatch?: string | ((stderr: string) => boolean);
 }
 
 export interface TestConfigEntry {

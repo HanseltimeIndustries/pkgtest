@@ -30,7 +30,7 @@ export class ScriptTestRunner
 			createTestProjectFolderPath(this),
 		);
 		for (let i = 0; i < this.scriptTests.length; i++) {
-			const { name } = this.scriptTests[i];
+			const { name, exitCode, stderrMatch, stdoutMatch } = this.scriptTests[i];
 			const command = `${this.runCommand} ${name}`;
 			const cont = await this.execTest(
 				command,
@@ -40,6 +40,9 @@ export class ScriptTestRunner
 				{
 					// No additional env
 					env: {},
+					exitCode,
+					stderrMatch: stderrMatch ? this.makeStdMatch(stderrMatch) : undefined,
+					stdoutMatch: stdoutMatch ? this.makeStdMatch(stdoutMatch) : undefined,
 				},
 				testLevelScanner?.createNested(`${i}`),
 			);
@@ -51,5 +54,14 @@ export class ScriptTestRunner
 		this.reporter.summary(this.groupOverview);
 
 		return this.groupOverview;
+	}
+
+	private makeStdMatch(
+		match: string | ((std: string) => boolean),
+	): (std: string) => boolean {
+		if (typeof match === "string") {
+			return (std: string) => !!std.match(new RegExp(match));
+		}
+		return match;
 	}
 }

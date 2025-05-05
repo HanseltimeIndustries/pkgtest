@@ -143,6 +143,22 @@ const nonNestedTests = {
       name: "hello",
       script: "node -e 'console.log(\"hello\")'",
     },
+    // exitCode functionality
+    {
+      name: "exitCodeFunctionality",
+      script: "node -e 'process.exit(1)'",
+      exitCode: 1,
+    },
+    // BUG - Windows running does not write out the stdout...
+    ...(process.env !== "win32"
+      ? [
+          {
+            name: "stdoutMatch",
+            script: "node -e 'console.log(\"hey\")'",
+            stdoutMatch: "he.+",
+          },
+        ]
+      : []),
   ],
   packageManagers,
   moduleTypes: ["commonjs", "esm"],

@@ -146,9 +146,14 @@ const AddFilePerTestProjectCreateValidated = z
 	.args(z.any(), z.any())
 	.returns(z.any()) satisfies ZodType<AddFilePerTestProjectCreate>;
 
+const LogMatchFunction = z.function().args(z.string()).returns(z.boolean());
+
 const ScriptTestConfigValidated = z.object({
 	name: z.string(),
 	script: z.string(),
+	exitCode: z.number().optional(),
+	stdoutMatch: z.union([z.string(), LogMatchFunction]).optional(),
+	stderrMatch: z.union([z.string(), LogMatchFunction]).optional(),
 }) satisfies ZodType<ScriptTestConfig>;
 
 const TestConfigEntryValidated = z.object({
