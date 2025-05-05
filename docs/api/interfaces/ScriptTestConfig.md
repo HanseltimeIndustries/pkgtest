@@ -12,6 +12,15 @@ They will ultimately be run by <package manager> <script>
 
 ## Properties
 
+### exitCode?
+
+> `optional` **exitCode**: `number`
+
+The expected exit code this script should yield
+(defaults to 0)
+
+***
+
 ### name
 
 > **name**: `string`
@@ -21,3 +30,21 @@ They will ultimately be run by <package manager> <script>
 ### script
 
 > **script**: `string`
+
+***
+
+### stderrMatch?
+
+> `optional` **stderrMatch**: `string` \| (`stderr`) => `boolean`
+
+If supplied, this will check to see if the stderr of the script matches the provided
+Regex string or lambda and will only pass if it returns true
+
+***
+
+### stdoutMatch?
+
+> `optional` **stdoutMatch**: `string` \| (`stdout`) => `boolean`
+
+If supplied, this will check to see if the stdout of the script matches the provided
+Regex string or lambda and will only pass if it returns true

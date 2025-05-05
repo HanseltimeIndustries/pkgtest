@@ -150,10 +150,10 @@ const nonNestedTests = {
       exitCode: 1,
     },
     {
-      name: 'stdoutMatch',
+      name: "stdoutMatch",
       script: "node -e 'console.log(\"hey\")'",
-      stdoutMatch: 'he.+'
-    }
+      stdoutMatch: "he.+",
+    },
   ],
   packageManagers,
   moduleTypes: ["commonjs", "esm"],

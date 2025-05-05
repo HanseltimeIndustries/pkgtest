@@ -466,43 +466,43 @@ describe.each([[true], [false]])(
 				).not.toHaveBeenCalled();
 			}
 		});
-		
+
 		it("evaluates exitCode tests", async () => {
 			mockExec.mockImplementation((cmd, _opts, cb) => {
 				if (!cb) {
 					throw new Error("Did not expect an undefined callback!");
 				}
 				setTimeout(() => {
-						cb(
-							new MockExecException({
-								message: "failure",
-								code: 2,
-							}),
-							testStdOutOnErr,
-							testStdErr,
-						);
+					cb(
+						new MockExecException({
+							message: "failure",
+							code: 2,
+						}),
+						testStdOutOnErr,
+						testStdErr,
+					);
 				}, 10);
 				// Return null for now since we don't use the return process value
 				return null as any;
 			});
-			const script = 'something';
+			const script = "something";
 			const runner = new ScriptTestRunner({
 				runCommand: "npm run",
 				projectDir: testProjectDir,
 				pkgManager: PkgManager.Npm,
 				pkgManagerAlias: "myalias",
 				modType: ModuleTypes.Commonjs,
-				scriptTests:[
+				scriptTests: [
 					{
-						name: 'test1',
+						name: "test1",
 						script,
 						exitCode: 1,
 					},
 					{
-						name: 'test2',
+						name: "test2",
 						script,
 						exitCode: 2,
-					}
+					},
 				],
 				timeout: 5000,
 				reporter: mockReporter,
@@ -527,7 +527,7 @@ describe.each([[true], [false]])(
 			expect(mockReporter.failed).toHaveBeenCalledWith({
 				testCmd: `npm run test1`,
 				test: {
-					name: 'test1',
+					name: "test1",
 				},
 				time: expect.any(Number),
 				stdout: testStdOutOnErr,
@@ -551,43 +551,39 @@ describe.each([[true], [false]])(
 					throw new Error("Did not expect an undefined callback!");
 				}
 				setTimeout(() => {
-						cb(
-							null,
-							testStdOutNormal,
-							"",
-						);
+					cb(null, testStdOutNormal, "");
 				}, 10);
 				// Return null for now since we don't use the return process value
 				return null as any;
 			});
-			const script = 'something';
+			const script = "something";
 			const runner = new ScriptTestRunner({
 				runCommand: "npm run",
 				projectDir: testProjectDir,
 				pkgManager: PkgManager.Npm,
 				pkgManagerAlias: "myalias",
 				modType: ModuleTypes.Commonjs,
-				scriptTests:[
+				scriptTests: [
 					{
-						name: 'test1',
+						name: "test1",
 						script,
-						stdoutMatch: 'norma.+',
+						stdoutMatch: "norma.+",
 					},
 					{
-						name: 'test2',
+						name: "test2",
 						script,
-						stdoutMatch: (log: string) => log.includes('normal'),
+						stdoutMatch: (log: string) => log.includes("normal"),
 					},
 					{
-						name: 'test3',
+						name: "test3",
 						script,
-						stdoutMatch: 'abnorma.+',
+						stdoutMatch: "abnorma.+",
 					},
 					{
-						name: 'test4',
+						name: "test4",
 						script,
-						stdoutMatch: (log: string) => log.includes('abnormal'),
-					}
+						stdoutMatch: (log: string) => log.includes("abnormal"),
+					},
 				],
 				timeout: 5000,
 				reporter: mockReporter,
@@ -615,7 +611,7 @@ describe.each([[true], [false]])(
 				},
 				time: expect.any(Number),
 				stdout: testStdOutNormal,
-				stderr: '',
+				stderr: "",
 			});
 			expect(mockReporter.passed).toHaveBeenCalledWith({
 				testCmd: `npm run test2`,
@@ -624,26 +620,26 @@ describe.each([[true], [false]])(
 				},
 				time: expect.any(Number),
 				stdout: testStdOutNormal,
-				stderr: '',
+				stderr: "",
 			});
 			expect(mockReporter.failed).toHaveBeenCalledWith({
 				testCmd: `npm run test3`,
 				test: {
-					name: 'test3',
+					name: "test3",
 				},
 				time: expect.any(Number),
 				stdout: testStdOutNormal,
-				stderr: '',
+				stderr: "",
 				timedout: false,
 			});
 			expect(mockReporter.failed).toHaveBeenCalledWith({
 				testCmd: `npm run test4`,
 				test: {
-					name: 'test4',
+					name: "test4",
 				},
 				time: expect.any(Number),
 				stdout: testStdOutNormal,
-				stderr: '',
+				stderr: "",
 				timedout: false,
 			});
 		});
@@ -654,43 +650,39 @@ describe.each([[true], [false]])(
 					throw new Error("Did not expect an undefined callback!");
 				}
 				setTimeout(() => {
-						cb(
-							null,
-							"",
-							testStdOutNormal,
-						);
+					cb(null, "", testStdOutNormal);
 				}, 10);
 				// Return null for now since we don't use the return process value
 				return null as any;
 			});
-			const script = 'something';
+			const script = "something";
 			const runner = new ScriptTestRunner({
 				runCommand: "npm run",
 				projectDir: testProjectDir,
 				pkgManager: PkgManager.Npm,
 				pkgManagerAlias: "myalias",
 				modType: ModuleTypes.Commonjs,
-				scriptTests:[
+				scriptTests: [
 					{
-						name: 'test1',
+						name: "test1",
 						script,
-						stderrMatch: 'norma.+',
+						stderrMatch: "norma.+",
 					},
 					{
-						name: 'test2',
+						name: "test2",
 						script,
-						stderrMatch: (log: string) => log.includes('normal'),
+						stderrMatch: (log: string) => log.includes("normal"),
 					},
 					{
-						name: 'test3',
+						name: "test3",
 						script,
-						stderrMatch: 'abnorma.+',
+						stderrMatch: "abnorma.+",
 					},
 					{
-						name: 'test4',
+						name: "test4",
 						script,
-						stderrMatch: (log: string) => log.includes('abnormal'),
-					}
+						stderrMatch: (log: string) => log.includes("abnormal"),
+					},
 				],
 				timeout: 5000,
 				reporter: mockReporter,
@@ -717,7 +709,7 @@ describe.each([[true], [false]])(
 					name: "test1",
 				},
 				time: expect.any(Number),
-				stdout: '',
+				stdout: "",
 				stderr: testStdOutNormal,
 			});
 			expect(mockReporter.passed).toHaveBeenCalledWith({
@@ -726,26 +718,26 @@ describe.each([[true], [false]])(
 					name: "test2",
 				},
 				time: expect.any(Number),
-				stdout: '',
+				stdout: "",
 				stderr: testStdOutNormal,
 			});
 			expect(mockReporter.failed).toHaveBeenCalledWith({
 				testCmd: `npm run test3`,
 				test: {
-					name: 'test3',
+					name: "test3",
 				},
 				time: expect.any(Number),
-				stdout: '',
+				stdout: "",
 				stderr: testStdOutNormal,
 				timedout: false,
 			});
 			expect(mockReporter.failed).toHaveBeenCalledWith({
 				testCmd: `npm run test4`,
 				test: {
-					name: 'test4',
+					name: "test4",
 				},
 				time: expect.any(Number),
-				stdout: '',
+				stdout: "",
 				stderr: testStdOutNormal,
 				timedout: false,
 			});

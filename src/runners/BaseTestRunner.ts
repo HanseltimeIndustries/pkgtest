@@ -15,6 +15,7 @@ export interface BaseTestRunnerOptions {
 	pkgManagerAlias: string;
 	modType: ModuleTypes;
 	entryAlias: string;
+	stdioPrefixFilter?: (s: string) => number;
 }
 
 export abstract class BaseTestRunner<RunTArgs> {
@@ -24,6 +25,11 @@ export abstract class BaseTestRunner<RunTArgs> {
 	readonly failFast: boolean;
 	protected readonly reporter: Reporter;
 	readonly pkgManager: PkgManager;
+	/**
+	 * This is used because corepack adds additional information at the beginning of stdout that
+	 * could cause false positives
+	 */
+	protected readonly stdioPrefixFilter?: (s: string) => number;
 	/**
 	 * An alias for the pkg manager configuration for this test suite.
 	 *
@@ -46,6 +52,7 @@ export abstract class BaseTestRunner<RunTArgs> {
 		this.pkgManagerAlias = options.pkgManagerAlias;
 		this.modType = options.modType;
 		this.entryAlias = options.entryAlias;
+		this.stdioPrefixFilter = options.stdioPrefixFilter;
 	}
 
 	/**
@@ -64,9 +71,9 @@ export abstract class BaseTestRunner<RunTArgs> {
 			/**
 			 * The passing exitCode
 			 */
-			exitCode?: number
-			stdoutMatch?: (stdout: string) => boolean
-			stderrMatch?: (stderr: string) => boolean
+			exitCode?: number;
+			stdoutMatch?: (stdout: string) => boolean;
+			stderrMatch?: (stderr: string) => boolean;
 		},
 		logFilesScanner?: ILogFilesScanner,
 	): Promise<boolean> {
@@ -99,12 +106,25 @@ export abstract class BaseTestRunner<RunTArgs> {
 						}
 						if (!shouldFail) {
 							if (stdoutMatch) {
-								shouldFail = !stdoutMatch(stdout);
+								if (this.stdioPrefixFilter) {
+									shouldFail = !stdoutMatch(
+										stdout.substring(this.stdioPrefixFilter(stdout)),
+									);
+								} else {
+									shouldFail = !stdoutMatch(stdout);
+								}
 							}
 						}
 						if (!shouldFail) {
 							if (stderrMatch) {
 								shouldFail = !stderrMatch(stderr);
+								if (this.stdioPrefixFilter) {
+									shouldFail = !stderrMatch(
+										stderr.substring(this.stdioPrefixFilter(stderr)),
+									);
+								} else {
+									shouldFail = !stderrMatch(stderr);
+								}
 							}
 						}
 						if (shouldFail) {

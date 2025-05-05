@@ -56,11 +56,12 @@ export class ScriptTestRunner
 		return this.groupOverview;
 	}
 
-	private makeStdMatch(match: string | ((std: string) => boolean)): (std: string) => boolean {
+	private makeStdMatch(
+		match: string | ((std: string) => boolean),
+	): (std: string) => boolean {
 		if (typeof match === "string") {
-			return (std: string) => !!std.match(new RegExp(match))
+			return (std: string) => !!std.match(new RegExp(match));
 		}
-		return match
+		return match;
 	}
-
 }
